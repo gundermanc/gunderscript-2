@@ -1,0 +1,28 @@
+Gunderscript 2 Programming Language
+(C) 2014 Christian Gunderman
+Contact Email: gundermanc@gmail.com
+
+INTRODUCTION:
+Gunderscript 2 is temporary name for the successor to the original Gunderscript
+scripting language. For more information on Gunderscript, see
+http://github.com/gundermanc/gunderscript
+
+Gunderscript 2 attempts to learn from the mistakes of Gunderscript 1 and is a
+completely new language that will be written from scratch in a combination of
+C/C++ and Gunderscript. The focus is to create a clean, object oriented scripting
+language that borrows the best features from C#, Java, C, and C++ and that is
+small, efficient, and modular in design, allowing for the user to target either
+the Gunderscript 2 VM or native platforms such as x86/64 and ARM.
+
+IMPLEMENTATION PROGESS:
+Gunderscript 2 is currently under the planning stage. Tentative project
+information can be found in arch.org file. If you are interested in joining this
+project, I am in need of developers, a program manager, and code documentors.
+
+I am also trying to come up with a new name since Gunderscript 2 is not very
+creative ;)
+
+
+ATTENTION:
+I am seeking developers to help me complete Gunderscript 2 and test it. If anyone
+is interested, please email gundermanc@gmail.com.
