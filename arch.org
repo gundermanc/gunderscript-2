@@ -1,0 +1,57 @@
+#+TITLE: Gunderscript 2 Project Planning Document
+#+AUTHOR: Christian Gunderman
+
+This document is an Emacs Org-mode document. Open with emacs to use advanced
+features and collapsing of function descriptions.
+
+(C) 2014 Christian Gunderman
+
+* Project Information
+** Project Requirements
+   Below are the basic parameters and features that Gunderscript 2 
+   tentatively will implement:
+
+   - C style commenting, syntax (mostly), operators, escape sequences
+     and strings.
+   - Object oriented.
+   - Constant values.
+   - Java style class declarations:
+     + Fields, constants, fields, member functions, properties.
+     + Member functions live INSIDE of class body.
+     + Access modifiers are required.
+     + Constructors/Destructors
+     + Arguments require type, however variables infer types.
+     + C# style property statements, they are awesome.
+   - Native Code interface: The ability to wrap native C functions
+     by simply declaring them in Gunderscript code, perhaps like so:
+
+   #+BEGIN_SRC C
+     public native int FindWindow(string cName, string wName) 
+        from ("user32" | this) named "FindWindow"
+   #+END_SRC
+   - Fix some C/C++/Java/C# confusion points and inadequacies:
+     + Assignment Statements: [type] [varname] <- [value] rather
+       than using equals.
+     + Atomic Swap: [var1] <-> [var2] to avoid temp variable code.
+     + Comparision: [var1] = [var2] to avoid = or == problems.
+     + Doc string property for each declared method.
+     + inheiritable access modifier: grants access to a method ONLY to
+       subclasses.
+     + No semicolons.
+   - Variable Types:
+     + int8
+     + int16
+     + int32
+     + int64
+     + float32
+     + float64
+     + enums??? Maybe
+     + Classes - defined in code
+       * string class
+     + First Class functions or interfaces of some kind.
+     + Front/end backend modularity: implementor should be able to easily
+       implement interpreters, code generators, optimizers, etc. Each piece
+       should accept interfaces that allow for overriding of default components.
+
+** Code Style:
+   See the Java C++ coding style guidelines for more information.
