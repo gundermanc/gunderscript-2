@@ -128,3 +128,6 @@ features and collapsing of function descriptions.
 
 *** Constants
     Defines all constants widely used in Gunderscript, including the VM OP codes.
+** Gunderscript Command Line Application
+   Leverages the Gunderscript Static Library to provide command line scripting
+   functionality.
