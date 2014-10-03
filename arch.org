@@ -28,7 +28,7 @@ features and collapsing of function descriptions.
 
    #+BEGIN_SRC C
      public native int FindWindow(string cName, string wName) 
-        from ("user32" | this) named "FindWindow"
+        from ("user32" named "FindWindow" | internal)
    #+END_SRC
    - Fix some C/C++/Java/C# confusion points and inadequacies:
      + Assignment Statements: [type] [varname] <- [value] rather
@@ -113,7 +113,10 @@ features and collapsing of function descriptions.
 
 *** Virtual Machine
     Gunderscript register based virtual machine. Supports dynamically loading
-    and calling functions in dyload-able libraries.
+    and calling functions in dyload-able libraries. Memory management is
+    automatic and makes use of a Mark-sweep algorithm and custom memory
+    allocator to accelerate the process. Function stack is maintained in
+    internal VM stack.
 
 *** Standard Library
     A library of standard math and string functions (and some datastructures)
@@ -131,3 +134,59 @@ features and collapsing of function descriptions.
 ** Gunderscript Command Line Application
    Leverages the Gunderscript Static Library to provide command line scripting
    functionality.
+* Gunderscript 2 Grammar
+
+  Below are the in-progress grammar candidates for the Gunderscript language.
+  For the purposes of simply hammering out the structure, these grammars are
+  not constrained to a particular family yet.
+
+** Prototype Ambiguous Grammar
+
+   As much of the grammar as I have currently developed.
+
+   #+BEGIN_SRC
+
+   TOKENS:
+     Keywords = {
+       "private", "public", "internal", "posterity", "class", "if", "else",
+       "do", "while", "true", "false", "return", "int8", "int16", "int32",
+       "int64", "float32", "float64", "bool"
+     }
+
+     Symbols = {
+       "<-", "<->", "==", "+", "-", "*", "/", "%", "(", ")", "{", "}", "[",
+       "]", "<", ">", ".", ";", ",", "|", "&", "!", ">=", "<=", "&&", "||",
+       "<<", ">>", "+=", "-=", "*=", "/=", "%=", "++"
+     }
+
+     NAME ([a-z]|[A-Z])([a-z]|[A-Z]|[0-9]|_)*
+     INT_CONST [0-9]+
+     FLOAT_CONST [0-9]*\\.?[0-9]+((E|e)(\\+|-)?[0-9]+)?
+
+     whitespace ( |\t|\n)
+     line comment (\/\/^\n
+
+     STRING_CONST
+
+     Must start with '"' and end with the first non-escaped '"'. A quote can
+     be escaped with a slash, '\"'. Valid strings:
+
+        "aa\"\"" --> aa""
+        "aa\\" --> aa\
+        "aa\\\\" --> aa\\
+
+     c-style range comment ....
+
+     Similar to strings. Must start with '/*' and end with '*/'. However, '*'
+     or '/' can be escaped as in strings. Valid c-style range comments
+
+        /* asfde */
+        /* awef \*/ */
+        /* woief oiwjer*\/ awie */
+
+     Whitespace and comments should be skipped (although line and column numbers
+     should be tracked).
+
+
+     CodeFile ->
+   #+END_SRC
