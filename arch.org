@@ -92,7 +92,7 @@ features and collapsing of function descriptions.
     a modified Thompson Regex Compiler and VM for deterministic finite
     automata if time allows. Might just settle for non-deterministic
     implementation. Returns error if unterminated comment, string, char, etc.
-    is encountered, but does no syntax or semantic analysis.
+    is encountered, but does no syntax or semantic analysis. Tracks line numbers.
 
 *** Parser
     Performs construction of an intermediate representation. Parser will be a
@@ -140,23 +140,36 @@ features and collapsing of function descriptions.
   For the purposes of simply hammering out the structure, these grammars are
   not constrained to a particular family yet.
 
-** Prototype Ambiguous Grammar
+** Prototype Grammar
 
-   As much of the grammar as I have currently developed.
+   As much of the grammar as I have currently developed. Will need to be
+   refactored to LL(1) before implementation of parser.
+
+   Credit to Tim Henderson: Portions of this grammar are copied from or inspired
+   by bits of Arrow Lang: http://compilers.hackthology.com
 
    #+BEGIN_SRC
 
    TOKENS:
      Keywords = {
-       "private", "public", "internal", "posterity", "class", "if", "else",
-       "do", "while", "true", "false", "return", "int8", "int16", "int32",
-       "int64", "float32", "float64", "bool"
+
+       AccessModifiers = {
+         "private", "public", "internal", "posterity"
+       },
+
+       "class", "if", "else", "do", "while", "true", "false", "return",
+       "package", "get", "set", "value", "constant"
+
+       Types = {
+        "int8", "int16", "int32", "int64", "float32", "float64",
+        "bool"
+       }
      }
 
      Symbols = {
        "<-", "<->", "==", "+", "-", "*", "/", "%", "(", ")", "{", "}", "[",
        "]", "<", ">", ".", ";", ",", "|", "&", "!", ">=", "<=", "&&", "||",
-       "<<", ">>", "+=", "-=", "*=", "/=", "%=", "++"
+       "<<", ">>", "+=", "-=", "*=", "/=", "%=", "++", ":"
      }
 
      NAME ([a-z]|[A-Z])([a-z]|[A-Z]|[0-9]|_)*
@@ -187,6 +200,120 @@ features and collapsing of function descriptions.
      Whitespace and comments should be skipped (although line and column numbers
      should be tracked).
 
+    GRAMMAR:
+     CodeFileBeginning     -> "package" STRING_CONST ";" CodeFileBody
 
-     CodeFile ->
+     CodeFileBody          -> ClassDef 
+                            | CodeFileBody
+                            | e            
+
+     ClassDef              -> ClassHeader "{" ClassBody "}"
+
+     ClassHeader           -> AccessModifier "class" NAME "(" ParamDeclList ")"
+
+     ParamDeclList         -> ParamDeclList*
+                            | e
+
+     ParamDeclList*        -> ParamDeclList* "," Param
+                            | Param
+
+     Param                 -> Type NAME ParamInit
+
+     ParamInit             -> "<-" Constant
+
+     ClassBody             -> FieldDecl
+                            | FunctionDecl
+                            | PropertyDecl
+                            | ClassBody
+                            | e 
+
+     FieldDecl             -> AccessModifier Type NAME VarInit ";"
+
+     VarInit               -> "<-" Expr
+                            | e
+
+     FunctionDecl          -> AccessModifier NativeProp Type NAME "(" ParamDeclList ")" BlockStmt
+
+     NativeProp            -> "native"
+                            | e
+
+     TypeProp              -> Type
+                            | e
+
+     BlockBody             -> Statement BlockBody
+                            | Statement
+                            | e
+
+     Statement             -> DeclStmt
+                            | BlockStmt
+                            | IfStmt
+                            | WhileStmt
+                            | DoWhileStmt
+                            | ForStmt
+                            | CallExpr
+                            | AssignExpr
+                            | Return stmt
+                            | ";"
+
+     Expr                  -> CallExpr
+                            | AssignExpr
+                            | BooleanExpr
+                            | ArithExpr
+                            | MultExpr
+
+     Constant              -> INT_CONST
+                            | STRING_CONST
+                            | FLOAT_CONST
+                            | BooleanConst
+
+     PropertyDecl          -> Type NAME "{" PropertyBody "}"
+
+     PropertyBody          -> GetProp SetProp
+                            | SetProp GetProp
+
+     GetProp               -> AccessModifier "get" ";"
+                            | AccessModifier "get" BlockStmt
+
+     SetProp               -> AccessModifier "set" ";"
+                            | AccessModifier "set" BlockStmt
+
+     DeclStmt              -> ConstProp Type NAME ";"
+
+     ConstProp             -> "constant"
+                            | e
+
+     BlockStmt             -> "{" BlockBody "}"
+
+     IfStmt                -> "if" "(" Expr ")" "{" BlockBody "}"
+                            | "if" "(" Expr ")" Statement else Statement
+
+     WhileStmt             -> "while" "(" Expr ")" Statement
+
+     DoWhile               -> "do" Statement "while" "(" Expr ")" ";"
+
+     ForStmt               -> "for" "(" Expr ";" Expr ";" Expr ")" Statement
+
+     ReturnStmt            -> "return" Expr;
+
+     CallExpr              -> NAME "(" ParamCallList ")"
+
+     AssignExpr            -> NAME "<-" Expr;
+
+     BooleanExpr           TBD..
+
+     ArithExpr             TBD..
+
+     MultExpr              TBD..
+
+     BooleanConst          -> true
+                            | false
+
+     ParamCallList         -> ParamCallList*
+                            | e
+
+     ParamDeclList*        -> ParamCallList* "," Param
+                            | Param
+
+     CallParam             -> NAME
+                            | NAME ":" NAME
    #+END_SRC
