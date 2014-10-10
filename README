@@ -22,7 +22,14 @@ project, I am in need of developers, a program manager, and code documentors.
 I am also trying to come up with a new name since Gunderscript 2 is not very
 creative ;)
 
+I have begun adding code to the repository.
 
 ATTENTION:
 I am seeking developers to help me complete Gunderscript 2 and test it. If anyone
 is interested, please email gundermanc@gmail.com.
+
+BUILDING:
+There is next to no code yet, but there is a build system in place.
+Build the current code by running 'make all-release' in the root directory.
+Build the debug configuration by running 'make all-debug' in the root directory.
+Build the library unit tests by running 'make all-test' in the library directory.
