@@ -7,10 +7,10 @@ CC = g++
 AR = ar
 ARFLAGS = rcs
 INCDIR = include
-CFLAGS = -fPIC -Wall -I $(INCDIR)
+CFLAGS = -fPIC -std=c++11 -Wall -I $(INCDIR)
 TESTDIR = test
 # Debug flags
-DFLAGS = -g
+DFLAGS = -g -DDEBUG
 
 # Release flags
 RFLAGS = 
@@ -27,7 +27,7 @@ all-release: gslib
 
 .PHONY: run-all-test
 run-all-test: all-test
-	$(TESTDIR)/*.unittest
+	$(TESTDIR)/*_unittest
 
 .PHONY: all-test
 all-test:
@@ -54,3 +54,6 @@ clean:
 
 symbol_table: $(SRCDIR)/symbol_table.cc
 	$(CC) $(CFLAGS) $(FFLAGS) -c $(SRCDIR)/symbol_table.cc
+
+#standard_map: $(SRCDIR)/standard_map.cc
+#	$(CC) $(CFLAGS) $(FFLAGS) -c $(SRCDIR)/standard_map.cc

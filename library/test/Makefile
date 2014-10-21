@@ -35,11 +35,11 @@ USER_DIR = ../src
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -pthread
+CXXFLAGS += -g -std=c++11 -Wall -Wextra -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = symbol_table.unittest
+TESTS = symbol_table_unittest
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -83,9 +83,9 @@ libgunderscript:
 	$(MAKE) -C .. all-debug
 
 # Test build definitions
-symbol_table_unittest.o : libgunderscript $(USER_DIR)/symbol_table.unittest.cc \
+symbol_table_unittest.o : libgunderscript $(USER_DIR)/symbol_table_unittest.cc \
               $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/symbol_table.unittest.cc $(GSLIB)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/symbol_table_unittest.cc $(GSLIB)
 
-symbol_table.unittest : gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
+symbol_table_unittest : symbol_table_unittest.o gtest_main.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) ../*.o -lpthread $^ -o $@
