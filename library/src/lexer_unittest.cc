@@ -19,7 +19,8 @@ using gunderscript::library::LexerStringSource;
 #define TEST_SYMBOL(n, s, l)                        \
   TEST(Lexer, SymbolRecognition_ ## n ) {           \
     std::string input = s ;                         \
-    Lexer lexer(input);                             \
+    LexerStringSource source(input);                \
+    Lexer lexer(source);                            \
     const LexerToken* token = lexer.AdvanceNext();  \
     EXPECT_FALSE(token == NULL);                    \
     ASSERT_EQ(LexerTokenType::SYMBOL, token->type); \
@@ -34,7 +35,8 @@ using gunderscript::library::LexerStringSource;
 #define TEST_KEYWORD(n, k, t, s)                   \
   TEST(Lexer, KeywordRecognition_ ## n ) {         \
     std::string input = k ;                        \
-    Lexer lexer(input);                            \
+    LexerStringSource source(input);               \
+    Lexer lexer(source);                           \
     const LexerToken* token = lexer.AdvanceNext(); \
     EXPECT_FALSE(token == NULL);                   \
     ASSERT_EQ(t, token->type);                     \
@@ -65,8 +67,9 @@ TEST(Lexer, LexerStringSource) {
 // Checks to make sure whitespace is recognized and removed.
 TEST(Lexer, LexerWhitespace) {
   std::string input = " \n \t  = \n\t  ! \r";
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
-  Lexer lexer(input);
   const LexerToken* token = lexer.AdvanceNext();
 
   EXPECT_FALSE(token == NULL);
@@ -119,8 +122,9 @@ TEST_SYMBOL(TERNARY, "?", LexerSymbol::TERNARY);
 // also sort of checks whitespace handling.
 TEST(Lexer, SequentialSymbols) {
   std::string input = "  ! < > \n <- \t <->   <= << > >= >> /";
+  LexerStringSource source(input);
 
-  Lexer lexer(input);
+  Lexer lexer(source);
 
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -169,16 +173,17 @@ TEST(Lexer, SequentialSymbols) {
 
 TEST(Lexer, SingleLineCommentCharOnly) {
   std::string input = "//";
+  LexerStringSource source(input);
 
-  Lexer lexer(input);
+  Lexer lexer(source);
 
   EXPECT_TRUE(lexer.AdvanceNext() == NULL);
 }
 
 TEST(Lexer, TrailingSingleLineComment) {
   std::string input = " \t  ! < > // < > !";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -197,34 +202,38 @@ TEST(Lexer, TrailingSingleLineComment) {
 
 TEST(Lexer, SingleLineCommentWithNewline) {
   std::string input = " // ! \n // <";
+  LexerStringSource source(input);
 
-  Lexer lexer(input);
+  Lexer lexer(source);
 
   ASSERT_TRUE(lexer.AdvanceNext() == NULL);
 }
 
 TEST(Lexer, EmptyMultilineComment) {
   std::string input = "/**/";
+  LexerStringSource source(input);
 
-  Lexer lexer(input);
+  Lexer lexer(source);
 
   ASSERT_TRUE(lexer.AdvanceNext() == NULL);
 }
 
 TEST(Lexer, MultilineCommentExtraStars) {
   std::string input = "/*****/";
+  LexerStringSource source(input);
 
-  Lexer lexer(input);
+  Lexer lexer(source);
 
   ASSERT_TRUE(lexer.AdvanceNext() == NULL);
 }
 
 TEST(Lexer, MultilineCommentSingleStar) {
   std::string input = "/*/";
+  LexerStringSource source(input);
 
   // TODO: make actual exception use ASSERT_THROW instead.
   try {
-    Lexer lexer(input);
+    Lexer lexer(source);
   } catch (const int ex) {
     ASSERT_EQ(99, ex);
     return;
@@ -235,10 +244,11 @@ TEST(Lexer, MultilineCommentSingleStar) {
 
 TEST(Lexer, MultilineCommentUnterminated) {
   std::string input = "/*  < > ! <->";
+  LexerStringSource source(input);
 
   // TODO: make actual exception use ASSERT_THROW instead.
   try {
-    Lexer lexer(input);
+    Lexer lexer(source);
   } catch (const int ex) {
     ASSERT_EQ(99, ex);
     return;
@@ -249,8 +259,8 @@ TEST(Lexer, MultilineCommentUnterminated) {
 
 TEST(Lexer, MultilineCommentPrePostTokens) {
   std::string input = " <-> /* < > */ >> >";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -270,8 +280,8 @@ TEST(Lexer, MultilineCommentPrePostTokens) {
 
 TEST(Lexer, MultilineCommentWithSecondStart) {
   std::string input = " <-> /* /* < > */ >> >";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -290,8 +300,8 @@ TEST(Lexer, MultilineCommentWithSecondStart) {
 
 TEST(Lexer, MultilineCommentWithNewline) {
   std::string input = "\n <- /* /n/n * / */ +=";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -306,8 +316,8 @@ TEST(Lexer, MultilineCommentWithNewline) {
 
 TEST(Lexer, LineNumbersWhitespace) {
   std::string input = "!    = \n  %=\n\n&";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   // Initial conditions: no current token, only a next token.
   EXPECT_EQ(0, lexer.current_column_number());
@@ -336,8 +346,8 @@ TEST(Lexer, LineNumbersWhitespace) {
 
 TEST(Lexer, LineNumberComment) {
   std::string input = " % /* \n // & \n */   (\n&";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   // Initial conditions: no current token, only a next token.
   EXPECT_EQ(0, lexer.current_column_number());
@@ -366,8 +376,8 @@ TEST(Lexer, LineNumberComment) {
 
 TEST(Lexer, LexRegularString) {
   std::string input = " \"Hello\" +";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   lexer.AdvanceNext();
   ASSERT_FALSE(lexer.current_token() == NULL);
@@ -382,10 +392,11 @@ TEST(Lexer, LexRegularString) {
 
 TEST(Lexer, LexUnterminatedString) {
   std::string input = " \"String is unterminated ";
+  LexerStringSource source(input);
 
   // TODO: make actual exception use ASSERT_THROW instead.
   try {
-    Lexer lexer(input);
+    Lexer lexer(source);
   } catch (const int ex) {
     ASSERT_EQ(98, ex);
     return;
@@ -396,10 +407,11 @@ TEST(Lexer, LexUnterminatedString) {
 
 TEST(Lexer, LexNewlineInString) {
   std::string input = " \" New line here -> \n <- OOPS\" ";
+  LexerStringSource source(input);
 
   // TODO: make actual exception use ASSERT_THROW instead.
   try {
-    Lexer lexer(input);
+    Lexer lexer(source);
   } catch (const int ex) {
     ASSERT_EQ(97, ex);
     return;
@@ -410,7 +422,8 @@ TEST(Lexer, LexNewlineInString) {
 
 TEST(Lexer, LexEscapedString) {
   std::string input = "\"  \\'  \\\"  \\?  \\\\  \\b  \\n  \\t  \\r  \\v  \\f  \"";
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   lexer.AdvanceNext();
   ASSERT_FALSE(lexer.current_token() == NULL);
@@ -423,10 +436,11 @@ TEST(Lexer, LexEscapedString) {
 
 TEST(Lexer, LexInvalidEscapedString) {
   std::string input = " \"   \\q    \" ";
+  LexerStringSource source(input);
 
   // TODO: make actual exception use ASSERT_THROW instead.
   try {
-    Lexer lexer(input);
+    Lexer lexer(source);
   } catch (const int ex) {
     ASSERT_EQ(96, ex);
     return;
@@ -437,8 +451,8 @@ TEST(Lexer, LexInvalidEscapedString) {
 
 TEST(Lexer, ParseNameKeyword) {
   std::string input = "hello    for  package";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   ASSERT_FALSE(lexer.AdvanceNext() == NULL);
   EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
@@ -486,8 +500,8 @@ TEST_KEYWORD(CHAR, "char", LexerTokenType::TYPE, LexerSymbol::CHAR);
 
 TEST(Lexer, ParseIntegers) {
   std::string input = "3433+ 211";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   ASSERT_FALSE(lexer.AdvanceNext() == NULL);
   EXPECT_EQ(LexerTokenType::INT, lexer.current_token()->type);
@@ -506,10 +520,11 @@ TEST(Lexer, ParseIntegers) {
 
 TEST(Lexer, ParseIntegerOutOfRange) {
   std::string input = "9999999999999999999999999999999999999999999999999999999";
+  LexerStringSource source(input);
 
   // TODO: make actual exception use ASSERT_THROW instead.
   try {
-    Lexer lexer(input);
+    Lexer lexer(source);
   } catch (const int ex) {
     ASSERT_EQ(75, ex);
     return;
@@ -520,8 +535,8 @@ TEST(Lexer, ParseIntegerOutOfRange) {
 
 TEST(Lexer, ParseFloats) {
   std::string input = "123.456 / 43.2";
-
-  Lexer lexer(input);
+  LexerStringSource source(input);
+  Lexer lexer(source);
 
   ASSERT_FALSE(lexer.AdvanceNext() == NULL);
   EXPECT_EQ(LexerTokenType::FLOAT, lexer.current_token()->type);
@@ -540,10 +555,11 @@ TEST(Lexer, ParseFloats) {
 
 TEST(Lexer, ParseFloatsWithMultipleDecimals) {
   std::string input = "34.43.3";
+  LexerStringSource source(input);
 
   // TODO: make actual exception use ASSERT_THROW instead.
   try {
-    Lexer lexer(input);
+    Lexer lexer(source);
   } catch (const int ex) {
     ASSERT_EQ(73, ex);
     return;

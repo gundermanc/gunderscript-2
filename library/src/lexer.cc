@@ -83,8 +83,8 @@ int LexerStringSource::PeekNextChar() {
 // Constructs a Lexer instance from a string input.
 // input: the text data to lex.
 // Throws: A LexerException or its subclasses.
-Lexer::Lexer(std::string& input) {
-  this->source_ = new LexerStringSource(input);
+Lexer::Lexer(LexerSourceInterface& source) {
+  this->source_ = &source;
   this->first_load_ = true;
   this->current_column_number_ = 0;
   this->current_line_number_ = 0;
@@ -106,7 +106,6 @@ Lexer::~Lexer() {
        this->current_token_.type == LexerTokenType::NAME)) {
     delete this->current_token_.string_const;
   }
-  delete this->source_;
 }
 
 // Advances the current and next token and gets the new

@@ -86,8 +86,7 @@ typedef struct {
 // Lexer Class definition and Public/Private interfaces.
 class Lexer {
  public:
-  Lexer(LexerSourceInterface& source) { this->source_ = &source; } ;
-  Lexer(std::string& input);
+  Lexer(LexerSourceInterface& source);
   ~Lexer();
   int current_column_number() { return this->current_column_number_; }
   int current_line_number() { return this->current_line_number_; }
