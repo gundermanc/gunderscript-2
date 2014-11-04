@@ -1,8 +1,6 @@
 // Gunderscript-2 Lexer
 // (C) 2014 Christian Gunderman
 
-#include <cctype>
-
 #include "lexer.h"
 
 namespace gunderscript {
@@ -80,7 +78,7 @@ int LexerStringSource::PeekNextChar() {
   return this->input_[this->index];
 }
 
-// Constructs a Lexer instance from a string input.
+// Constructs a Lexer instance from a LexerSource.
 // input: the text data to lex.
 // Throws: A LexerException or its subclasses.
 Lexer::Lexer(LexerSourceInterface& source) {

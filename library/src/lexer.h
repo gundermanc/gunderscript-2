@@ -5,8 +5,9 @@
 #define GUNDERSCRIPT_LEXER__H__
 
 #include <sstream>
-#include <string>
 #include <unordered_map>
+
+#include "exceptions.h"
 
 namespace gunderscript {
 namespace library {
