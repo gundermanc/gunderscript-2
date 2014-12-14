@@ -47,7 +47,7 @@ class LexerStringSource : public LexerSourceInterface {
 // FLOAT: contains float_const.
 // STRING: contains string_const.
 enum class LexerTokenType {
-  ACCESS_MODIFIER, TYPE, KEYWORD, SYMBOL, NAME, INT, FLOAT, STRING
+  ACCESS_MODIFIER, TYPE, KEYWORD, SYMBOL, NAME, INT, FLOAT, STRING, CHAR
 };
 
 // All of the various operators, types, access modifiers, etc.
@@ -56,7 +56,7 @@ enum class LexerSymbol {
   SWAP, ASSIGN, LSHIFT, LESSEQUALS, LESS, GREATEREQUALS, RSHIFT, GREATER, ADD,
     ADDEQUALS, SUB, SUBEQUALS, MUL, MULEQUALS, DIV, DIVEQUALS, MOD, MODEQUALS,
     LPAREN, RPAREN, LSQUARE, RSQUARE, LBRACE, RBRACE, DOT, SEMICOLON, COMMA, 
-    QUOTE, LOGOR, BINOR, LOGAND, BINAND, EQUALS, NOTEQUALS, NOT, COLON,
+    LOGOR, BINOR, LOGAND, BINAND, EQUALS, NOTEQUALS, NOT, COLON,
     TERNARY,
 
     // Access Modifiers:
@@ -80,6 +80,7 @@ typedef struct {
     const std::string* string_const;
     long int_const;
     double float_const;
+    char char_const;
   };
 
 } LexerToken;
@@ -120,6 +121,7 @@ class Lexer {
   void ParseString();
   void ParseName();
   void ParseNumber();
+  void ParseCharacter();
   void CleanupLast();
   void AdvanceTokens();
 };
@@ -175,6 +177,28 @@ class LexerNumberException : public LexerException {
   LexerNumberException (const Lexer& lexer) : 
                LexerException(lexer,
                  "Malformed number near line " +
+                 std::to_string(lexer.current_column_number()) + 
+                 std::to_string(lexer.current_line_number()) + 
+                 ", column " + ".") { }
+};
+
+// Exception for char constant.
+class LexerCharacterException : public LexerException {
+ public:
+  LexerCharacterException (const Lexer& lexer) : 
+               LexerException(lexer,
+                 "Malformed char constant near line " +
+                 std::to_string(lexer.current_column_number()) + 
+                 std::to_string(lexer.current_line_number()) + 
+                 ", column " + ".") { }
+};
+
+// Exception for no matches.
+class LexerNoMatchException : public LexerException {
+ public:
+  LexerNoMatchException (const Lexer& lexer) : 
+               LexerException(lexer,
+                 "Lexer did not match any near line " +
                  std::to_string(lexer.current_column_number()) + 
                  std::to_string(lexer.current_line_number()) + 
                  ", column " + ".") { }

@@ -419,6 +419,23 @@ void Lexer::CleanupLast() {
   this->current_line_number_ = this->next_line_number_;
 }
 
+// Parse Character Constants from the input.
+void Lexer::ParseCharacter() {
+  ADVANCE_CHAR();
+  char c = PEEK_CHAR();
+
+  ADVANCE_CHAR();
+  if (PEEK_CHAR() != '\'') {
+    throw LexerCharacterException(*this);
+  }
+
+  ADVANCE_CHAR();
+
+  this->valid_next_token_ = true;
+  this->next_token_.type = LexerTokenType::CHAR;
+  this->next_token_.char_const = c;
+}
+
 // Moves the former next_token_ to the current_token_ and parses new
 // input until it finds the next cohesive token to place in next_token_.
 // Throws: LexerError if any of the parse submethods has an error, or if
@@ -444,6 +461,9 @@ void Lexer::AdvanceTokens() {
       break;
     case '"':
       this->ParseString();
+      return;
+    case '\'':
+      this->ParseCharacter();
       return;
     case '<': // <-, <, <=, <<, <->
       ADVANCE_CHAR();
@@ -508,8 +528,6 @@ void Lexer::AdvanceTokens() {
       ACCEPT_SYMBOL(LexerSymbol::SEMICOLON);
     case ',': // ,
       ACCEPT_SYMBOL(LexerSymbol::COMMA);
-    case '\'': // '
-      ACCEPT_SYMBOL(LexerSymbol::QUOTE);
     case '|': // |, ||
       ACCEPT_WWOSUFFIX('|', LexerSymbol::LOGOR, LexerSymbol::BINOR);
     case '&': // &, &&
@@ -529,7 +547,7 @@ void Lexer::AdvanceTokens() {
         this->ParseName();
       } else {
         // No matching lexing rules.
-        throw 35;
+        throw LexerNoMatchException(*this);
       }
       return;
     }

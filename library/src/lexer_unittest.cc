@@ -107,7 +107,6 @@ TEST_SYMBOL(RBRACE, "}", LexerSymbol::RBRACE);
 TEST_SYMBOL(DOT, ".", LexerSymbol::DOT);
 TEST_SYMBOL(SEMICOLON, ";", LexerSymbol::SEMICOLON);
 TEST_SYMBOL(COMMA, ",", LexerSymbol::COMMA);
-TEST_SYMBOL(QUOTE, "'", LexerSymbol::QUOTE);
 TEST_SYMBOL(LOGOR, "||", LexerSymbol::LOGOR);
 TEST_SYMBOL(BINOR, "|", LexerSymbol::BINOR);
 TEST_SYMBOL(LOGAND, "&&", LexerSymbol::LOGAND);
@@ -517,4 +516,37 @@ TEST(Lexer, ParseFloatsWithMultipleDecimals) {
 
   ASSERT_THROW(Lexer lexer(source),
                gunderscript::library::LexerNumberException);
+}
+
+TEST(Lexer, ParseChar) {
+  std::string input = "  'c' '\"' ";
+  LexerStringSource source(input);
+
+  Lexer lexer(source);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(lexer.current_token()->type, LexerTokenType::CHAR);
+  EXPECT_EQ(lexer.current_token()->char_const, 'c');
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(lexer.current_token()->type, LexerTokenType::CHAR);
+  EXPECT_EQ(lexer.current_token()->char_const, '"');
+
+  ASSERT_TRUE(lexer.AdvanceNext() == NULL);
+}
+
+TEST(Lexer, ParseUnterminatedChar) {
+  std::string input = " 'c  ";
+  LexerStringSource source(input);
+
+  ASSERT_THROW(Lexer lexer(source),
+               gunderscript::library::LexerCharacterException);
+}
+
+TEST(Lexer, ParseMultiCharChar) {
+  std::string input = " 'cd'  ";
+  LexerStringSource source(input);
+
+  ASSERT_THROW(Lexer lexer(source),
+               gunderscript::library::LexerCharacterException);
 }
