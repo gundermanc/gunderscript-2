@@ -171,6 +171,7 @@ void Lexer::LoadKeywords() {
   DEFINE_KEYWORD("float", LexerTokenType::TYPE, LexerSymbol::FLOAT);
   DEFINE_KEYWORD("bool", LexerTokenType::TYPE, LexerSymbol::BOOL);
   DEFINE_KEYWORD("char", LexerTokenType::TYPE, LexerSymbol::CHAR);
+  DEFINE_KEYWORD("string", LexerTokenType::TYPE, LexerSymbol::STRING);
 }
 
 // Processes and removes comments from code.

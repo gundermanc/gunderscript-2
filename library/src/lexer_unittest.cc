@@ -550,3 +550,87 @@ TEST(Lexer, ParseMultiCharChar) {
   ASSERT_THROW(Lexer lexer(source),
                gunderscript::library::LexerCharacterException);
 }
+
+TEST(Lexer, FunctionExample) {
+  std::string input =
+    "public int PrintFormat(string foobar) {"
+    "  int x = 3 * 2.56 + 5;"
+    "}";
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::ACCESS_MODIFIER, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::PUBLIC, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::TYPE, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::INT, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
+  EXPECT_STREQ("PrintFormat", lexer.current_token()->string_const->c_str());
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::LPAREN, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::TYPE, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::STRING, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
+  EXPECT_STREQ("foobar", lexer.current_token()->string_const->c_str());
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::RPAREN, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::LBRACE, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::TYPE, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::INT, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
+  EXPECT_STREQ("x", lexer.current_token()->string_const->c_str());
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::EQUALS, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::INT, lexer.current_token()->type);
+  EXPECT_EQ(3, lexer.current_token()->int_const);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::MUL, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::FLOAT, lexer.current_token()->type);
+  EXPECT_EQ(2.56, lexer.current_token()->float_const);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::ADD, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::INT, lexer.current_token()->type);
+  EXPECT_EQ(5, lexer.current_token()->int_const);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::SEMICOLON, lexer.current_token()->symbol);
+
+  ASSERT_FALSE(lexer.AdvanceNext() == NULL);
+  EXPECT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+  EXPECT_EQ(LexerSymbol::RBRACE, lexer.current_token()->symbol);
+
+  ASSERT_TRUE(lexer.AdvanceNext() == NULL);
+}

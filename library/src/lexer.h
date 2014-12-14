@@ -67,7 +67,7 @@ enum class LexerSymbol {
     ERADICATE, START, READONLY, FOR, BREAK, CONTINUE,
 
     // Types:
-    CHAR, INT, FLOAT, BOOL
+    CHAR, INT, FLOAT, BOOL, STRING
 };
 
 // LexerToken.
@@ -144,9 +144,9 @@ class LexerCommentException : public LexerException {
  public:
   LexerCommentException (const Lexer& lexer) : 
                LexerException(lexer, "Unterminated comment near line " +
-                 std::to_string(lexer.current_column_number()) + 
                  std::to_string(lexer.current_line_number()) + 
-                 ", column " + ".") { }
+                 ", column " + std::to_string(lexer.current_column_number()) + 
+                 ".") { }
 };
 
 // Exception for unterminated String constants.
@@ -155,9 +155,9 @@ class LexerStringException : public LexerException {
   LexerStringException (const Lexer& lexer) : 
                LexerException(lexer,
                  "Unterminated string or new line in string near line " +
-                 std::to_string(lexer.current_column_number()) + 
                  std::to_string(lexer.current_line_number()) + 
-                 ", column " + ".") { }
+                 ", column " + std::to_string(lexer.current_column_number()) +
+                 ".") { }
 };
 
 // Exception for invalid escape sequence.
@@ -166,9 +166,9 @@ class LexerEscapeException : public LexerException {
   LexerEscapeException (const Lexer& lexer) : 
                LexerException(lexer,
                  "Invalid string escape sequence near line " +
-                 std::to_string(lexer.current_column_number()) + 
                  std::to_string(lexer.current_line_number()) + 
-                 ", column " + ".") { }
+                 ", column " + std::to_string(lexer.current_column_number()) + 
+                 ".") { }
 };
 
 // Exception for numeric constant.
@@ -177,9 +177,9 @@ class LexerNumberException : public LexerException {
   LexerNumberException (const Lexer& lexer) : 
                LexerException(lexer,
                  "Malformed number near line " +
-                 std::to_string(lexer.current_column_number()) + 
                  std::to_string(lexer.current_line_number()) + 
-                 ", column " + ".") { }
+                 ", column " + std::to_string(lexer.current_column_number()) + 
+                 ".") { }
 };
 
 // Exception for char constant.
@@ -188,9 +188,9 @@ class LexerCharacterException : public LexerException {
   LexerCharacterException (const Lexer& lexer) : 
                LexerException(lexer,
                  "Malformed char constant near line " +
-                 std::to_string(lexer.current_column_number()) + 
                  std::to_string(lexer.current_line_number()) + 
-                 ", column " + ".") { }
+                 ", column " + std::to_string(lexer.current_column_number()) + 
+                 ".") { }
 };
 
 // Exception for no matches.
@@ -199,9 +199,9 @@ class LexerNoMatchException : public LexerException {
   LexerNoMatchException (const Lexer& lexer) : 
                LexerException(lexer,
                  "Lexer did not match any near line " +
-                 std::to_string(lexer.current_column_number()) + 
                  std::to_string(lexer.current_line_number()) + 
-                 ", column " + ".") { }
+                 ", column " + std::to_string(lexer.current_column_number()) +
+                 ".") { }
 };
 
 } // namespace library
