@@ -188,7 +188,7 @@ TEST(Lexer, TrailingSingleLineComment) {
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
   ASSERT_EQ(LexerSymbol::NOT, lexer.current_token()->symbol);
-  
+
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
   ASSERT_EQ(LexerSymbol::LESS, lexer.current_token()->symbol);
@@ -231,30 +231,16 @@ TEST(Lexer, MultilineCommentSingleStar) {
   std::string input = "/*/";
   LexerStringSource source(input);
 
-  // TODO: make actual exception use ASSERT_THROW instead.
-  try {
-    Lexer lexer(source);
-  } catch (const int ex) {
-    ASSERT_EQ(99, ex);
-    return;
-  }
-
-  FAIL();
+  ASSERT_THROW(Lexer lexer(source),
+               gunderscript::library::LexerCommentException);
 }
 
 TEST(Lexer, MultilineCommentUnterminated) {
   std::string input = "/*  < > ! <->";
   LexerStringSource source(input);
 
-  // TODO: make actual exception use ASSERT_THROW instead.
-  try {
-    Lexer lexer(source);
-  } catch (const int ex) {
-    ASSERT_EQ(99, ex);
-    return;
-  }
-
-  FAIL();
+  ASSERT_THROW(Lexer lexer(source),
+               gunderscript::library::LexerCommentException);
 }
 
 TEST(Lexer, MultilineCommentPrePostTokens) {
@@ -394,30 +380,16 @@ TEST(Lexer, LexUnterminatedString) {
   std::string input = " \"String is unterminated ";
   LexerStringSource source(input);
 
-  // TODO: make actual exception use ASSERT_THROW instead.
-  try {
-    Lexer lexer(source);
-  } catch (const int ex) {
-    ASSERT_EQ(98, ex);
-    return;
-  }
-
-  FAIL();
+  ASSERT_THROW(Lexer lexer(source),
+               gunderscript::library::LexerStringException);
 }
 
 TEST(Lexer, LexNewlineInString) {
   std::string input = " \" New line here -> \n <- OOPS\" ";
   LexerStringSource source(input);
 
-  // TODO: make actual exception use ASSERT_THROW instead.
-  try {
-    Lexer lexer(source);
-  } catch (const int ex) {
-    ASSERT_EQ(97, ex);
-    return;
-  }
-
-  FAIL();
+  ASSERT_THROW(Lexer lexer(source),
+               gunderscript::library::LexerStringException);
 }
 
 TEST(Lexer, LexEscapedString) {
@@ -428,7 +400,7 @@ TEST(Lexer, LexEscapedString) {
   lexer.AdvanceNext();
   ASSERT_FALSE(lexer.current_token() == NULL);
   EXPECT_EQ(LexerTokenType::STRING, lexer.current_token()->type);
-  EXPECT_STREQ("  '  \"  ?  \\  \b  \n  \t  \r  \v  \f  ", 
+  EXPECT_STREQ("  '  \"  ?  \\  \b  \n  \t  \r  \v  \f  ",
                lexer.current_token()->string_const->c_str());
 
   ASSERT_TRUE(lexer.AdvanceNext() == NULL);
@@ -438,15 +410,8 @@ TEST(Lexer, LexInvalidEscapedString) {
   std::string input = " \"   \\q    \" ";
   LexerStringSource source(input);
 
-  // TODO: make actual exception use ASSERT_THROW instead.
-  try {
-    Lexer lexer(source);
-  } catch (const int ex) {
-    ASSERT_EQ(96, ex);
-    return;
-  }
-
-  FAIL();
+  ASSERT_THROW(Lexer lexer(source),
+               gunderscript::library::LexerEscapeException);
 }
 
 TEST(Lexer, ParseNameKeyword) {
@@ -485,7 +450,7 @@ TEST_KEYWORD(FALSE, "false", LexerTokenType::KEYWORD, LexerSymbol::FALSE);
 TEST_KEYWORD(RETURN, "return", LexerTokenType::KEYWORD, LexerSymbol::RETURN);
 TEST_KEYWORD(GET, "get", LexerTokenType::KEYWORD, LexerSymbol::GET);
 TEST_KEYWORD(SET, "set", LexerTokenType::KEYWORD, LexerSymbol::SET);
-TEST_KEYWORD(CONCEIVE, "conceive", LexerTokenType::KEYWORD, LexerSymbol::CONCEIVE);
+TEST_KEYWORD(CONCEIVE, "conceive", LexerTokenType::KEYWORD,LexerSymbol::CONCEIVE);
 TEST_KEYWORD(ERADICATE, "eradicate", LexerTokenType::KEYWORD, LexerSymbol::ERADICATE);
 TEST_KEYWORD(START, "start", LexerTokenType::KEYWORD, LexerSymbol::START);
 TEST_KEYWORD(READONLY, "readonly", LexerTokenType::KEYWORD, LexerSymbol::READONLY);
@@ -522,15 +487,8 @@ TEST(Lexer, ParseIntegerOutOfRange) {
   std::string input = "9999999999999999999999999999999999999999999999999999999";
   LexerStringSource source(input);
 
-  // TODO: make actual exception use ASSERT_THROW instead.
-  try {
-    Lexer lexer(source);
-  } catch (const int ex) {
-    ASSERT_EQ(75, ex);
-    return;
-  }
-
-  FAIL();
+  ASSERT_THROW(Lexer lexer(source),
+               gunderscript::library::LexerNumberException);
 }
 
 TEST(Lexer, ParseFloats) {
@@ -557,13 +515,6 @@ TEST(Lexer, ParseFloatsWithMultipleDecimals) {
   std::string input = "34.43.3";
   LexerStringSource source(input);
 
-  // TODO: make actual exception use ASSERT_THROW instead.
-  try {
-    Lexer lexer(source);
-  } catch (const int ex) {
-    ASSERT_EQ(73, ex);
-    return;
-  }
-
-  FAIL();
+  ASSERT_THROW(Lexer lexer(source),
+               gunderscript::library::LexerNumberException);
 }

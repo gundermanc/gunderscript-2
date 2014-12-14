@@ -118,7 +118,7 @@ const LexerToken* Lexer::AdvanceNext() {
 // Gets the current token. This is a fast constant time operation
 // that requires no computation or IO.
 // Returns: The current token, or NULL if no more tokens remain.
-const LexerToken* Lexer::current_token() {
+const LexerToken* Lexer::current_token() const {
   if (!this->valid_current_token_) {
     return NULL;
   }
@@ -130,7 +130,7 @@ const LexerToken* Lexer::current_token() {
 // This is a fast constant time operation.
 // Returns: The next token, or NULL if there is no token after
 // this one.
-const LexerToken* Lexer::next_token() {
+const LexerToken* Lexer::next_token() const {
   if (!this->valid_next_token_) {
     return NULL;
   }
@@ -238,10 +238,7 @@ bool Lexer::SkipMultiLineComments() {
     }
 
     if (!HAS_CHAR()) {
-
-      // TODO: make this legit exception
-      int x = 99;
-      throw x;
+      throw LexerCommentException(*this);
     }
   }
 
@@ -305,8 +302,7 @@ void Lexer::EscapeChar(std::stringstream& buffer) {
       buffer << '\f';
       break;
     default:
-      // TODO: make legit exception for unknown escape sequence.
-      throw 96;
+      throw LexerEscapeException(*this);
   }
 }
 
@@ -322,13 +318,11 @@ void Lexer::ParseString() {
         break;
 
       case '\n':
-         // TODO: make into actual exception.
-        throw 97;
+        throw LexerStringException(*this);
 
       case '"':
         this->valid_next_token_ = true;
         this->next_token_.type = LexerTokenType::STRING;
-        // TODO: free this string.
         this->next_token_.string_const = new std::string(buffer.str());
         ADVANCE_CHAR();
         return;
@@ -338,8 +332,7 @@ void Lexer::ParseString() {
     }
   }
 
-  // TODO: make legit exception.
-  throw 98;
+  throw LexerStringException(*this);
 }
 
 // Parses a name or Keyword from the InputStream and sets it as the
@@ -398,15 +391,12 @@ void Lexer::ParseNumber() {
     }
 
     if (consumed_idx < num_str.length()) {
-      // Unconsumed input.
-      // TODO: make legit exception.
-      throw 73;
+      throw LexerNumberException(*this);
     }
   } catch (const std::invalid_argument& ex) {
-    // TODO: make legit exception
-    throw 74;
+    throw LexerNumberException(*this);
   } catch (const std::out_of_range& ex) {
-    throw 75;
+    throw LexerNumberException(*this);
   }
 
   this->valid_next_token_ = true;

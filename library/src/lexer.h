@@ -89,14 +89,14 @@ class Lexer {
  public:
   Lexer(LexerSourceInterface& source);
   ~Lexer();
-  int current_column_number() { return this->current_column_number_; }
-  int current_line_number() { return this->current_line_number_; }
-  int next_column_number() { return this->next_column_number_; }
-  int next_line_number() { return this->next_line_number_; }
+  int current_column_number() const { return this->current_column_number_; }
+  int current_line_number() const { return this->current_line_number_; }
+  int next_column_number() const { return this->next_column_number_; }
+  int next_line_number() const { return this->next_line_number_; }
   const LexerToken* AdvanceNext();
-  const LexerToken* current_token();
-  const LexerToken* next_token();
-  bool has_next() { return this->next_token() != NULL; }
+  const LexerToken* current_token() const;
+  const LexerToken* next_token() const;
+  bool has_next() const { return this->next_token() != NULL; }
 
  private:
   LexerSourceInterface* source_;
@@ -124,6 +124,61 @@ class Lexer {
   void AdvanceTokens();
 };
 
+// Lexer Exceptions Parent Class
+// All Lexer exceptions descend from this class.
+class LexerException : public Exception {
+ public:
+  LexerException(const Lexer& lexer) : Exception(), lexer_(lexer) { }
+  LexerException(const Lexer& lexer,
+                 const std::string& message) : Exception(message), lexer_(lexer) { }
+  const Lexer& lexer() { return lexer_; }
+
+ private:
+  const Lexer& lexer_;
+};
+
+// Exception for unterminated comments.
+class LexerCommentException : public LexerException {
+ public:
+  LexerCommentException (const Lexer& lexer) : 
+               LexerException(lexer, "Unterminated comment near line " +
+                 std::to_string(lexer.current_column_number()) + 
+                 std::to_string(lexer.current_line_number()) + 
+                 ", column " + ".") { }
+};
+
+// Exception for unterminated String constants.
+class LexerStringException : public LexerException {
+ public:
+  LexerStringException (const Lexer& lexer) : 
+               LexerException(lexer,
+                 "Unterminated string or new line in string near line " +
+                 std::to_string(lexer.current_column_number()) + 
+                 std::to_string(lexer.current_line_number()) + 
+                 ", column " + ".") { }
+};
+
+// Exception for invalid escape sequence.
+class LexerEscapeException : public LexerException {
+ public:
+  LexerEscapeException (const Lexer& lexer) : 
+               LexerException(lexer,
+                 "Invalid string escape sequence near line " +
+                 std::to_string(lexer.current_column_number()) + 
+                 std::to_string(lexer.current_line_number()) + 
+                 ", column " + ".") { }
+};
+
+// Exception for numeric constant.
+class LexerNumberException : public LexerException {
+ public:
+  LexerNumberException (const Lexer& lexer) : 
+               LexerException(lexer,
+                 "Malformed number near line " +
+                 std::to_string(lexer.current_column_number()) + 
+                 std::to_string(lexer.current_line_number()) + 
+                 ", column " + ".") { }
+};
 
 } // namespace library
 } // namespace gunderscript
