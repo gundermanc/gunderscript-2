@@ -19,7 +19,7 @@ FFLAGS =
 GSLIB = ../libgunderscript.a
 
 # Files to build
-SOURCES = symbol_table lexer
+SOURCES = symbol_table lexer parser
 
 .PHONY: all-release
 all-release: FFLAGS+=$(RFLAGS)
@@ -55,5 +55,8 @@ clean:
 symbol_table: $(SRCDIR)/symbol_table.cc
 	$(CC) $(CFLAGS) $(FFLAGS) -c $(SRCDIR)/symbol_table.cc
 
-lexer: $(SRCDIR)/lexer.cc symbol_table
+lexer: $(SRCDIR)/lexer.cc
 	$(CC) $(CFLAGS) $(FFLAGS) -c $(SRCDIR)/lexer.cc
+
+parser: $(SRCDIR)/parser.cc lexer
+	$(CC) $(CFLAGS) $(FFLAGS) -c $(SRCDIR)/parser.cc

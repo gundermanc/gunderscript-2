@@ -39,7 +39,7 @@ CXXFLAGS += -g -std=c++11 -Wall -Wextra -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = symbol_table_unittest lexer_unittest
+TESTS = symbol_table_unittest lexer_unittest parser_unittest
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -89,10 +89,17 @@ symbol_table_unittest.o : libgunderscript $(USER_DIR)/symbol_table_unittest.cc \
 
 symbol_table_unittest : symbol_table_unittest.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) ../*.o -lpthread $^ -o $@
-	
+
 lexer_unittest.o : libgunderscript $(USER_DIR)/lexer_unittest.cc \
               $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/lexer_unittest.cc $(GSLIB)
 
 lexer_unittest : lexer_unittest.o gtest_main.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) ../*.o -lpthread $^ -o $@
+
+parser_unittest.o : libgunderscript $(USER_DIR)/parser_unittest.cc \
+              $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/parser_unittest.cc $(GSLIB)
+
+parser_unittest : parser_unittest.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) ../*.o -lpthread $^ -o $@
