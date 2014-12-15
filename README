@@ -15,21 +15,19 @@ small, efficient, and modular in design, allowing for the user to target either
 the Gunderscript 2 VM or native platforms such as x86/64 and ARM.
 
 IMPLEMENTATION PROGESS:
-Gunderscript 2 is currently under the planning stage. Tentative project
+  - Lexer : 100%
+  - SymbolTable : 100%
+  - See Issues on Github for more info.
+
+Gunderscript 2 is currently under initial construction. Tentative project
 information can be found in arch.org file. If you are interested in joining this
 project, I am in need of developers, a program manager, and code documentors.
-
-I am also trying to come up with a new name since Gunderscript 2 is not very
-creative ;)
-
-I have begun adding code to the repository.
 
 ATTENTION:
 I am seeking developers to help me complete Gunderscript 2 and test it. If anyone
 is interested, please email gundermanc@gmail.com.
 
 BUILDING:
-There is next to no code yet, but there is a build system in place.
 Build the current code by running 'make all-release' in the root directory.
 Build the debug configuration by running 'make all-debug' in the root directory.
 Build the library unit tests by running 'make all-test' in the library directory.
