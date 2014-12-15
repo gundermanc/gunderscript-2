@@ -20,7 +20,7 @@ class SymbolTable {
   bool Put(std::string key, ValueType value);
   const ValueType* Get(const std::string& key);
   const ValueType* GetTopOnly(const std::string& key);
-  int depth() { return this->map_vector_.size(); };
+  int depth() const { return this->map_vector_.size(); };
 
  private:
   std::vector< std::unordered_map<std::string, ValueType, std::hash<std::string> > > map_vector_;
