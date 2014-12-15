@@ -201,9 +201,11 @@ features and collapsing of function descriptions.
          "concealed", "public", "internal", "package"
        },
 
+       // Some of these keywords have not yet been implemented because they
+       // are dependent upon features TBD in the stack.
        "spec", "if", "else", "do", "while", "true", "false", "return",
-       "package", "get", "set", "value", "constant", "conceive", "eradicate",
-       "start", "readonly"
+       "get", "set", "value", "constant", "conceive", "eradicate",
+       "start", "readonly", "for", "break", "continue"
 
        // NOTE: The types presented below are the desired types, but they will
        // not be implemented until AFTER the "Base Functionality" milestone is
@@ -229,39 +231,21 @@ features and collapsing of function descriptions.
      whitespace ( |\t|\n)
      line comment (\/\/^\n
 
-     STRING_CONST
+     STRING_CONST : Starts and ends with " and can be escaped per the usual
+        c-style escape characters.
 
-     Must start with '"' and end with the first non-escaped '"'. A quote can
-     be escaped with a slash, '\"'. Valid strings:
-
-        "aa\"\"" --> aa""
-        "aa\\" --> aa\
-        "aa\\\\" --> aa\\
-
-     c-style range comment ....
-
-     Similar to strings. Must start with '/*' and end with '*/'. However, '*'
-     or '/' can be escaped as in strings. Valid c-style range comments
-
-        /* asfde */
-        /* awef \*/ */
-        /* woief oiwjer*\/ awie */
-
-     Whitespace and comments should be skipped (although line and column numbers
-     should be tracked).
-
+     c-style range comment : Starts with /* and ends with */. Does not support
+     escaping, unlike actual C comments.
     ----------------------------------------------------------------------
 
     GRAMMAR:
-     CodeFileBeginning     -> "package" STRING_CONST ";" CodeFileBody
+     PackageDeclaration    -> "package" STRING_CONST ";" CodeFileBody
 
-     CodeFileBody          -> ClassDef 
+     CodeFileBody          -> ClassDefinition 
                             | CodeFileBody
                             | e            
 
-     ClassDef              -> ClassHeader "{" ClassBody "}"
-
-     ClassHeader           -> AccessModifier "spec" NAME
+     ClassDefinition       -> AccessModifier "spec" NAME "{" ClassBody "}"
 
      ParamDeclList         -> ParamDeclList*
                             | e
