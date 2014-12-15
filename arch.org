@@ -21,7 +21,6 @@ features and collapsing of function descriptions.
      + Member functions live INSIDE of class body.
      + Access modifiers are required.
      + Constructors/Destructors
-     + Arguments require type, however variables infer types.
      + C# style property statements, they are awesome.
    - Bitwise operations.
    - Native Code interface: The ability to wrap native C functions
@@ -118,16 +117,12 @@ features and collapsing of function descriptions.
       - Class Defs: size, field names/types.
       - Keywords: production function related data???
 *** Lexer:
-    Performs Lexing operation and returns tokens in some format along
-    with token types. Ideally implement using regular expressions, but if the
-    C++ STL doesn't have the neccessary functionality, I intend to implement
-    a modified Thompson Regex Compiler and VM for deterministic finite
-    automata if time allows. Might just settle for non-deterministic
-    implementation. Returns error if unterminated comment, string, char, etc.
-    is encountered, but does no syntax or semantic analysis. Tracks line numbers.
+    Basic functionality is finished as of this writing. Supports some basic
+    types, int and float consts, names, all the Gunderscript keywords and
+    symbols, and has a full suite of unit tests.
 
-    Will be hand written not using regex or external libraries for maximum
-    portability.
+    Hand written not using regex or external libraries for maximum portability,
+    slightly at the cost of performance.
 
 *** Parser
     Performs construction of an intermediate representation. Parser will be a
@@ -142,6 +137,10 @@ features and collapsing of function descriptions.
     intermediate nodes, checks for semantic errors, and ascribes meaning to the
     code. May perform annotation step.
 
+*** Intermediate Language Generator
+    Produces an intermediate representation of the Gunderscript code, dividing
+    the output into basic blocks, class definitions and structures, and maybe
+    performing a basic optimization pass if time allows.
 *** Code Generator
     Generates output code. Default implementation will produce code for the
     Gunderscript VM in VM bytecode and will export to an external "package"
@@ -149,11 +148,13 @@ features and collapsing of function descriptions.
     portable,  architecture independent encoding.
 
 *** Virtual Machine
-    Gunderscript register based virtual machine. Supports dynamically loading
-    and calling functions in dyload-able libraries. Memory management is
-    automatic and makes use of a Mark-sweep algorithm and custom memory
-    allocator to accelerate the process. Function stack is maintained in
-    internal VM stack.
+    Gunderscript virtual machine supports dynamically loading
+    and calling functions in dyload-able libraries in Windows and Linux.
+    Memory management is automatic and makes use of a Mark-sweep algorithm
+    and custom memory allocator to accelerate the process. 
+
+    The current plan for the VM is to implement using NanoJIT as the backend
+    and some other opensource garbage collector.
 
     Would like this to support multithreading, but this is a stretch goal.
 
@@ -165,9 +166,12 @@ features and collapsing of function descriptions.
     a compile option through a custom Makefile target.
 
 *** Standard Errors
-    A class containing all error codes and code to obtain their associated error
-    messages. Error messages will be in English, but should be identifiable via
-    an integer value so translation to other languages is possible.
+    All Gunderscript errors will decend from the Exception class. Each
+    module in Gunderscript has it's own exception parent type from which it's
+    exceptions descend. Each error should have it's own exception.
+
+    In this way, we can simply catch Exception (the Gunderscript class, not
+    the STL one) and we automatically catch all of the Gunderscript errors.
 
 *** Constants
     Defines all constants widely used in Gunderscript, including the VM OP codes.
@@ -201,9 +205,12 @@ features and collapsing of function descriptions.
        "package", "get", "set", "value", "constant", "conceive", "eradicate",
        "start", "readonly"
 
+       // NOTE: The types presented below are the desired types, but they will
+       // not be implemented until AFTER the "Base Functionality" milestone is
+       // reached. In the meantime, we have char, int, bool, string, float.
        Types = {
         "int8", "int16", "int32", "int64", "float32", "float64",
-        "bool"
+        "bool", "string"
        }
      }
 
