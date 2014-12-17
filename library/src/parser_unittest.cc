@@ -5,7 +5,8 @@
 
 #include "parser.h"
 
-using gunderscript::library::Parser;
+//using gunderscript::library::Parser;
+//using gunderscript::library::ParserTestHarness;
 
 TEST(SymbolTable, BlankTest) {
 

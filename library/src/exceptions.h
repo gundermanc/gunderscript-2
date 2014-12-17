@@ -5,6 +5,7 @@
 #define GUNDERSCRIPT_EXCEPTIONS__H__
 
 #include <exception>
+#include <string>
 
 namespace gunderscript {
 namespace library {
