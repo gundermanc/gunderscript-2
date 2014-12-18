@@ -12,27 +12,28 @@ namespace library {
 
 enum class NodeRule {
   MODULE,
+    DEPENDS,
     NAME
 };
 
 class Node {
-  // public:
+ public:
   Node(NodeRule rule) { rule_ = rule; }
   Node(NodeRule rule, long value);
   Node(NodeRule rule, double value);
-  Node(NodeRule rule, std::string& value);
+  Node(NodeRule rule, const std::string* value);
   ~Node();
-  void AddChild(Node& child);
+  void AddChild(Node* child);
   Node* GetChild (int child);
   int child_count() const { return this->children_.size(); }
   long long_value() const { return num_value_.int_value; }
   double float_value() const { return num_value_.float_value; }
-  std::string* string_value() const { return string_value_; }
+  const std::string* string_value() const { return string_value_; }
   NodeRule rule() { return rule_; }
 
  private:
   std::vector<Node*> children_;
-  std::string* string_value_;
+  const std::string* string_value_;
 
   union {
     long int_value;

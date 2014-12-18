@@ -20,10 +20,10 @@ Node::Node(NodeRule rule, double value) {
   string_value_ = NULL;
 }
 
-Node::Node(NodeRule rule, std::string& value) { 
+Node::Node(NodeRule rule, const std::string* value) { 
   rule_ = rule;
   num_value_.int_value = 0;
-  string_value_ = new std::string(value);
+  string_value_ = new std::string(*value);
 }
 
 Node::~Node() {
@@ -32,8 +32,8 @@ Node::~Node() {
   }
 }
 
-void Node::AddChild(Node& child) {
-  this->children_.push_back(&child);
+void Node::AddChild(Node* child) {
+  this->children_.push_back(child);
 }
 
 Node* Node::GetChild(int child) {

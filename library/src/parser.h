@@ -8,28 +8,38 @@
 #include "lexer.h"
 #include "node.h"
 
+#include "gtest/gtest_prod.h"
+
 namespace gunderscript {
 namespace library {
 
-  /*class Parser {
-#ifdef DEBUG
-  friend class ParserTestHarness;
-#endif // DEBUG
-
+class Parser {
  public:
- Parser(Lexer& lexer) : //lexer_(lexer),
-      root_(new Node<VOID_NODE>(NodeRule::MODULE) { }
+  Parser(Lexer& lexer) : lexer_(lexer) { }
+  Node* Parse() { return ParseModule(); }
+  Lexer* lexer() const { return &lexer_; }
 
  private:
   Lexer& lexer_;
-  Node<VOID_NODE>& root_;
-
   const LexerToken* AdvanceNext();
   const LexerToken* CurrentToken();
   const LexerToken* NextToken();
+  bool AdvanceSymbol(LexerSymbol symbol);
+  bool CurrentSymbol(LexerSymbol symbol);
+  bool AdvanceType(LexerSymbol type);
+  bool CurrentType(LexerSymbol type);
+  bool AdvanceKeyword(LexerSymbol keyword);
+  bool CurrentKeyword(LexerSymbol keyword);
+  bool AdvanceAccessModifier(LexerSymbol am);
+  bool CurrentAccessModifier(LexerSymbol am);
   void ThrowEOFIfNull(const LexerToken* token);
+  bool has_next() { return lexer_.has_next(); }
 
-  void ParsePackageDeclaration(Node<VOID_NODE>& node);
+  Node* ParseModule();
+  void ParsePackageDeclaration(Node* node);
+  void ParseDependsStatements(Node* node);
+  void ParseDependsStatement(Node* node);
+  void ParseSemicolon(Node* node);
 };
 
 // Parser Exceptions Parent Class
@@ -61,26 +71,35 @@ class ParserMalformedPackageException : public ParserException {
                              ParserException(parser, message) { }
 };
 
-// Configuration constants:
-const int PARSER_MIN_PACKAGE_LEN = 5;
+// Parser malformed depends exception.
+class ParserMalformedDependsException : public ParserException {
+ public:
+ ParserMalformedDependsException(const Parser& parser,
+                                 const std::string& message) : 
+                             ParserException(parser, message) { }
+};
+
+// Parser unexpected token exception.
+class ParserUnexpectedTokenException : public ParserException {
+ public:
+  ParserUnexpectedTokenException(const Parser& parser,
+                                 const std::string& message) : 
+                             ParserException(parser, message) { }
+};
 
 // String error constants:
 const std::string PARSER_ERR_EXPECTED_PACKAGE 
     = "Expected package declaration at beginning of file.";
 
+const std::string PARSER_ERR_EXPECTED_SEMICOLON
+    = "Expected terminated semicolon.";
+
 const std::string PARSER_ERR_BAD_PACKAGE_NAME
-    = "Invalid name in package declaration at head of file.";
+    = "Expected name for package in declaration at head of file.";
 
-// Parser test harness friend class. Grants access to private members to
-// the unit tests.
-#ifdef DEBUG
-class ParserTestHarness {
- public:
+const std::string PARSER_ERR_MALFORMED_DEPENDS
+    = "Malformed depends statement.";
 
-  
-};
-#endif // DEBUG
-  */
 } // namespace library
 } // namespace gunderscript
 

@@ -427,7 +427,7 @@ TEST(Lexer, ParseNameKeyword) {
   EXPECT_EQ(LexerSymbol::FOR, lexer.current_token()->symbol);
 
   ASSERT_FALSE(lexer.AdvanceNext() == NULL);
-  EXPECT_EQ(LexerTokenType::ACCESS_MODIFIER, lexer.current_token()->type);
+  EXPECT_EQ(LexerTokenType::KEYWORD, lexer.current_token()->type);
   EXPECT_EQ(LexerSymbol::PACKAGE, lexer.current_token()->symbol);
 
   ASSERT_TRUE(lexer.AdvanceNext() == NULL);
@@ -436,7 +436,7 @@ TEST(Lexer, ParseNameKeyword) {
 // Tests for keyword recognition:
 TEST_KEYWORD(PUBLIC, "public", LexerTokenType::ACCESS_MODIFIER, LexerSymbol::PUBLIC);
 TEST_KEYWORD(CONCEALED, "concealed", LexerTokenType::ACCESS_MODIFIER, LexerSymbol::CONCEALED);
-TEST_KEYWORD(PACKAGE, "package", LexerTokenType::ACCESS_MODIFIER, LexerSymbol::PACKAGE);
+TEST_KEYWORD(PACKAGE, "package", LexerTokenType::KEYWORD, LexerSymbol::PACKAGE);
 TEST_KEYWORD(INTERNAL, "internal", LexerTokenType::ACCESS_MODIFIER, LexerSymbol::INTERNAL);
 
 TEST_KEYWORD(SPEC, "spec", LexerTokenType::KEYWORD, LexerSymbol::SPEC);
@@ -456,6 +456,7 @@ TEST_KEYWORD(READONLY, "readonly", LexerTokenType::KEYWORD, LexerSymbol::READONL
 TEST_KEYWORD(FOR, "for", LexerTokenType::KEYWORD, LexerSymbol::FOR);
 TEST_KEYWORD(BREAK, "break", LexerTokenType::KEYWORD, LexerSymbol::BREAK);
 TEST_KEYWORD(CONTINUE, "continue", LexerTokenType::KEYWORD, LexerSymbol::CONTINUE);
+TEST_KEYWORD(DEPENDS, "depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
 
 TEST_KEYWORD(INT, "int", LexerTokenType::TYPE, LexerSymbol::INT);
 TEST_KEYWORD(FLOAT, "float", LexerTokenType::TYPE, LexerSymbol::FLOAT);

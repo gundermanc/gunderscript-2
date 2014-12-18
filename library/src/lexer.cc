@@ -144,7 +144,7 @@ void Lexer::LoadKeywords() {
   // Access Modifiers.
   DEFINE_KEYWORD("public", LexerTokenType::ACCESS_MODIFIER, LexerSymbol::PUBLIC);
   DEFINE_KEYWORD("concealed", LexerTokenType::ACCESS_MODIFIER, LexerSymbol::CONCEALED);
-  DEFINE_KEYWORD("package", LexerTokenType::ACCESS_MODIFIER, LexerSymbol::PACKAGE);
+  DEFINE_KEYWORD("package", LexerTokenType::KEYWORD, LexerSymbol::PACKAGE);
   DEFINE_KEYWORD("internal", LexerTokenType::ACCESS_MODIFIER, LexerSymbol::INTERNAL);
 
   // Keywords.
@@ -165,6 +165,7 @@ void Lexer::LoadKeywords() {
   DEFINE_KEYWORD("for", LexerTokenType::KEYWORD, LexerSymbol::FOR);
   DEFINE_KEYWORD("break", LexerTokenType::KEYWORD, LexerSymbol::BREAK);
   DEFINE_KEYWORD("continue", LexerTokenType::KEYWORD, LexerSymbol::CONTINUE);
+  DEFINE_KEYWORD("depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
 
   // Primitive Types:
   DEFINE_KEYWORD("int", LexerTokenType::TYPE, LexerSymbol::INT);

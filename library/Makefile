@@ -7,8 +7,9 @@ CC = g++
 AR = ar
 ARFLAGS = rcs
 INCDIR = include
-CFLAGS = -fPIC -std=c++11 -Wall -I $(INCDIR)
+CFLAGS = -fPIC -std=c++11 -Wall -I $(INCDIR) -I $(GTESTINCDIR)
 TESTDIR = test
+GTESTINCDIR = ../external/gtest-1.7.0/include
 # Debug flags
 DFLAGS = -g -DDEBUG
 

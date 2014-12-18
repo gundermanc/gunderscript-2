@@ -60,11 +60,11 @@ enum class LexerSymbol {
     TERNARY,
 
     // Access Modifiers:
-    PUBLIC, CONCEALED, PACKAGE, INTERNAL,
+    PUBLIC, CONCEALED, INTERNAL,
 
     // Keywords:
     SPEC, IF, ELSE, DO, WHILE, TRUE, FALSE, RETURN, GET, SET, CONCEIVE,
-    ERADICATE, START, READONLY, FOR, BREAK, CONTINUE,
+    ERADICATE, START, READONLY, FOR, BREAK, CONTINUE, DEPENDS, PACKAGE,
 
     // Types:
     CHAR, INT, FLOAT, BOOL, STRING
@@ -82,7 +82,6 @@ typedef struct {
     double float_const;
     char char_const;
   };
-
 } LexerToken;
 
 // Lexer Class definition and Public/Private interfaces.
@@ -98,6 +97,7 @@ class Lexer {
   const LexerToken* current_token() const;
   const LexerToken* next_token() const;
   bool has_next() const { return this->next_token() != NULL; }
+  LexerSourceInterface* source() const { return source_; }
 
  private:
   LexerSourceInterface* source_;
