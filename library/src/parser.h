@@ -40,6 +40,9 @@ class Parser {
   void ParseDependsStatements(Node* node);
   void ParseDependsStatement(Node* node);
   void ParseSemicolon(Node* node);
+  void ParseSpecDefinitions(Node* node);
+  void ParseSpecDefinition(Node* node);
+  void ParseSpecBody(Node* node);
 };
 
 // Parser Exceptions Parent Class
@@ -79,6 +82,14 @@ class ParserMalformedDependsException : public ParserException {
                              ParserException(parser, message) { }
 };
 
+// Parser malformed spec exception.
+class ParserMalformedSpecException : public ParserException {
+ public:
+ ParserMalformedSpecException(const Parser& parser,
+                              const std::string& message) : 
+                             ParserException(parser, message) { }
+};
+
 // Parser unexpected token exception.
 class ParserUnexpectedTokenException : public ParserException {
  public:
@@ -92,13 +103,16 @@ const std::string PARSER_ERR_EXPECTED_PACKAGE
     = "Expected package declaration at beginning of file.";
 
 const std::string PARSER_ERR_EXPECTED_SEMICOLON
-    = "Expected terminated semicolon.";
+    = "Expected terminating semicolon.";
 
 const std::string PARSER_ERR_BAD_PACKAGE_NAME
     = "Expected name for package in declaration at head of file.";
 
 const std::string PARSER_ERR_MALFORMED_DEPENDS
     = "Malformed depends statement.";
+
+const std::string PARSER_ERR_MALFORMED_SPEC
+    = "Malformed spec definition.";
 
 } // namespace library
 } // namespace gunderscript

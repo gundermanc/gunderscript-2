@@ -13,7 +13,13 @@ namespace library {
 enum class NodeRule {
   MODULE,
     DEPENDS,
-    NAME
+    NAME,
+    SPECS,
+    SPEC,
+    PROPERTIES,
+    PROPERTY,
+    FUNCTIONS,
+    FUNCTION
 };
 
 class Node {

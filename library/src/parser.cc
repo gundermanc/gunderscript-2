@@ -3,12 +3,15 @@
 
 #include "parser.h"
 
+#include <cstdio>
+
 namespace gunderscript {
 namespace library {
 
 Node* Parser::ParseModule() {
   Node* module_node = new Node(NodeRule::MODULE);
   Node* depends_node = new Node(NodeRule::DEPENDS);
+  Node* specs_node = new Node(NodeRule::SPECS);
 
   ParsePackageDeclaration(module_node);
 
@@ -18,6 +21,13 @@ Node* Parser::ParseModule() {
   if (has_next()) {
     AdvanceNext();
     ParseDependsStatements(depends_node);
+  }
+
+  module_node->AddChild(specs_node);
+
+  // Allow end of file after depends.
+  if (has_next()) {
+    ParseSpecDefinitions(specs_node);
   }
 
   return module_node;
@@ -78,6 +88,61 @@ void Parser::ParseSemicolon(Node* node) {
   if (!AdvanceSymbol(LexerSymbol::SEMICOLON)) {
     throw ParserUnexpectedTokenException(*this, PARSER_ERR_EXPECTED_SEMICOLON);
   }
+}
+
+void Parser::ParseSpecDefinitions(Node* node) {
+  while (has_next()) {
+    ParseSpecDefinition(node);
+
+    if (has_next()) {
+      AdvanceNext();
+    }
+  }
+}
+
+void Parser::ParseSpecDefinition(Node* node) {
+  Node* spec_node = new Node(NodeRule::SPEC);
+  node->AddChild(spec_node);
+
+  // Check access modifier.
+  if (CurrentToken()->type != LexerTokenType::ACCESS_MODIFIER) {
+    throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
+  }
+
+  // Check for "spec" keyword in declaration.
+  if (!AdvanceKeyword(LexerSymbol::SPEC)) {
+    throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
+  }
+
+  // Check for spec NAME.
+  if (AdvanceNext()->type != LexerTokenType::NAME) {
+    throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
+  }
+
+  spec_node->AddChild(new Node(NodeRule::NAME, CurrentToken()->string_const));
+
+  // Check for opening curly brace.
+  if (!AdvanceSymbol(LexerSymbol::LBRACE)) {
+    throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
+  }
+
+  // Parse spec body.
+  ParseSpecBody(spec_node);
+
+  // Check for closing curly brace.
+  if (!AdvanceSymbol(LexerSymbol::RBRACE)) {
+    throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
+  }
+}
+
+void Parser::ParseSpecBody(Node* node) {
+  Node* properties_node = new Node(NodeRule::PROPERTIES);
+  Node* functions_node = new Node(NodeRule::FUNCTIONS);
+
+  node->AddChild(functions_node);
+  node->AddChild(properties_node);
+
+  // TODO: parse properties and functions.
 }
 
 const LexerToken* Parser::AdvanceNext() {
