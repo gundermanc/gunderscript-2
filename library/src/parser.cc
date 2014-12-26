@@ -3,8 +3,6 @@
 
 #include "parser.h"
 
-#include <cstdio>
-
 namespace gunderscript {
 namespace library {
 
@@ -130,7 +128,7 @@ void Parser::ParseSpecDefinition(Node* node) {
   ParseSpecBody(spec_node);
 
   // Check for closing curly brace.
-  if (!AdvanceSymbol(LexerSymbol::RBRACE)) {
+  if (!CurrentSymbol(LexerSymbol::RBRACE)) {
     throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
   }
 }
@@ -142,7 +140,125 @@ void Parser::ParseSpecBody(Node* node) {
   node->AddChild(functions_node);
   node->AddChild(properties_node);
 
-  // TODO: parse properties and functions.
+  // Parse body elements until we reach the closing curly brace.
+  while (!AdvanceSymbol(LexerSymbol::RBRACE)) {
+    switch (CurrentToken()->type) {
+      case LexerTokenType::ACCESS_MODIFIER:
+        ParseFunction(functions_node);
+        break;
+      case LexerTokenType::TYPE:
+        ParseProperty(properties_node);
+        break;
+      default:
+        throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
+    }
+  }
+}
+
+void Parser::ParseProperty(Node* node) {
+  Node* property_node = new Node(NodeRule::PROPERTY);
+  node->AddChild(property_node);
+
+  // Make sure first token is a TYPE.
+  if (CurrentToken()->type != LexerTokenType::TYPE) {
+    throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+  }
+
+  property_node->AddChild(new Node(NodeRule::TYPE, CurrentToken()->symbol));
+
+  // Make sure second token is a NAME.
+  if (AdvanceNext()->type != LexerTokenType::NAME) {
+    throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+  }
+
+  property_node->AddChild(new Node(NodeRule::NAME, CurrentToken()->string_const));
+
+  // Check for LBRACE
+  if (!AdvanceSymbol(LexerSymbol::LBRACE)) {
+    throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+  }
+
+  AdvanceNext();
+  ParsePropertyBody(property_node);
+
+  // Check for LBRACE
+  if (!CurrentSymbol(LexerSymbol::RBRACE)) {
+    throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+  }
+}
+
+void Parser::ParsePropertyBody(Node* node) {
+  Node* getter_node = new Node(NodeRule::PROPERTY_FUNCTION);
+  Node* setter_node = new Node(NodeRule::PROPERTY_FUNCTION);
+
+  node->AddChild(getter_node);
+  node->AddChild(setter_node);
+
+  // There can be at most 2 body functions (get/set), parse twice.
+  // Functions return if there is no body function.
+  ParsePropertyBodyFunction(getter_node, setter_node);
+  ParsePropertyBodyFunction(getter_node, setter_node);
+}
+
+void Parser::ParsePropertyBodyFunction(Node* getter_node, Node* setter_node) {
+
+  // If next token is RBRACE, no body function here, return.
+  if (CurrentSymbol(LexerSymbol::RBRACE)) {
+    return;
+  }
+
+  // We have a getter/setter here, Check for the access modifier.
+  if (CurrentToken()->type != LexerTokenType::ACCESS_MODIFIER) {
+    throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+  }
+
+  LexerSymbol access_modifier = CurrentToken()->symbol;
+
+  // Determine node to receive output.
+  Node* node = NULL;
+  if (AdvanceKeyword(LexerSymbol::GET)) {
+    node = getter_node;
+  } else if (CurrentKeyword(LexerSymbol::SET)) {
+    node = setter_node;
+  } else {
+    throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+  }
+
+  // Check if property body function was specified twice.
+  if (node->child_count() > 0) {
+    throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+  }
+
+  node->AddChild(new Node(NodeRule::ACCESS_MODIFIER, access_modifier));
+
+  // If we found a semicolon, it's an auto property and we're done.
+  if (AdvanceSymbol(LexerSymbol::SEMICOLON)) {
+    AdvanceNext();
+    return;
+  }
+
+  // No semicolon, this property function must have a body, check opening brace.
+  if (!AdvanceSymbol(LexerSymbol::LBRACE)) {
+    ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+  }
+
+  AdvanceNext();
+  ParseFunctionBody(node);
+
+  // Check closing brace.
+  if (!AdvanceSymbol(LexerSymbol::RBRACE)) {
+    ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+  }
+
+  AdvanceNext();
+}
+
+void Parser::ParseFunction(Node* node) {
+  throw NotImplementedException();
+}
+
+void Parser::ParseFunctionBody(Node* node) {
+  throw NotImplementedException();
 }
 
 const LexerToken* Parser::AdvanceNext() {

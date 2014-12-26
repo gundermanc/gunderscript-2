@@ -20,6 +20,12 @@ Node::Node(NodeRule rule, double value) {
   string_value_ = NULL;
 }
 
+Node::Node(NodeRule rule, LexerSymbol symbol) {
+  rule_ = rule;
+  num_value_.symbol_value = symbol;
+  string_value_ = NULL;
+}
+
 Node::Node(NodeRule rule, const std::string* value) { 
   rule_ = rule;
   num_value_.int_value = 0;

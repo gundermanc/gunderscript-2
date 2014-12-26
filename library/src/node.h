@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "lexer.h"
+
 namespace gunderscript {
 namespace library {
 
@@ -14,10 +16,13 @@ enum class NodeRule {
   MODULE,
     DEPENDS,
     NAME,
+    TYPE,
+    ACCESS_MODIFIER,
     SPECS,
     SPEC,
     PROPERTIES,
     PROPERTY,
+    PROPERTY_FUNCTION,
     FUNCTIONS,
     FUNCTION
 };
@@ -27,6 +32,7 @@ class Node {
   Node(NodeRule rule) { rule_ = rule; }
   Node(NodeRule rule, long value);
   Node(NodeRule rule, double value);
+  Node(NodeRule rule, LexerSymbol symbol);
   Node(NodeRule rule, const std::string* value);
   ~Node();
   void AddChild(Node* child);
@@ -34,6 +40,7 @@ class Node {
   int child_count() const { return this->children_.size(); }
   long long_value() const { return num_value_.int_value; }
   double float_value() const { return num_value_.float_value; }
+  LexerSymbol symbol_value() const { return num_value_.symbol_value; }
   const std::string* string_value() const { return string_value_; }
   NodeRule rule() { return rule_; }
 
@@ -44,6 +51,7 @@ class Node {
   union {
     long int_value;
     double float_value;
+    LexerSymbol symbol_value;
   } num_value_;
   NodeRule rule_;
 };

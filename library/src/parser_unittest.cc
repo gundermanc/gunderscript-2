@@ -212,7 +212,9 @@ TEST(Parser, MalformedSpec) {
 
 TEST(Parser, EmptySpec) {
 
-  std::string input("package \"FooPackage\"; public spec MySpec { } concealed spec Foo { }");
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec { }"
+                    "concealed spec Foo { }");
 
   LexerStringSource* source = new  LexerStringSource(input);
   Lexer lexer(*source);
@@ -267,6 +269,263 @@ TEST(Parser, EmptySpec) {
   Node* spec_node_1_properties = spec_node_1->GetChild(2);
   EXPECT_EQ(NodeRule::PROPERTIES, spec_node_1_properties->rule());
   EXPECT_EQ(0, spec_node_1_properties->child_count());
+}
+
+TEST(Parser, ParseMalformedProperty) {
+
+  // Case 1: leading access modifier.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec { "
+                      "  concealed float X { public get; concealed set; }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+  }
+
+  // Case 2: incorrect symbol type property name.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec { "
+                      "  float 34 { public get; concealed set; }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+  }
+
+  // Case 3: missing opening brace.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec { "
+                      "  float X  public get; concealed set; }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+  }
+
+  // Case 4: missing closing brace.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec { "
+                      "  float X { public get; concealed set; "
+                      "  float Y { }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+  }
+
+  // Case 5: missing property accessor/mutator access modifier.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec { "
+                      "  float X { get; concealed set; }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+  }
+
+  // Case 6: multiple get/set.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec { "
+                      "  float X { public set; concealed set; }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+  }
+
+  // Case 7: semicolon following property accessor body
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec { "
+                      "  float X { public get { }; concealed set; }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    // TODO: this exception may be incorrect.
+    EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
+  }
+}
+
+TEST(Parser, ParsePropertyEmpty) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  int X { }"
+                    "  string Y { }"
+                    "}");
+
+  LexerStringSource* source = new  LexerStringSource(input);
+  Lexer lexer(*source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  ASSERT_EQ(3, root->child_count());
+
+  Node* specs_node = root->GetChild(2);
+  ASSERT_EQ(1, specs_node->child_count());
+
+  Node* spec_node = specs_node->GetChild(0);
+  ASSERT_EQ(3, spec_node->child_count());
+
+  Node* properties_node = spec_node->GetChild(2);
+  ASSERT_EQ(2, properties_node->child_count());
+
+  Node* x_node = properties_node->GetChild(0);
+  EXPECT_EQ(NodeRule::PROPERTY, x_node->rule());
+  ASSERT_EQ(4, x_node->child_count());
+
+  Node* x_type_node = x_node->GetChild(0);
+  EXPECT_EQ(NodeRule::TYPE, x_type_node->rule());
+  EXPECT_EQ(LexerSymbol::INT, x_type_node->symbol_value());
+
+  Node* x_name_node = x_node->GetChild(1);
+  EXPECT_EQ(NodeRule::NAME, x_name_node->rule());
+  EXPECT_STREQ("X", x_name_node->string_value()->c_str());
+
+  Node*  x_getter_node = x_node->GetChild(2);
+  EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, x_getter_node->rule());
+  ASSERT_EQ(0, x_getter_node->child_count());
+
+  Node* x_setter_node = x_node->GetChild(3);
+  EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, x_setter_node->rule());
+  ASSERT_EQ(0, x_setter_node->child_count());
+
+  Node* y_node = properties_node->GetChild(1);
+  EXPECT_EQ(NodeRule::PROPERTY, y_node->rule());
+  ASSERT_EQ(4, y_node->child_count());
+
+  Node* y_type_node = y_node->GetChild(0);
+  EXPECT_EQ(NodeRule::TYPE, y_type_node->rule());
+  EXPECT_EQ(LexerSymbol::STRING, y_type_node->symbol_value());
+
+  Node* y_name_node = y_node->GetChild(1);
+  EXPECT_EQ(NodeRule::NAME, y_name_node->rule());
+  EXPECT_STREQ("Y", y_name_node->string_value()->c_str());
+
+  Node* y_getter_node = y_node->GetChild(2);
+  EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, y_getter_node->rule());
+  ASSERT_EQ(0, y_getter_node->child_count());
+
+  Node* y_setter_node = y_node->GetChild(3);
+  EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, y_setter_node->rule());
+  ASSERT_EQ(0, y_setter_node->child_count());
+}
+
+TEST(Parser, ParsePropertyAuto) {
+
+  // Case 1: get first, set second.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec { "
+                      "  float X { public get; concealed set; }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    ASSERT_EQ(3, root->child_count());
+
+    Node* specs_node = root->GetChild(2);
+    ASSERT_EQ(1, specs_node->child_count());
+
+    Node* spec_node = specs_node->GetChild(0);
+    ASSERT_EQ(3, spec_node->child_count());
+
+    Node* properties_node = spec_node->GetChild(2);
+    ASSERT_EQ(1, properties_node->child_count());
+
+    Node* x_node = properties_node->GetChild(0);
+    EXPECT_EQ(NodeRule::PROPERTY, x_node->rule());
+    ASSERT_EQ(4, x_node->child_count());
+
+    Node* x_type_node = x_node->GetChild(0);
+    EXPECT_EQ(NodeRule::TYPE, x_type_node->rule());
+    EXPECT_EQ(LexerSymbol::FLOAT, x_type_node->symbol_value());
+
+    Node* x_name_node = x_node->GetChild(1);
+    EXPECT_EQ(NodeRule::NAME, x_name_node->rule());
+    EXPECT_STREQ("X", x_name_node->string_value()->c_str());
+
+    Node*  x_getter_node = x_node->GetChild(2);
+    EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, x_getter_node->rule());
+    ASSERT_EQ(1, x_getter_node->child_count());
+
+    Node* x_getter_access_modifier_node = x_getter_node->GetChild(0);
+    EXPECT_EQ(NodeRule::ACCESS_MODIFIER, x_getter_access_modifier_node->rule());
+    EXPECT_EQ(LexerSymbol::PUBLIC, x_getter_access_modifier_node->symbol_value());
+
+    Node* x_setter_node = x_node->GetChild(3);
+    EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, x_setter_node->rule());
+    ASSERT_EQ(1, x_setter_node->child_count());
+
+    Node* x_setter_access_modifier_node = x_setter_node->GetChild(0);
+    EXPECT_EQ(NodeRule::ACCESS_MODIFIER, x_setter_access_modifier_node->rule());
+    EXPECT_EQ(LexerSymbol::CONCEALED, x_setter_access_modifier_node->symbol_value());
+  }
+
+  // Case 2: get second, set first.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec { "
+                      "  float X { concealed set; internal get; }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* specs_node = root->GetChild(2);
+    Node* spec_node = specs_node->GetChild(0);
+    Node* properties_node = spec_node->GetChild(2);
+    Node* x_node = properties_node->GetChild(0);
+
+    Node*  x_getter_node = x_node->GetChild(2);
+    Node* x_getter_access_modifier_node = x_getter_node->GetChild(0);
+    EXPECT_EQ(NodeRule::ACCESS_MODIFIER, x_getter_access_modifier_node->rule());
+    EXPECT_EQ(LexerSymbol::INTERNAL, x_getter_access_modifier_node->symbol_value());
+
+    Node* x_setter_node = x_node->GetChild(3);
+    Node* x_setter_access_modifier_node = x_setter_node->GetChild(0);
+    EXPECT_EQ(NodeRule::ACCESS_MODIFIER, x_setter_access_modifier_node->rule());
+    EXPECT_EQ(LexerSymbol::CONCEALED, x_setter_access_modifier_node->symbol_value());
+  }
+}
+
+TEST(Parser, ParsePropertyWithFunctionBody) {
+  // At the moment, ParseFunctionBody() is incomplete, so there isn't a great
+  // way to test this yet.
+  FAIL();
 }
 
 } // namespace library

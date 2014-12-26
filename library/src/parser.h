@@ -43,6 +43,11 @@ class Parser {
   void ParseSpecDefinitions(Node* node);
   void ParseSpecDefinition(Node* node);
   void ParseSpecBody(Node* node);
+  void ParseProperty(Node* node);
+  void ParsePropertyBody(Node* node);
+  void ParsePropertyBodyFunction(Node* getter_node, Node* setter_node);
+  void ParseFunction(Node* node);
+  void ParseFunctionBody(Node* node);
 };
 
 // Parser Exceptions Parent Class
@@ -90,6 +95,14 @@ class ParserMalformedSpecException : public ParserException {
                              ParserException(parser, message) { }
 };
 
+// Parser malformed property exception.
+class ParserMalformedPropertyException : public ParserException {
+ public:
+ ParserMalformedPropertyException(const Parser& parser,
+                                  const std::string& message) : 
+                             ParserException(parser, message) { }
+};
+
 // Parser unexpected token exception.
 class ParserUnexpectedTokenException : public ParserException {
  public:
@@ -114,6 +127,8 @@ const std::string PARSER_ERR_MALFORMED_DEPENDS
 const std::string PARSER_ERR_MALFORMED_SPEC
     = "Malformed spec definition.";
 
+const std::string PARSER_ERR_MALFORMED_PROPERTY
+    = "Malformed property definition.";
 } // namespace library
 } // namespace gunderscript
 

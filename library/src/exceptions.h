@@ -23,6 +23,13 @@ class Exception : public std::exception {
   std::exception exception_;
 };
 
+// Not implemented exception.
+class NotImplementedException : public Exception {
+ public:
+  NotImplementedException() : Exception("Feature not implemented.") { }
+  NotImplementedException(const std::string& message) : Exception(message) { }
+};
+
 } // namespace library
 } // namespace gunderscript
 
