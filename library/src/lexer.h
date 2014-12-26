@@ -65,6 +65,7 @@ enum class LexerSymbol {
     // Keywords:
     SPEC, IF, ELSE, DO, WHILE, TRUE, FALSE, RETURN, GET, SET, CONCEIVE,
     ERADICATE, START, READONLY, FOR, BREAK, CONTINUE, DEPENDS, PACKAGE,
+    NATIVE,
 
     // Types:
     CHAR, INT, FLOAT, BOOL, STRING

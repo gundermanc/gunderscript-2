@@ -3,10 +3,14 @@
 
 #include "node.h"
 
-#include <cstdlib>
-
 namespace gunderscript {
 namespace library {
+
+Node::Node(NodeRule rule, bool value) {
+  rule_ = rule;
+  num_value_.bool_value = value;
+  string_value_ = NULL;
+}
 
 Node::Node(NodeRule rule, long value) { 
   rule_ = rule;

@@ -528,5 +528,334 @@ TEST(Parser, ParsePropertyWithFunctionBody) {
   FAIL();
 }
 
+TEST(Parser, ParseFunctionEmpty) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public int Foo() {"
+                    "  }"
+                    "}");
+
+  LexerStringSource* source = new  LexerStringSource(input);
+  Lexer lexer(*source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+  EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
+  ASSERT_EQ(6, foo_node->child_count());
+
+  Node* foo_access_modifier_node = foo_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ACCESS_MODIFIER, foo_access_modifier_node->rule());
+  EXPECT_EQ(LexerSymbol::PUBLIC, foo_access_modifier_node->symbol_value());
+
+  Node* foo_native_node = foo_node->GetChild(1);
+  EXPECT_EQ(NodeRule::NATIVE, foo_native_node->rule());
+  EXPECT_EQ(false, foo_native_node->bool_value());
+
+  Node* foo_type_node = foo_node->GetChild(2);
+  EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
+  EXPECT_EQ(LexerSymbol::INT, foo_type_node->symbol_value());
+
+  Node* foo_name_node = foo_node->GetChild(3);
+  EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
+  EXPECT_STREQ("Foo", foo_name_node->string_value()->c_str());
+
+  Node* foo_parameters_node = foo_node->GetChild(4);
+  EXPECT_EQ(NodeRule::PARAMETERS, foo_parameters_node->rule());
+  EXPECT_EQ(0, foo_parameters_node->child_count());
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(0, foo_block_node->child_count());
+}
+
+TEST(Parser, ParseFunctionEmptyOneParameterNative) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  concealed native string Foo2(int x);"
+                    "}");
+
+  LexerStringSource* source = new  LexerStringSource(input);
+  Lexer lexer(*source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+  EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
+  ASSERT_EQ(5, foo_node->child_count());
+
+  Node* foo_access_modifier_node = foo_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ACCESS_MODIFIER, foo_access_modifier_node->rule());
+  EXPECT_EQ(LexerSymbol::CONCEALED, foo_access_modifier_node->symbol_value());
+
+  Node* foo_native_node = foo_node->GetChild(1);
+  EXPECT_EQ(NodeRule::NATIVE, foo_native_node->rule());
+  EXPECT_EQ(true, foo_native_node->bool_value());
+
+  Node* foo_type_node = foo_node->GetChild(2);
+  EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
+  EXPECT_EQ(LexerSymbol::STRING, foo_type_node->symbol_value());
+
+  Node* foo_name_node = foo_node->GetChild(3);
+  EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
+  EXPECT_STREQ("Foo2", foo_name_node->string_value()->c_str());
+
+  Node* foo_parameters_node = foo_node->GetChild(4);
+  EXPECT_EQ(NodeRule::PARAMETERS, foo_parameters_node->rule());
+  EXPECT_EQ(1, foo_parameters_node->child_count());
+
+  Node* foo_x_node = foo_parameters_node->GetChild(0);
+  EXPECT_EQ(NodeRule::PARAMETER, foo_x_node->rule());
+  ASSERT_EQ(2, foo_x_node->child_count());
+
+  Node* foo_x_type_node = foo_x_node->GetChild(0);
+  EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
+  EXPECT_EQ(LexerSymbol::INT, foo_x_type_node->symbol_value());
+
+  Node* foo_x_name_node = foo_x_node->GetChild(1);
+  EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
+  EXPECT_STREQ("x", foo_x_name_node->string_value()->c_str());
+}
+
+TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  concealed native string Foo2(int x, string y);"
+                    "}");
+
+  LexerStringSource* source = new  LexerStringSource(input);
+  Lexer lexer(*source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+  EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
+  ASSERT_EQ(5, foo_node->child_count());
+
+  Node* foo_parameters_node = foo_node->GetChild(4);
+  EXPECT_EQ(NodeRule::PARAMETERS, foo_parameters_node->rule());
+  EXPECT_EQ(2, foo_parameters_node->child_count());
+
+  Node* foo_x_node = foo_parameters_node->GetChild(0);
+  EXPECT_EQ(NodeRule::PARAMETER, foo_x_node->rule());
+  ASSERT_EQ(2, foo_x_node->child_count());
+
+  Node* foo_x_type_node = foo_x_node->GetChild(0);
+  EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
+  EXPECT_EQ(LexerSymbol::INT, foo_x_type_node->symbol_value());
+
+  Node* foo_x_name_node = foo_x_node->GetChild(1);
+  EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
+  EXPECT_STREQ("x", foo_x_name_node->string_value()->c_str());
+
+  Node* foo_y_node = foo_parameters_node->GetChild(1);
+  EXPECT_EQ(NodeRule::PARAMETER, foo_y_node->rule());
+  ASSERT_EQ(2, foo_y_node->child_count());
+
+  Node* foo_y_type_node = foo_y_node->GetChild(0);
+  EXPECT_EQ(NodeRule::TYPE, foo_y_type_node->rule());
+  EXPECT_EQ(LexerSymbol::STRING, foo_y_type_node->symbol_value());
+
+  Node* foo_y_name_node = foo_y_node->GetChild(1);
+  EXPECT_EQ(NodeRule::NAME, foo_y_name_node->rule());
+  EXPECT_STREQ("y", foo_y_name_node->string_value()->c_str());
+
+}
+
+TEST(Parser, ParseMultipleFunctions) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  concealed native string Foo2(int x, string y);"
+                    "  public native int Add();"
+                    "  internal int Sub(string foo, int foo2) {"
+                    "  }  "
+                    "  public int Mul() {"
+                    "  }"
+                    "  string FooStringProperty { public get; }"
+                    "}");
+
+  LexerStringSource* source = new  LexerStringSource(input);
+  Lexer lexer(*source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+}
+
+TEST(Parser, ParseMalformedFunctions) {
+
+  // Case 1: missing access modifier.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  native string Foo2(int x, string y);"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    // TODO: fix to throw ParserMalformedFunctionException instead.
+    EXPECT_THROW(parser.Parse(), ParserMalformedSpecException);
+  }
+
+  // Case 2: out of order function attributes.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  native public string Foo(int x, string y);"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    // TODO: fix to throw ParserMalformedFunctionException instead.
+    EXPECT_THROW(parser.Parse(), ParserMalformedSpecException);
+  }
+
+  // Case 3: incorrect token type for NAME.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public native string 45(int x, string y);"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+  }
+
+  // Case 4: extraneous comma.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public native string Foo(int x,);"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+  }
+
+  // Case 5: incorrect argument.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public native string Foo(public int x);"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+  }
+
+  // Case 6: missing comma.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public native string Foo(int x int y);"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+  }
+
+  // Case 7: missing LPAREN.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public native string Foo int x);"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+  }
+
+  // Case 8: missing RPAREN.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public native string Foo(int x ;"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+  }
+
+  // Case 8: missing SEMICOLON.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public native string Foo(int x)"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedBodyException);
+  }
+
+  // Case 8: missing body.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public native string Foo(int x)"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedBodyException);
+  }
+
+  // Case 9: missing brace.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public native string Foo(int x) }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedBodyException);
+  }
+}
+
+TEST(Parser, ParseFunctionWithBody) {
+  // TODO: body parsing code and this test.
+  FAIL();
+}
+
 } // namespace library
 } // namespace gunderscript

@@ -47,6 +47,8 @@ class Parser {
   void ParsePropertyBody(Node* node);
   void ParsePropertyBodyFunction(Node* getter_node, Node* setter_node);
   void ParseFunction(Node* node);
+  void ParseFunctionParameters(Node* node);
+  void ParseFunctionParameter(Node* node);
   void ParseFunctionBody(Node* node);
 };
 
@@ -74,32 +76,48 @@ class ParserEndOfFileException : public ParserException {
 // Parser malformed package declaration.
 class ParserMalformedPackageException : public ParserException {
  public:
- ParserMalformedPackageException(const Parser& parser,
-                                 const std::string& message) : 
+  ParserMalformedPackageException(const Parser& parser,
+                                  const std::string& message) : 
                              ParserException(parser, message) { }
 };
 
 // Parser malformed depends exception.
 class ParserMalformedDependsException : public ParserException {
  public:
- ParserMalformedDependsException(const Parser& parser,
-                                 const std::string& message) : 
+  ParserMalformedDependsException(const Parser& parser,
+                                  const std::string& message) : 
                              ParserException(parser, message) { }
 };
 
 // Parser malformed spec exception.
 class ParserMalformedSpecException : public ParserException {
  public:
- ParserMalformedSpecException(const Parser& parser,
-                              const std::string& message) : 
+  ParserMalformedSpecException(const Parser& parser,
+                               const std::string& message) : 
                              ParserException(parser, message) { }
 };
 
 // Parser malformed property exception.
 class ParserMalformedPropertyException : public ParserException {
  public:
- ParserMalformedPropertyException(const Parser& parser,
+  ParserMalformedPropertyException(const Parser& parser,
+                                   const std::string& message) : 
+                             ParserException(parser, message) { }
+};
+
+// Parser malformed function exception.
+class ParserMalformedFunctionException : public ParserException {
+ public:
+ ParserMalformedFunctionException(const Parser& parser,
                                   const std::string& message) : 
+                             ParserException(parser, message) { }
+};
+
+// Parser malformed body exception.
+class ParserMalformedBodyException : public ParserException {
+ public:
+  ParserMalformedBodyException(const Parser& parser,
+                               const std::string& message) : 
                              ParserException(parser, message) { }
 };
 
@@ -129,6 +147,13 @@ const std::string PARSER_ERR_MALFORMED_SPEC
 
 const std::string PARSER_ERR_MALFORMED_PROPERTY
     = "Malformed property definition.";
+
+const std::string PARSER_ERR_MALFORMED_FUNCTION
+    = "Malformed function definition.";
+
+const std::string PARSER_ERR_MALFORMED_BODY
+    = "Malformed function or property body definition.";
+
 } // namespace library
 } // namespace gunderscript
 

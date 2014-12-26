@@ -166,6 +166,7 @@ void Lexer::LoadKeywords() {
   DEFINE_KEYWORD("break", LexerTokenType::KEYWORD, LexerSymbol::BREAK);
   DEFINE_KEYWORD("continue", LexerTokenType::KEYWORD, LexerSymbol::CONTINUE);
   DEFINE_KEYWORD("depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
+  DEFINE_KEYWORD("native", LexerTokenType::KEYWORD, LexerSymbol::NATIVE);
 
   // Primitive Types:
   DEFINE_KEYWORD("int", LexerTokenType::TYPE, LexerSymbol::INT);

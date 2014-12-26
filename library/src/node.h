@@ -24,12 +24,17 @@ enum class NodeRule {
     PROPERTY,
     PROPERTY_FUNCTION,
     FUNCTIONS,
-    FUNCTION
+    FUNCTION,
+    NATIVE,
+    PARAMETERS,
+    PARAMETER,
+    BLOCK
 };
 
 class Node {
  public:
   Node(NodeRule rule) { rule_ = rule; }
+  Node(NodeRule rule, bool value);
   Node(NodeRule rule, long value);
   Node(NodeRule rule, double value);
   Node(NodeRule rule, LexerSymbol symbol);
@@ -38,6 +43,7 @@ class Node {
   void AddChild(Node* child);
   Node* GetChild (int child);
   int child_count() const { return this->children_.size(); }
+  bool bool_value() const { return num_value_.bool_value; }
   long long_value() const { return num_value_.int_value; }
   double float_value() const { return num_value_.float_value; }
   LexerSymbol symbol_value() const { return num_value_.symbol_value; }
@@ -49,6 +55,7 @@ class Node {
   const std::string* string_value_;
 
   union {
+    bool bool_value;
     long int_value;
     double float_value;
     LexerSymbol symbol_value;

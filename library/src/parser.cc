@@ -237,28 +237,120 @@ void Parser::ParsePropertyBodyFunction(Node* getter_node, Node* setter_node) {
     return;
   }
 
-  // No semicolon, this property function must have a body, check opening brace.
-  if (!AdvanceSymbol(LexerSymbol::LBRACE)) {
-    ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
-  }
-
-  AdvanceNext();
   ParseFunctionBody(node);
-
-  // Check closing brace.
-  if (!AdvanceSymbol(LexerSymbol::RBRACE)) {
-    ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
-  }
 
   AdvanceNext();
 }
 
 void Parser::ParseFunction(Node* node) {
-  throw NotImplementedException();
+  Node* function_node = new Node(NodeRule::FUNCTION);
+  node->AddChild(function_node);
+
+  // Check for ACCESS_MODIFIER.
+  if (CurrentToken()->type != LexerTokenType::ACCESS_MODIFIER) {
+    throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
+  }
+
+  function_node->AddChild(new Node(NodeRule::ACCESS_MODIFIER, CurrentToken()->symbol));
+
+  // Check for NATIVE function token.
+  bool native_function = false;
+  if (AdvanceKeyword(LexerSymbol::NATIVE)) {
+    native_function = true;
+    AdvanceNext();
+  }
+
+  function_node->AddChild(new Node(NodeRule::NATIVE, native_function));
+
+  // Check for TYPE for return type.
+  if (CurrentToken()->type != LexerTokenType::TYPE) {
+    throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
+  }
+
+  function_node->AddChild(new Node(NodeRule::TYPE, CurrentToken()->symbol));
+
+  // Check for NAME symbol type for function name.
+  if (AdvanceNext()->type != LexerTokenType::NAME) {
+    throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
+  }
+
+  function_node->AddChild(new Node(NodeRule::NAME, CurrentToken()->string_const));
+
+  // Check for opening parenthesis for parameters.
+  if (!AdvanceSymbol(LexerSymbol::LPAREN)) {
+    throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
+  }
+
+  ParseFunctionParameters(function_node);
+
+  // Check for closing parenthesis for params.
+  if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+    throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
+  }
+
+  // If we found a semicolon, function has no body, we're done.
+  if (AdvanceSymbol(LexerSymbol::SEMICOLON)) {
+    return;
+  }
+
+  ParseFunctionBody(function_node);
+}
+
+void Parser::ParseFunctionParameters(Node* node) {
+  Node* parameters_node = new Node(NodeRule::PARAMETERS);
+  node->AddChild(parameters_node);
+
+  // Keep on parsing till we reach the close parenthesis.
+  if (!AdvanceSymbol(LexerSymbol::RPAREN)) {
+    ParseFunctionParameter(parameters_node);
+
+    while (!AdvanceSymbol(LexerSymbol::RPAREN)) {
+
+      // Check for comma.
+      if (!CurrentSymbol(LexerSymbol::COMMA)) {
+	throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
+      }
+
+      AdvanceNext();
+      ParseFunctionParameter(parameters_node);
+    }
+  }
+}
+
+void Parser::ParseFunctionParameter(Node* node) {
+  Node* parameter_node = new Node(NodeRule::PARAMETER);
+  node->AddChild(parameter_node);
+
+  // Check for a parameter TYPE.
+  if (CurrentToken()->type != LexerTokenType::TYPE) {
+    throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
+  }
+
+  parameter_node->AddChild(new Node(NodeRule::TYPE, CurrentToken()->symbol));
+
+  // Check for a parameter NAME.
+  if (AdvanceNext()->type != LexerTokenType::NAME) {
+    throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
+  }
+
+  parameter_node->AddChild(new Node(NodeRule::NAME, CurrentToken()->string_const));
 }
 
 void Parser::ParseFunctionBody(Node* node) {
-  throw NotImplementedException();
+  Node* block_node = new Node(NodeRule::BLOCK);
+  node->AddChild(block_node);
+
+  // No semicolon, this property function must have a body, check opening brace.
+  if (!CurrentSymbol(LexerSymbol::LBRACE)) {
+    throw ParserMalformedBodyException(*this, PARSER_ERR_MALFORMED_BODY);
+  }
+
+  // TODO: ParseFunctionBody.
+
+  // Check closing brace.
+  if (!AdvanceSymbol(LexerSymbol::RBRACE)) {
+    throw ParserMalformedBodyException(*this, PARSER_ERR_MALFORMED_BODY);
+  }
 }
 
 const LexerToken* Parser::AdvanceNext() {
