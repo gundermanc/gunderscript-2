@@ -690,7 +690,7 @@ TEST(Parser, ParseMultipleFunctions) {
   Lexer lexer(*source);
   Parser parser(lexer);
 
-  Node* root = parser.Parse();
+  parser.Parse();
 }
 
 TEST(Parser, ParseMalformedFunctions) {

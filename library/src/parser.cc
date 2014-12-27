@@ -237,7 +237,7 @@ void Parser::ParsePropertyBodyFunction(Node* getter_node, Node* setter_node) {
     return;
   }
 
-  ParseFunctionBody(node);
+  ParseBlockStatement(node);
 
   AdvanceNext();
 }
@@ -293,7 +293,7 @@ void Parser::ParseFunction(Node* node) {
     return;
   }
 
-  ParseFunctionBody(function_node);
+  ParseBlockStatement(function_node);
 }
 
 void Parser::ParseFunctionParameters(Node* node) {
@@ -336,21 +336,105 @@ void Parser::ParseFunctionParameter(Node* node) {
   parameter_node->AddChild(new Node(NodeRule::NAME, CurrentToken()->string_const));
 }
 
-void Parser::ParseFunctionBody(Node* node) {
+void Parser::ParseBlockStatement(Node* node) {
   Node* block_node = new Node(NodeRule::BLOCK);
   node->AddChild(block_node);
 
-  // No semicolon, this property function must have a body, check opening brace.
+  // Check opening brace.
   if (!CurrentSymbol(LexerSymbol::LBRACE)) {
     throw ParserMalformedBodyException(*this, PARSER_ERR_MALFORMED_BODY);
   }
 
-  // TODO: ParseFunctionBody.
+  while (!AdvanceSymbol(LexerSymbol::RBRACE)) {
+    ParseStatement(block_node);
+  }
 
   // Check closing brace.
-  if (!AdvanceSymbol(LexerSymbol::RBRACE)) {
+  if (!CurrentSymbol(LexerSymbol::RBRACE)) {
     throw ParserMalformedBodyException(*this, PARSER_ERR_MALFORMED_BODY);
   }
+}
+
+void Parser::ParseStatement(Node* node) {
+  LexerTokenType type = AdvanceNext()->type;
+
+  AdvanceNext();
+
+  switch (type) {
+    case LexerTokenType::SYMBOL:
+      if (!CurrentSymbol(LexerSymbol::LBRACE)) {
+        throw ParserUnexpectedTokenException(*this, PARSER_ERR_EXPECTED_STATEMENT);
+      }
+      ParseBlockStatement(node);
+      break;
+    case LexerTokenType::KEYWORD:
+      ParseKeywordStatement(node);
+      break;
+    case LexerTokenType::NAME:
+      ParseNameStatement(node);
+      break;
+    default:
+      throw ParserUnexpectedTokenException(*this, PARSER_ERR_EXPECTED_STATEMENT);
+  }
+}
+
+void Parser::ParseKeywordStatement(Node* node) {
+  LexerSymbol keyword = AdvanceNext()->symbol;
+
+  AdvanceNext();
+
+  switch (keyword) {
+    case LexerSymbol::IF:
+      ParseIfStatement(node);
+      break;
+    case LexerSymbol::WHILE:
+      ParseWhileStatement(node);
+      break;
+    case LexerSymbol::DO:
+      ParseDoWhileStatement(node);
+      break;
+    case LexerSymbol::FOR:
+      ParseForStatement(node);
+      break;
+    case LexerSymbol::RETURN:
+      ParseReturnStatement(node);
+      break;
+    default:
+      throw ParserUnexpectedTokenException(*this, PARSER_ERR_EXPECTED_STATEMENT);
+  }
+}
+
+void Parser::ParseIfStatement(Node* node) {
+  throw NotImplementedException();
+}
+
+void Parser::ParseWhileStatement(Node* node) {
+  throw NotImplementedException();
+}
+
+void Parser::ParseDoWhileStatement(Node* node) {
+  throw NotImplementedException();
+}
+
+void Parser::ParseForStatement(Node* node) {
+  throw NotImplementedException();
+}
+
+void Parser::ParseReturnStatement(Node* node) {
+  throw NotImplementedException();
+}
+
+void Parser::ParseNameStatement(Node* node) {
+  // TODO: call ParseCallStatement, ParseAssignmentStatement, or throw.
+  throw NotImplementedException();
+}
+
+void Parser::ParseCallStatement(Node* node) {
+  throw NotImplementedException();
+}
+
+void Parser::ParseAssignmentStatement(Node* node) {
+  throw NotImplementedException();
 }
 
 const LexerToken* Parser::AdvanceNext() {

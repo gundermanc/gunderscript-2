@@ -49,7 +49,19 @@ class Parser {
   void ParseFunction(Node* node);
   void ParseFunctionParameters(Node* node);
   void ParseFunctionParameter(Node* node);
-  void ParseFunctionBody(Node* node);
+  void ParseBlockStatement(Node* node);
+  void ParseStatement(Node* node);
+  void ParseKeywordStatement(Node* node);
+  void ParseIfStatement(Node* node);
+  void ParseWhileStatement(Node* node);
+  void ParseDoWhileStatement(Node* node);
+  void ParseForStatement(Node* node);
+  void ParseReturnStatement(Node* node);
+
+  void ParseNameStatement(Node* node);
+  void ParseCallStatement(Node* node);
+  void ParseAssignmentStatement(Node* node);
+  
 };
 
 // Parser Exceptions Parent Class
@@ -135,6 +147,9 @@ const std::string PARSER_ERR_EXPECTED_PACKAGE
 
 const std::string PARSER_ERR_EXPECTED_SEMICOLON
     = "Expected terminating semicolon.";
+
+const std::string PARSER_ERR_EXPECTED_STATEMENT
+    = "Expected statement. No known statement begins with given token.";
 
 const std::string PARSER_ERR_BAD_PACKAGE_NAME
     = "Expected name for package in declaration at head of file.";
