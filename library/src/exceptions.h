@@ -30,6 +30,13 @@ class NotImplementedException : public Exception {
   NotImplementedException(const std::string& message) : Exception(message) { }
 };
 
+// Illegal State exception: thrown if bug detected in Gunderscript.
+class IllegalStateException : public Exception {
+ public:
+  IllegalStateException() : Exception("Illegal State: bug detected in Gunderscript.") { }
+  IllegalStateException(const std::string& message) : Exception(message) { }
+};
+
 } // namespace library
 } // namespace gunderscript
 

@@ -28,7 +28,20 @@ enum class NodeRule {
     NATIVE,
     PARAMETERS,
     PARAMETER,
-    BLOCK
+    BLOCK,
+
+    RETURN,
+
+    EXPRESSION,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    MOD,
+    INT,
+    FLOAT,
+    CHAR,
+    STRING
 };
 
 class Node {
@@ -44,7 +57,7 @@ class Node {
   Node* GetChild (int child);
   int child_count() const { return this->children_.size(); }
   bool bool_value() const { return num_value_.bool_value; }
-  long long_value() const { return num_value_.int_value; }
+  long int_value() const { return num_value_.int_value; }
   double float_value() const { return num_value_.float_value; }
   LexerSymbol symbol_value() const { return num_value_.symbol_value; }
   const std::string* string_value() const { return string_value_; }

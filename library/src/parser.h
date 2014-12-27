@@ -57,11 +57,21 @@ class Parser {
   void ParseDoWhileStatement(Node* node);
   void ParseForStatement(Node* node);
   void ParseReturnStatement(Node* node);
-
   void ParseNameStatement(Node* node);
   void ParseCallStatement(Node* node);
   void ParseAssignmentStatement(Node* node);
-  
+  void ParseExpression(Node* node);
+  Node* ParseArithmeticExpressionA();
+  Node* ParseArithmeticExpressionB(Node* left_operand_node);
+  Node* ParseMultiplicationDivisionExpressionA();
+  Node* ParseMultiplicationDivisionExpressionB(Node* left_operand_node);
+  Node* ParseNegateExpression();
+  Node* ParseAtomicExpression();
+  Node* ParseValueExpression();
+  Node* ParseIntConstant();
+  Node* ParseFloatConstant();
+  Node* ParseCharConstant();
+  Node* ParseStringConstant();
 };
 
 // Parser Exceptions Parent Class
@@ -133,6 +143,15 @@ class ParserMalformedBodyException : public ParserException {
                              ParserException(parser, message) { }
 };
 
+// Parser malformed expression exception.
+class ParserMalformedExpressionException : public ParserException {
+ public:
+  ParserMalformedExpressionException(const Parser& parser,
+                                     const std::string& message) : 
+                             ParserException(parser, message) { }
+};
+
+
 // Parser unexpected token exception.
 class ParserUnexpectedTokenException : public ParserException {
  public:
@@ -168,6 +187,9 @@ const std::string PARSER_ERR_MALFORMED_FUNCTION
 
 const std::string PARSER_ERR_MALFORMED_BODY
     = "Malformed function or property body definition.";
+
+const std::string PARSER_ERR_MALFORMED_EXPRESSION
+    = "Malformed expression.";
 
 } // namespace library
 } // namespace gunderscript

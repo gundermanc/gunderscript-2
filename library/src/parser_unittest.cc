@@ -857,5 +857,301 @@ TEST(Parser, ParseFunctionWithBody) {
   FAIL();
 }
 
+TEST(Parser, ParseEmptyReturn) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public string Foo() {"
+                    "    return;"
+                    "  }"
+                    "}");
+
+  LexerStringSource* source = new  LexerStringSource(input);
+  Lexer lexer(*source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_return_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+  EXPECT_EQ(0, foo_return_node->child_count());
+}
+
+TEST(Parser, ParseReturnWithExpression) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public string Foo() {"
+                    "    return 15;"
+                    "  }"
+                    "}");
+
+  LexerStringSource* source = new  LexerStringSource(input);
+  Lexer lexer(*source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_return_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+  ASSERT_EQ(1, foo_return_node->child_count());
+
+  Node* foo_return_expression_node = foo_return_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+  EXPECT_EQ(1, foo_return_expression_node->child_count());
+
+  Node* foo_int_node = foo_return_expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, foo_int_node->rule());
+  EXPECT_EQ(0, foo_int_node->child_count());
+  EXPECT_EQ(15, foo_int_node->int_value());
+}
+
+TEST(Parser, ParseMalformedReturn) {
+
+  // Case 1: expression but missing semicolon.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public string Foo() {"
+                      "    return 15"
+                      "  }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
+  }
+
+  // Case 2: no expression but missing semicolon.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public string Foo() {"
+                      "    return "
+                      "  }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+}
+
+TEST(Parser, ParseOrderOfOperations) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public string Foo() {"
+                    "    return (((15.55 + 5.0) * 3.0) - -1.0 % 2.0) / 'c';"
+                    "  }"
+                    "}");
+
+  LexerStringSource* source = new  LexerStringSource(input);
+  Lexer lexer(*source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_return_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+  ASSERT_EQ(1, foo_return_node->child_count());
+
+  Node* foo_return_expression_node = foo_return_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+  EXPECT_EQ(1, foo_return_expression_node->child_count());
+
+  Node* foo_expression_root_node = foo_return_expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::DIV, foo_expression_root_node->rule());
+  EXPECT_EQ(2, foo_expression_root_node->child_count());
+
+  Node* foo_numerator_node = foo_expression_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::SUB, foo_numerator_node->rule());
+  EXPECT_EQ(2, foo_numerator_node->child_count());
+
+  Node* foo_left_multiply_node = foo_numerator_node->GetChild(0);
+  EXPECT_EQ(NodeRule::MUL, foo_left_multiply_node->rule());
+  EXPECT_EQ(2, foo_left_multiply_node->child_count());
+
+  Node* foo_add_node = foo_left_multiply_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ADD, foo_add_node->rule());
+  EXPECT_EQ(2, foo_add_node->child_count());
+
+  Node* foo_add_left_operand_node = foo_add_node->GetChild(0);
+  EXPECT_EQ(NodeRule::FLOAT, foo_add_left_operand_node->rule());
+  EXPECT_EQ(15.55, foo_add_left_operand_node->float_value());
+
+  Node* foo_add_right_operand_node = foo_add_node->GetChild(1);
+  EXPECT_EQ(NodeRule::FLOAT, foo_add_right_operand_node->rule());
+  EXPECT_EQ(5.0, foo_add_right_operand_node->float_value());
+
+  Node* foo_lm_right_operand_node = foo_left_multiply_node->GetChild(1);
+  EXPECT_EQ(NodeRule::FLOAT, foo_lm_right_operand_node->rule());
+  EXPECT_EQ(3.0, foo_lm_right_operand_node->float_value());
+
+  Node* foo_right_multiply_node = foo_numerator_node->GetChild(1);
+  EXPECT_EQ(NodeRule::MOD, foo_right_multiply_node->rule());
+  EXPECT_EQ(2, foo_right_multiply_node->child_count());
+
+  Node* foo_negate_node = foo_right_multiply_node->GetChild(0);
+  EXPECT_EQ(NodeRule::SUB, foo_negate_node->rule());
+  EXPECT_EQ(2, foo_negate_node->child_count());
+
+  Node* foo_negate_left_operand_node = foo_negate_node->GetChild(0);
+  EXPECT_EQ(NodeRule::CHAR, foo_negate_left_operand_node->rule());
+  EXPECT_EQ(0, foo_negate_left_operand_node->int_value());
+
+  Node* foo_negate_right_operand_node = foo_negate_node->GetChild(1);
+  EXPECT_EQ(NodeRule::FLOAT, foo_negate_right_operand_node->rule());
+  EXPECT_EQ(1.0, foo_negate_right_operand_node->float_value());
+
+  Node* foo_rm_right_operand_node = foo_right_multiply_node->GetChild(1);
+  EXPECT_EQ(NodeRule::FLOAT, foo_lm_right_operand_node->rule());
+  EXPECT_EQ(2.0, foo_rm_right_operand_node->float_value());
+
+  Node* foo_denominator_node = foo_expression_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::CHAR, foo_denominator_node->rule());
+  EXPECT_EQ('c', foo_denominator_node->int_value());
+}
+
+TEST(Parser, ParseMalformedArithmeticExpression) {
+
+  // Case 1: missing right operand add.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public string Foo() {"
+                      "    return 3 + ;"
+                      "  }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 2: missing left operand add.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public string Foo() {"
+                      "    return + 3;"
+                      "  }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 3: missing right operand multiply.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public string Foo() {"
+                      "    return 3 * ;"
+                      "  }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 4: missing left operand divide.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public string Foo() {"
+                      "    return / 3;"
+                      "  }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 5: keyword in expression
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public string Foo() {"
+                      "    return 3 * return;"
+                      "  }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 6: extraneous RPAREN.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public string Foo() {"
+                      "    return -3);"
+                      "  }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
+  }
+
+  // Case 7: Unclosed parenthesis.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public string Foo() {"
+                      "    return (-(3 + 34);"
+                      "  }"
+                      "}");
+
+    LexerStringSource* source = new  LexerStringSource(input);
+    Lexer lexer(*source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+}
+
 } // namespace library
 } // namespace gunderscript

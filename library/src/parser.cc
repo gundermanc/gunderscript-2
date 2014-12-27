@@ -46,6 +46,7 @@ void Parser::ParsePackageDeclaration(Node* node) {
   // Save package name string in first module child.
   node->AddChild(new Node(NodeRule::NAME, CurrentToken()->string_const));
 
+  AdvanceNext();
   ParseSemicolon(node);
 }
 
@@ -77,13 +78,14 @@ void Parser::ParseDependsStatement(Node* node) {
   // Add package name to the depends tree node.
   node->AddChild(new Node(NodeRule::NAME, CurrentToken()->string_const));
 
+  AdvanceNext();
   ParseSemicolon(node);
 }
 
 void Parser::ParseSemicolon(Node* node) {
 
   // Check for terminating semicolon.
-  if (!AdvanceSymbol(LexerSymbol::SEMICOLON)) {
+  if (!CurrentSymbol(LexerSymbol::SEMICOLON)) {
     throw ParserUnexpectedTokenException(*this, PARSER_ERR_EXPECTED_SEMICOLON);
   }
 }
@@ -308,7 +310,7 @@ void Parser::ParseFunctionParameters(Node* node) {
 
       // Check for comma.
       if (!CurrentSymbol(LexerSymbol::COMMA)) {
-	throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
+        throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
       }
 
       AdvanceNext();
@@ -345,7 +347,9 @@ void Parser::ParseBlockStatement(Node* node) {
     throw ParserMalformedBodyException(*this, PARSER_ERR_MALFORMED_BODY);
   }
 
-  while (!AdvanceSymbol(LexerSymbol::RBRACE)) {
+  AdvanceNext();
+
+  while (!CurrentSymbol(LexerSymbol::RBRACE)) {
     ParseStatement(block_node);
   }
 
@@ -356,11 +360,7 @@ void Parser::ParseBlockStatement(Node* node) {
 }
 
 void Parser::ParseStatement(Node* node) {
-  LexerTokenType type = AdvanceNext()->type;
-
-  AdvanceNext();
-
-  switch (type) {
+  switch (CurrentToken()->type) {
     case LexerTokenType::SYMBOL:
       if (!CurrentSymbol(LexerSymbol::LBRACE)) {
         throw ParserUnexpectedTokenException(*this, PARSER_ERR_EXPECTED_STATEMENT);
@@ -379,11 +379,7 @@ void Parser::ParseStatement(Node* node) {
 }
 
 void Parser::ParseKeywordStatement(Node* node) {
-  LexerSymbol keyword = AdvanceNext()->symbol;
-
-  AdvanceNext();
-
-  switch (keyword) {
+  switch (CurrentToken()->symbol) {
     case LexerSymbol::IF:
       ParseIfStatement(node);
       break;
@@ -421,7 +417,22 @@ void Parser::ParseForStatement(Node* node) {
 }
 
 void Parser::ParseReturnStatement(Node* node) {
-  throw NotImplementedException();
+
+  // Check for return keyword.
+  if (!CurrentKeyword(LexerSymbol::RETURN)) {
+    throw IllegalStateException();
+  }
+
+  Node* return_node = new Node(NodeRule::RETURN);
+  node->AddChild(return_node);
+
+  // Check for return expression.
+  if (!AdvanceSymbol(LexerSymbol::SEMICOLON)) {
+    ParseExpression(return_node);
+  }
+
+  ParseSemicolon(node);
+  AdvanceNext();
 }
 
 void Parser::ParseNameStatement(Node* node) {
@@ -435,6 +446,196 @@ void Parser::ParseCallStatement(Node* node) {
 
 void Parser::ParseAssignmentStatement(Node* node) {
   throw NotImplementedException();
+}
+
+void Parser::ParseExpression(Node* node) {
+  // TODO: Implement:
+  // ParseStringExpression
+  // ParseArithmeticExpression
+  // ParseBooleanExpression
+  // ParseSpecExpression
+  // ParseVariableExpression
+  Node* expression_node = new Node(NodeRule::EXPRESSION);
+  node->AddChild(expression_node);
+
+  expression_node->AddChild(ParseArithmeticExpressionA());
+}
+
+Node* Parser::ParseArithmeticExpressionA() {
+  Node* left_operand_node = ParseMultiplicationDivisionExpressionA();
+
+  return ParseArithmeticExpressionB(left_operand_node);
+}
+
+Node* Parser::ParseArithmeticExpressionB(Node* left_operand_node) {
+
+  // Return left operand if this isn't an operation.
+  if (CurrentToken()->type != LexerTokenType::SYMBOL) {
+    return left_operand_node;
+  }
+
+  Node* operation_node = NULL;
+
+  switch (CurrentToken()->symbol) {
+    case LexerSymbol::ADD:
+      operation_node = new Node(NodeRule::ADD);
+      break;
+    case LexerSymbol::SUB:
+      operation_node = new Node(NodeRule::SUB);
+      break;
+    default:
+      // Return left operand if this isn't an operation.
+      return left_operand_node;
+  }
+
+  operation_node->AddChild(left_operand_node);
+  AdvanceNext();
+
+  Node* right_operand_node =
+      ParseArithmeticExpressionB(ParseMultiplicationDivisionExpressionA());
+  operation_node->AddChild(right_operand_node);
+
+  return operation_node;
+}
+
+Node* Parser::ParseMultiplicationDivisionExpressionA() {
+  Node* left_operand_node = ParseNegateExpression();
+
+  return ParseMultiplicationDivisionExpressionB(left_operand_node);
+}
+
+Node* Parser::ParseMultiplicationDivisionExpressionB(Node* left_operand_node) {
+
+  // Return left operand if this isn't an operation.
+  if (CurrentToken()->type != LexerTokenType::SYMBOL) {
+    return left_operand_node;
+  }
+
+  Node* operation_node = NULL;
+
+  switch (CurrentToken()->symbol) {
+    case LexerSymbol::MUL:
+      operation_node = new Node(NodeRule::MUL);
+      break;
+    case LexerSymbol::DIV:
+      operation_node = new Node(NodeRule::DIV);
+      break;
+    case LexerSymbol::MOD:
+      operation_node = new Node(NodeRule::MOD);
+      break;
+    default:
+      // Return left operand if this isn't an operation.
+      return left_operand_node;
+  }
+
+  operation_node->AddChild(left_operand_node);
+  AdvanceNext();
+
+  Node* right_operand_node =
+      ParseMultiplicationDivisionExpressionB(ParseNegateExpression());
+  operation_node->AddChild(right_operand_node);
+
+  return operation_node;
+}
+
+Node* Parser::ParseNegateExpression() {
+
+  // Add NEGATE node if there is a '-'.
+  if (CurrentSymbol(LexerSymbol::SUB)) {
+    Node* negate_node = new Node(NodeRule::SUB);
+
+    AdvanceNext();
+    negate_node->AddChild(new Node(NodeRule::CHAR, 0l));
+    negate_node->AddChild(ParseAtomicExpression());
+
+    return negate_node;
+  } else {
+    return ParseAtomicExpression();
+  }
+}
+
+Node* Parser::ParseAtomicExpression() {
+
+  // If no LPAREN, evaluate value of expression.
+  if (!CurrentSymbol(LexerSymbol::LPAREN)) {
+    return ParseValueExpression();
+  }
+
+  // LPAREN, probably a "(" ArithExpr ")".
+  AdvanceNext();
+  Node* arithmetic_node = ParseArithmeticExpressionA();
+
+  // Check for closing parenthesis.
+  if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+    throw ParserMalformedExpressionException(*this, PARSER_ERR_MALFORMED_EXPRESSION);
+  }
+
+  AdvanceNext();
+
+  return arithmetic_node;
+}
+
+Node* Parser::ParseValueExpression() {
+  switch (CurrentToken()->type) {
+    case LexerTokenType::INT:
+      return ParseIntConstant();
+    case LexerTokenType::FLOAT:
+      return ParseFloatConstant();
+    case LexerTokenType::CHAR:
+      return ParseCharConstant();
+    case LexerTokenType::STRING:
+      return ParseStringConstant();
+    default:
+      throw ParserMalformedExpressionException(*this, PARSER_ERR_MALFORMED_EXPRESSION);
+  }
+}
+
+Node* Parser::ParseIntConstant() {
+  // Check for INT type.
+  if (CurrentToken()->type != LexerTokenType::INT) {
+    throw IllegalStateException();
+  }
+
+  Node* int_node = new Node(NodeRule::INT, CurrentToken()->int_const);
+  AdvanceNext();
+
+  return int_node;
+}
+
+Node* Parser::ParseFloatConstant() {
+  // Check for FLOAT type.
+  if (CurrentToken()->type != LexerTokenType::FLOAT) {
+    throw IllegalStateException();
+  }
+
+  Node* float_node = new Node(NodeRule::FLOAT, CurrentToken()->float_const);
+  AdvanceNext();
+
+  return float_node;
+}
+
+Node* Parser::ParseCharConstant() {
+  // Check for CHAR type.
+  if (CurrentToken()->type != LexerTokenType::CHAR) {
+    throw IllegalStateException();
+  }
+
+  Node* char_node = new Node(NodeRule::CHAR, (long)CurrentToken()->char_const);
+  AdvanceNext();
+
+  return char_node;
+}
+
+Node* Parser::ParseStringConstant() {
+  // Check for STRING type.
+  if (CurrentToken()->type != LexerTokenType::STRING) {
+    throw IllegalStateException();
+  }
+
+  Node* string_node = new Node(NodeRule::STRING, CurrentToken()->string_const);
+  AdvanceNext();
+
+  return string_node;
 }
 
 const LexerToken* Parser::AdvanceNext() {
