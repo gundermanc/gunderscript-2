@@ -96,13 +96,18 @@ Lexer::Lexer(LexerSourceInterface& source) {
   this->AdvanceTokens();
 }
 
-// Lexer Class destructor. Frees dynamically allocated strings
-// and LexerSourceInterface objects.
+// Lexer Class destructor. Frees dynamically allocated strings.
 Lexer::~Lexer() {
   if (this->valid_current_token_ &&
       (this->current_token_.type == LexerTokenType::STRING ||
        this->current_token_.type == LexerTokenType::NAME)) {
     delete this->current_token_.string_const;
+  }
+
+  if (this->valid_next_token_ &&
+      (this->next_token_.type == LexerTokenType::STRING ||
+       this->next_token_.type == LexerTokenType::NAME)) {
+    delete this->next_token_.string_const;
   }
 }
 

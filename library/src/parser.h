@@ -16,11 +16,12 @@ namespace library {
 class Parser {
  public:
   Parser(Lexer& lexer) : lexer_(lexer) { }
-  Node* Parse() { return ParseModule(); }
+  Node* Parse();
   Lexer* lexer() const { return &lexer_; }
 
  private:
   Lexer& lexer_;
+  Node* module_node_;
   const LexerToken* AdvanceNext();
   const LexerToken* CurrentToken();
   const LexerToken* NextToken();

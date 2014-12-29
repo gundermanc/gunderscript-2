@@ -6,14 +6,27 @@
 namespace gunderscript {
 namespace library {
 
+Node* Parser::Parse() {
+
+  // Try to Parse the module. Upon failure, catch
+  // exception, cleanup, and rethrow.
+  try {
+    return ParseModule();
+  } catch (const ParserException& ex) {
+    delete module_node_;
+    throw;
+  }
+}
+
 Node* Parser::ParseModule() {
-  Node* module_node = new Node(NodeRule::MODULE);
+  module_node_ = new Node(NodeRule::MODULE);
+  ParsePackageDeclaration(module_node_);
+
   Node* depends_node = new Node(NodeRule::DEPENDS);
   Node* specs_node = new Node(NodeRule::SPECS);
+  module_node_->AddChild(depends_node);
+  module_node_->AddChild(specs_node);
 
-  ParsePackageDeclaration(module_node);
-
-  module_node->AddChild(depends_node);
 
   // Allow end of file after package.
   if (has_next()) {
@@ -21,14 +34,12 @@ Node* Parser::ParseModule() {
     ParseDependsStatements(depends_node);
   }
 
-  module_node->AddChild(specs_node);
-
   // Allow end of file after depends.
   if (has_next()) {
     ParseSpecDefinitions(specs_node);
   }
 
-  return module_node;
+  return module_node_;
 }
 
 void Parser::ParsePackageDeclaration(Node* node) {
@@ -464,7 +475,12 @@ void Parser::ParseExpression(Node* node) {
 Node* Parser::ParseArithmeticExpressionA() {
   Node* left_operand_node = ParseMultiplicationDivisionExpressionA();
 
-  return ParseArithmeticExpressionB(left_operand_node);
+  try {
+    return ParseArithmeticExpressionB(left_operand_node);
+  } catch (const ParserException& ex) {
+    delete left_operand_node;
+    throw;
+  }
 }
 
 Node* Parser::ParseArithmeticExpressionB(Node* left_operand_node) {
@@ -488,11 +504,18 @@ Node* Parser::ParseArithmeticExpressionB(Node* left_operand_node) {
       return left_operand_node;
   }
 
-  operation_node->AddChild(left_operand_node);
-  AdvanceNext();
+  Node* right_operand_node = NULL;
 
-  Node* right_operand_node =
-      ParseArithmeticExpressionB(ParseMultiplicationDivisionExpressionA());
+  try {
+    AdvanceNext();
+    right_operand_node
+        = ParseArithmeticExpressionB(ParseMultiplicationDivisionExpressionA());
+  } catch (const ParserException& ex) {
+    delete operation_node;
+    throw;
+  }
+
+  operation_node->AddChild(left_operand_node);    
   operation_node->AddChild(right_operand_node);
 
   return operation_node;
@@ -501,7 +524,12 @@ Node* Parser::ParseArithmeticExpressionB(Node* left_operand_node) {
 Node* Parser::ParseMultiplicationDivisionExpressionA() {
   Node* left_operand_node = ParseNegateExpression();
 
-  return ParseMultiplicationDivisionExpressionB(left_operand_node);
+  try {
+    return ParseMultiplicationDivisionExpressionB(left_operand_node);
+  } catch (const ParserException& ex) {
+    delete left_operand_node;
+    throw;
+  }
 }
 
 Node* Parser::ParseMultiplicationDivisionExpressionB(Node* left_operand_node) {
@@ -528,11 +556,19 @@ Node* Parser::ParseMultiplicationDivisionExpressionB(Node* left_operand_node) {
       return left_operand_node;
   }
 
-  operation_node->AddChild(left_operand_node);
-  AdvanceNext();
+  Node* right_operand_node = NULL;
 
-  Node* right_operand_node =
-      ParseMultiplicationDivisionExpressionB(ParseNegateExpression());
+  // If we throw, delete the node first.
+  try {
+    AdvanceNext();
+    right_operand_node =
+        ParseMultiplicationDivisionExpressionB(ParseNegateExpression());;
+  } catch (const ParserException& ex) {
+    delete operation_node;
+    throw;
+  }
+
+  operation_node->AddChild(left_operand_node);
   operation_node->AddChild(right_operand_node);
 
   return operation_node;
@@ -567,6 +603,7 @@ Node* Parser::ParseAtomicExpression() {
 
   // Check for closing parenthesis.
   if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+    delete arithmetic_node;
     throw ParserMalformedExpressionException(*this, PARSER_ERR_MALFORMED_EXPRESSION);
   }
 
@@ -591,51 +628,54 @@ Node* Parser::ParseValueExpression() {
 }
 
 Node* Parser::ParseIntConstant() {
+  long int_const = CurrentToken()->int_const;
+
   // Check for INT type.
   if (CurrentToken()->type != LexerTokenType::INT) {
     throw IllegalStateException();
   }
 
-  Node* int_node = new Node(NodeRule::INT, CurrentToken()->int_const);
   AdvanceNext();
-
-  return int_node;
+  return new Node(NodeRule::INT, int_const);
 }
 
 Node* Parser::ParseFloatConstant() {
+  double float_const = CurrentToken()->float_const;
+
   // Check for FLOAT type.
   if (CurrentToken()->type != LexerTokenType::FLOAT) {
     throw IllegalStateException();
   }
 
-  Node* float_node = new Node(NodeRule::FLOAT, CurrentToken()->float_const);
   AdvanceNext();
 
-  return float_node;
+  return new Node(NodeRule::FLOAT, float_const);
 }
 
 Node* Parser::ParseCharConstant() {
+  char char_const = CurrentToken()->char_const;
+
   // Check for CHAR type.
   if (CurrentToken()->type != LexerTokenType::CHAR) {
     throw IllegalStateException();
   }
 
-  Node* char_node = new Node(NodeRule::CHAR, (long)CurrentToken()->char_const);
   AdvanceNext();
 
-  return char_node;
+  return new Node(NodeRule::CHAR, (long)char_const);
 }
 
 Node* Parser::ParseStringConstant() {
+  const std::string* string_const = CurrentToken()->string_const;
+
   // Check for STRING type.
   if (CurrentToken()->type != LexerTokenType::STRING) {
     throw IllegalStateException();
   }
 
-  Node* string_node = new Node(NodeRule::STRING, CurrentToken()->string_const);
   AdvanceNext();
 
-  return string_node;
+  return new Node(NodeRule::STRING, string_const);
 }
 
 const LexerToken* Parser::AdvanceNext() {

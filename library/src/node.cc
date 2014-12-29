@@ -6,6 +6,12 @@
 namespace gunderscript {
 namespace library {
 
+Node::Node(NodeRule rule) {
+  rule_ = rule;
+  num_value_.int_value = 0;
+  string_value_ = NULL;
+}
+
 Node::Node(NodeRule rule, bool value) {
   rule_ = rule;
   num_value_.bool_value = value;
@@ -39,6 +45,10 @@ Node::Node(NodeRule rule, const std::string* value) {
 Node::~Node() {
   if (string_value_ != NULL) {
     delete string_value_;
+  }
+
+  for (uint i = 0; i < children_.size(); i++) {
+    delete children_[i];
   }
 }
 

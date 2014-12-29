@@ -12,8 +12,8 @@ namespace library {
 TEST(Parser, Empty) {
   std::string input("");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   ASSERT_THROW(parser.Parse(), ParserEndOfFileException);
@@ -23,8 +23,8 @@ TEST(Parser, PackageOnly) {
   // Default success case with package only.
   std::string input("package \"FooPackage\";");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -42,6 +42,8 @@ TEST(Parser, PackageOnly) {
   Node* specs_node = root->GetChild(2);
   EXPECT_EQ(NodeRule::SPECS, specs_node->rule());
   EXPECT_EQ(0, specs_node->child_count());
+
+  delete root;
 }
 
 TEST(Parser, MalformedPackage) {
@@ -50,8 +52,8 @@ TEST(Parser, MalformedPackage) {
   {
     std::string input("packa");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedPackageException);
@@ -61,8 +63,8 @@ TEST(Parser, MalformedPackage) {
   {
     std::string input("package 34");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedPackageException);
@@ -72,10 +74,11 @@ TEST(Parser, MalformedPackage) {
   {
     std::string input("package \"package_name\" depends \"foo\";");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
+    // TODO: FIX: This test causes a memory leak in lexer.cc
     EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
   }
 }
@@ -86,8 +89,8 @@ TEST(Parser, MalformedDepends) {
   {
     std::string input("package \"food\"; depends");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserEndOfFileException);
@@ -97,8 +100,8 @@ TEST(Parser, MalformedDepends) {
   {
     std::string input("package \"food\"; depends 34;");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedDependsException);
@@ -108,8 +111,8 @@ TEST(Parser, MalformedDepends) {
   {
     std::string input("package \"Foo\"; depends \"Foo2Package\"");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserEndOfFileException);
@@ -121,8 +124,8 @@ TEST(Parser, PackageDependsOnly) {
   // Case 1: partial depends.
   std::string input("package \"Foo\"; depends \"Foo2\"; depends \"Foo3\";");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -150,6 +153,8 @@ TEST(Parser, PackageDependsOnly) {
   EXPECT_EQ(NodeRule::NAME, dependency_node_1->rule());
   EXPECT_EQ(0, dependency_node_1->child_count());
   EXPECT_STREQ("Foo3", dependency_node_1->string_value()->c_str());
+
+  delete root;
 }
 
 TEST(Parser, MalformedSpec) {
@@ -158,10 +163,11 @@ TEST(Parser, MalformedSpec) {
   {
     std::string input("package \"FooPackage\"; spec MySpec { }");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
+    // TODO: Fix: This test causes a memory leak in lexer.cc
     ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
   }
 
@@ -169,8 +175,8 @@ TEST(Parser, MalformedSpec) {
   {
     std::string input("package \"FooPackage\"; concealed MySpec { }");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
@@ -180,8 +186,8 @@ TEST(Parser, MalformedSpec) {
   {
     std::string input("package \"FooPackage\"; concealed spec \"MySpec\" { }");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
@@ -191,8 +197,8 @@ TEST(Parser, MalformedSpec) {
   {
     std::string input("package \"FooPackage\"; concealed spec \"MySpec\"  }");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
@@ -202,8 +208,8 @@ TEST(Parser, MalformedSpec) {
   {
     std::string input("package \"FooPackage\"; concealed spec \"MySpec\" { ");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
@@ -216,8 +222,8 @@ TEST(Parser, EmptySpec) {
                     "public spec MySpec { }"
                     "concealed spec Foo { }");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -269,6 +275,8 @@ TEST(Parser, EmptySpec) {
   Node* spec_node_1_properties = spec_node_1->GetChild(2);
   EXPECT_EQ(NodeRule::PROPERTIES, spec_node_1_properties->rule());
   EXPECT_EQ(0, spec_node_1_properties->child_count());
+
+  delete root;
 }
 
 TEST(Parser, ParseMalformedProperty) {
@@ -280,11 +288,11 @@ TEST(Parser, ParseMalformedProperty) {
                       "  concealed float X { public get; concealed set; }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
-    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+    EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
   }
 
   // Case 2: incorrect symbol type property name.
@@ -294,8 +302,8 @@ TEST(Parser, ParseMalformedProperty) {
                       "  float 34 { public get; concealed set; }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
@@ -308,8 +316,8 @@ TEST(Parser, ParseMalformedProperty) {
                       "  float X  public get; concealed set; }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
@@ -323,8 +331,8 @@ TEST(Parser, ParseMalformedProperty) {
                       "  float Y { }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
@@ -337,8 +345,8 @@ TEST(Parser, ParseMalformedProperty) {
                       "  float X { get; concealed set; }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
@@ -351,8 +359,8 @@ TEST(Parser, ParseMalformedProperty) {
                       "  float X { public set; concealed set; }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
@@ -365,12 +373,12 @@ TEST(Parser, ParseMalformedProperty) {
                       "  float X { public get { }; concealed set; }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     // TODO: this exception may be incorrect.
-    EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
+    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
   }
 }
 
@@ -382,8 +390,8 @@ TEST(Parser, ParsePropertyEmpty) {
                     "  string Y { }"
                     "}");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -437,6 +445,8 @@ TEST(Parser, ParsePropertyEmpty) {
   Node* y_setter_node = y_node->GetChild(3);
   EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, y_setter_node->rule());
   ASSERT_EQ(0, y_setter_node->child_count());
+
+  delete root;
 }
 
 TEST(Parser, ParsePropertyAuto) {
@@ -448,8 +458,8 @@ TEST(Parser, ParsePropertyAuto) {
                       "  float X { public get; concealed set; }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     Node* root = parser.Parse();
@@ -491,6 +501,8 @@ TEST(Parser, ParsePropertyAuto) {
     Node* x_setter_access_modifier_node = x_setter_node->GetChild(0);
     EXPECT_EQ(NodeRule::ACCESS_MODIFIER, x_setter_access_modifier_node->rule());
     EXPECT_EQ(LexerSymbol::CONCEALED, x_setter_access_modifier_node->symbol_value());
+
+    delete root;
   }
 
   // Case 2: get second, set first.
@@ -500,8 +512,8 @@ TEST(Parser, ParsePropertyAuto) {
                       "  float X { concealed set; internal get; }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     Node* root = parser.Parse();
@@ -519,6 +531,8 @@ TEST(Parser, ParsePropertyAuto) {
     Node* x_setter_access_modifier_node = x_setter_node->GetChild(0);
     EXPECT_EQ(NodeRule::ACCESS_MODIFIER, x_setter_access_modifier_node->rule());
     EXPECT_EQ(LexerSymbol::CONCEALED, x_setter_access_modifier_node->symbol_value());
+
+    delete root;
   }
 }
 
@@ -536,8 +550,8 @@ TEST(Parser, ParseFunctionEmpty) {
                     "  }"
                     "}");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -570,6 +584,8 @@ TEST(Parser, ParseFunctionEmpty) {
 
   Node* foo_block_node = foo_node->GetChild(5);
   EXPECT_EQ(0, foo_block_node->child_count());
+
+  delete root;
 }
 
 TEST(Parser, ParseFunctionEmptyOneParameterNative) {
@@ -579,8 +595,8 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
                     "  concealed native string Foo2(int x);"
                     "}");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -622,6 +638,8 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
   Node* foo_x_name_node = foo_x_node->GetChild(1);
   EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
   EXPECT_STREQ("x", foo_x_name_node->string_value()->c_str());
+
+  delete root;
 }
 
 TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
@@ -631,8 +649,8 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
                     "  concealed native string Foo2(int x, string y);"
                     "}");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -671,6 +689,7 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
   EXPECT_EQ(NodeRule::NAME, foo_y_name_node->rule());
   EXPECT_STREQ("y", foo_y_name_node->string_value()->c_str());
 
+  delete root;
 }
 
 TEST(Parser, ParseMultipleFunctions) {
@@ -686,11 +705,12 @@ TEST(Parser, ParseMultipleFunctions) {
                     "  string FooStringProperty { public get; }"
                     "}");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
-  parser.Parse();
+  Node* root = parser.Parse();
+  delete root;
 }
 
 TEST(Parser, ParseMalformedFunctions) {
@@ -702,8 +722,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  native string Foo2(int x, string y);"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     // TODO: fix to throw ParserMalformedFunctionException instead.
@@ -717,8 +737,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  native public string Foo(int x, string y);"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     // TODO: fix to throw ParserMalformedFunctionException instead.
@@ -732,8 +752,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  public native string 45(int x, string y);"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
@@ -746,8 +766,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  public native string Foo(int x,);"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
@@ -760,8 +780,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  public native string Foo(public int x);"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
@@ -774,8 +794,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  public native string Foo(int x int y);"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
@@ -788,8 +808,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  public native string Foo int x);"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
@@ -802,8 +822,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  public native string Foo(int x ;"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
@@ -816,8 +836,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  public native string Foo(int x)"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedBodyException);
@@ -830,8 +850,8 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  public native string Foo(int x)"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedBodyException);
@@ -844,17 +864,12 @@ TEST(Parser, ParseMalformedFunctions) {
                       "  public native string Foo(int x) }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedBodyException);
   }
-}
-
-TEST(Parser, ParseFunctionWithBody) {
-  // TODO: body parsing code and this test.
-  FAIL();
 }
 
 TEST(Parser, ParseEmptyReturn) {
@@ -866,8 +881,8 @@ TEST(Parser, ParseEmptyReturn) {
                     "  }"
                     "}");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -882,6 +897,8 @@ TEST(Parser, ParseEmptyReturn) {
   Node* foo_return_node = foo_block_node->GetChild(0);
   EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
   EXPECT_EQ(0, foo_return_node->child_count());
+
+  delete root;
 }
 
 TEST(Parser, ParseReturnWithExpression) {
@@ -893,8 +910,8 @@ TEST(Parser, ParseReturnWithExpression) {
                     "  }"
                     "}");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -918,6 +935,8 @@ TEST(Parser, ParseReturnWithExpression) {
   EXPECT_EQ(NodeRule::INT, foo_int_node->rule());
   EXPECT_EQ(0, foo_int_node->child_count());
   EXPECT_EQ(15, foo_int_node->int_value());
+
+  delete root;
 }
 
 TEST(Parser, ParseMalformedReturn) {
@@ -931,8 +950,8 @@ TEST(Parser, ParseMalformedReturn) {
                       "  }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
@@ -947,8 +966,8 @@ TEST(Parser, ParseMalformedReturn) {
                       "  }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
@@ -964,8 +983,8 @@ TEST(Parser, ParseOrderOfOperations) {
                     "  }"
                     "}");
 
-  LexerStringSource* source = new  LexerStringSource(input);
-  Lexer lexer(*source);
+  LexerStringSource source(input);
+  Lexer lexer(source);
   Parser parser(lexer);
 
   Node* root = parser.Parse();
@@ -1036,6 +1055,8 @@ TEST(Parser, ParseOrderOfOperations) {
   Node* foo_denominator_node = foo_expression_root_node->GetChild(1);
   EXPECT_EQ(NodeRule::CHAR, foo_denominator_node->rule());
   EXPECT_EQ('c', foo_denominator_node->int_value());
+
+  delete root;
 }
 
 TEST(Parser, ParseMalformedArithmeticExpression) {
@@ -1049,8 +1070,8 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
                       "  }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
@@ -1065,8 +1086,8 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
                       "  }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
@@ -1081,8 +1102,8 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
                       "  }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
@@ -1097,8 +1118,8 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
                       "  }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
@@ -1113,8 +1134,8 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
                       "  }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
@@ -1129,8 +1150,8 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
                       "  }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
@@ -1145,8 +1166,8 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
                       "  }"
                       "}");
 
-    LexerStringSource* source = new  LexerStringSource(input);
-    Lexer lexer(*source);
+    LexerStringSource source(input);
+    Lexer lexer(source);
     Parser parser(lexer);
 
     EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);

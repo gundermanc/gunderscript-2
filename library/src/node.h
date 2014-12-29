@@ -46,7 +46,7 @@ enum class NodeRule {
 
 class Node {
  public:
-  Node(NodeRule rule) { rule_ = rule; }
+  Node(NodeRule rule);
   Node(NodeRule rule, bool value);
   Node(NodeRule rule, long value);
   Node(NodeRule rule, double value);
