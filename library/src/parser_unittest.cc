@@ -974,7 +974,7 @@ TEST(Parser, ParseMalformedReturn) {
   }
 }
 
-TEST(Parser, ParseOrderOfOperations) {
+TEST(Parser, ParseArithmeticExpression) {
 
   std::string input("package \"FooPackage\";"
                     "public spec MySpec {"
@@ -1172,6 +1172,134 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
 
     EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
   }
+}
+
+TEST(Parser, ParseBooleanExpression) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+                    "    return (true || false) && !(true && false || false);"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_return_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+  ASSERT_EQ(1, foo_return_node->child_count());
+
+  Node* foo_return_expression_node = foo_return_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+  ASSERT_EQ(1, foo_return_expression_node->child_count());
+
+  Node* foo_expression_root_node = foo_return_expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::LOGAND, foo_expression_root_node->rule());
+  ASSERT_EQ(2, foo_expression_root_node->child_count());
+
+  Node* foo_expression_left_node = foo_expression_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::LOGOR, foo_expression_left_node->rule());
+  ASSERT_EQ(2, foo_expression_left_node->child_count());
+
+  Node* foo_expression_left_left_node = foo_expression_left_node->GetChild(0);
+  EXPECT_EQ(NodeRule::BOOL, foo_expression_left_left_node->rule());
+  EXPECT_EQ(true, foo_expression_left_left_node->bool_value());
+
+  Node* foo_expression_left_right_node = foo_expression_left_node->GetChild(1);
+  EXPECT_EQ(NodeRule::BOOL, foo_expression_left_right_node->rule());
+  EXPECT_EQ(false, foo_expression_left_right_node->bool_value());
+
+  Node* foo_expression_right_node = foo_expression_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::LOGNOT, foo_expression_right_node->rule());
+  ASSERT_EQ(1, foo_expression_right_node->child_count());
+
+  Node* foo_expression_right_child_node = foo_expression_right_node->GetChild(0);
+  EXPECT_EQ(NodeRule::LOGOR, foo_expression_right_child_node->rule());
+  ASSERT_EQ(2, foo_expression_right_child_node->child_count());
+
+  Node* foo_expression_right_child_left_node = foo_expression_right_child_node->GetChild(0);
+  EXPECT_EQ(NodeRule::LOGAND, foo_expression_right_child_left_node->rule());
+  ASSERT_EQ(2, foo_expression_right_child_left_node->child_count());
+
+  Node* foo_expression_right_child_left_left_node
+    = foo_expression_right_child_left_node->GetChild(0);
+  EXPECT_EQ(NodeRule::BOOL, foo_expression_right_child_left_left_node->rule());
+  ASSERT_EQ(true, foo_expression_right_child_left_left_node->bool_value());
+
+  Node* foo_expression_right_child_left_right_node
+    = foo_expression_right_child_left_node->GetChild(1);
+  EXPECT_EQ(NodeRule::BOOL, foo_expression_right_child_left_right_node->rule());
+  ASSERT_EQ(false, foo_expression_right_child_left_right_node->bool_value());
+
+  Node* foo_expression_right_child_right_node = foo_expression_right_child_node->GetChild(1);
+  EXPECT_EQ(NodeRule::BOOL, foo_expression_right_child_right_node->rule());
+  ASSERT_EQ(false, foo_expression_right_child_right_node->bool_value());
+
+  delete root;
+}
+
+TEST(Parser, ParseStringExpression) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+                    "    return \"Hello\" + \"World\" + \"Improved\";"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_return_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+  ASSERT_EQ(1, foo_return_node->child_count());
+
+  Node* foo_return_expression_node = foo_return_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+  ASSERT_EQ(1, foo_return_expression_node->child_count());
+
+  Node* foo_expression_root_node = foo_return_expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ADD, foo_expression_root_node->rule());
+  ASSERT_EQ(2, foo_expression_root_node->child_count());
+
+  Node* foo_subexpression_root_node = foo_expression_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ADD, foo_subexpression_root_node->rule());
+  ASSERT_EQ(2, foo_subexpression_root_node->child_count());
+
+  Node* foo_subexpression_left_node = foo_subexpression_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::STRING, foo_subexpression_left_node->rule());
+  EXPECT_STREQ("Hello", foo_subexpression_left_node->string_value()->c_str());
+
+  Node* foo_subexpression_right_node = foo_subexpression_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::STRING, foo_subexpression_right_node->rule());
+  EXPECT_STREQ("World", foo_subexpression_right_node->string_value()->c_str());
+
+  Node* foo_expression_right_node = foo_expression_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::STRING, foo_expression_right_node->rule());
+  EXPECT_STREQ("Improved", foo_expression_right_node->string_value()->c_str());
+
+  delete root;
 }
 
 } // namespace library

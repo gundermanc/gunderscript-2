@@ -543,7 +543,9 @@ void Lexer::AdvanceTokens() {
     case '=': // =
       ACCEPT_SYMBOL(LexerSymbol::EQUALS);
     case '!': // !, !=
-      ACCEPT_WWOSUFFIX('=', LexerSymbol::NOTEQUALS, LexerSymbol::NOT);
+      ACCEPT_WWOSUFFIX('=', LexerSymbol::NOTEQUALS, LexerSymbol::LOGNOT);
+    case '~':
+      ACCEPT_SYMBOL(LexerSymbol::BINNOT);
     case ':': // :
       ACCEPT_SYMBOL(LexerSymbol::COLON);
     case '?': // ?

@@ -76,7 +76,7 @@ TEST(Lexer, LexerWhitespace) {
   ASSERT_EQ(token->type, LexerTokenType::SYMBOL);
   ASSERT_EQ(token->symbol, LexerSymbol::EQUALS);
 
-  ASSERT_EQ(lexer.next_token()->symbol, LexerSymbol::NOT);
+  ASSERT_EQ(lexer.next_token()->symbol, LexerSymbol::LOGNOT);
 }
 
 // Tests for symbol recognition:
@@ -113,7 +113,8 @@ TEST_SYMBOL(LOGAND, "&&", LexerSymbol::LOGAND);
 TEST_SYMBOL(BINAND, "&", LexerSymbol::BINAND);
 TEST_SYMBOL(EQUALS, "=", LexerSymbol::EQUALS);
 TEST_SYMBOL(NOTEQUALS, "!=", LexerSymbol::NOTEQUALS);
-TEST_SYMBOL(NOT, "!", LexerSymbol::NOT);
+TEST_SYMBOL(LOGNOT, "!", LexerSymbol::LOGNOT);
+TEST_SYMBOL(BINNOT, "~", LexerSymbol::BINNOT);
 TEST_SYMBOL(COLON, ":", LexerSymbol::COLON);
 TEST_SYMBOL(TERNARY, "?", LexerSymbol::TERNARY);
 
@@ -127,7 +128,7 @@ TEST(Lexer, SequentialSymbols) {
 
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-  ASSERT_EQ(LexerSymbol::NOT, lexer.current_token()->symbol);
+  ASSERT_EQ(LexerSymbol::LOGNOT, lexer.current_token()->symbol);
 
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -186,7 +187,7 @@ TEST(Lexer, TrailingSingleLineComment) {
 
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-  ASSERT_EQ(LexerSymbol::NOT, lexer.current_token()->symbol);
+  ASSERT_EQ(LexerSymbol::LOGNOT, lexer.current_token()->symbol);
 
   EXPECT_FALSE(lexer.AdvanceNext() == NULL);
   ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
