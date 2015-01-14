@@ -579,7 +579,7 @@ TEST(Parser, ParseFunctionEmpty) {
   EXPECT_STREQ("Foo", foo_name_node->string_value()->c_str());
 
   Node* foo_parameters_node = foo_node->GetChild(4);
-  EXPECT_EQ(NodeRule::PARAMETERS, foo_parameters_node->rule());
+  EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
   EXPECT_EQ(0, foo_parameters_node->child_count());
 
   Node* foo_block_node = foo_node->GetChild(5);
@@ -624,11 +624,11 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
   EXPECT_STREQ("Foo2", foo_name_node->string_value()->c_str());
 
   Node* foo_parameters_node = foo_node->GetChild(4);
-  EXPECT_EQ(NodeRule::PARAMETERS, foo_parameters_node->rule());
+  EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
   EXPECT_EQ(1, foo_parameters_node->child_count());
 
   Node* foo_x_node = foo_parameters_node->GetChild(0);
-  EXPECT_EQ(NodeRule::PARAMETER, foo_x_node->rule());
+  EXPECT_EQ(NodeRule::FUNCTION_PARAMETER, foo_x_node->rule());
   ASSERT_EQ(2, foo_x_node->child_count());
 
   Node* foo_x_type_node = foo_x_node->GetChild(0);
@@ -662,11 +662,11 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
   ASSERT_EQ(5, foo_node->child_count());
 
   Node* foo_parameters_node = foo_node->GetChild(4);
-  EXPECT_EQ(NodeRule::PARAMETERS, foo_parameters_node->rule());
+  EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
   EXPECT_EQ(2, foo_parameters_node->child_count());
 
   Node* foo_x_node = foo_parameters_node->GetChild(0);
-  EXPECT_EQ(NodeRule::PARAMETER, foo_x_node->rule());
+  EXPECT_EQ(NodeRule::FUNCTION_PARAMETER, foo_x_node->rule());
   ASSERT_EQ(2, foo_x_node->child_count());
 
   Node* foo_x_type_node = foo_x_node->GetChild(0);
@@ -678,7 +678,7 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
   EXPECT_STREQ("x", foo_x_name_node->string_value()->c_str());
 
   Node* foo_y_node = foo_parameters_node->GetChild(1);
-  EXPECT_EQ(NodeRule::PARAMETER, foo_y_node->rule());
+  EXPECT_EQ(NodeRule::FUNCTION_PARAMETER, foo_y_node->rule());
   ASSERT_EQ(2, foo_y_node->child_count());
 
   Node* foo_y_type_node = foo_y_node->GetChild(0);
@@ -1300,6 +1300,343 @@ TEST(Parser, ParseStringExpression) {
   EXPECT_STREQ("Improved", foo_expression_right_node->string_value()->c_str());
 
   delete root;
+}
+
+TEST(Parser, ParseVariableExpression) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+                    "    return 3 + x;"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_return_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+  ASSERT_EQ(1, foo_return_node->child_count());
+
+  Node* foo_return_expression_node = foo_return_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+  ASSERT_EQ(1, foo_return_expression_node->child_count());
+
+  Node* foo_expression_root_node = foo_return_expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ADD, foo_expression_root_node->rule());
+  ASSERT_EQ(2, foo_expression_root_node->child_count());
+
+  Node* foo_expression_left_node = foo_expression_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, foo_expression_left_node->rule());
+  EXPECT_EQ(3, foo_expression_left_node->int_value());
+
+  Node* foo_expression_right_node = foo_expression_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::SYMBOL, foo_expression_right_node->rule());
+  ASSERT_EQ(1, foo_expression_right_node->child_count());
+
+  Node* foo_expression_x_node = foo_expression_right_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, foo_expression_x_node->rule());
+  EXPECT_STREQ("x", foo_expression_x_node->string_value()->c_str());
+
+  delete root;
+}
+
+TEST(Parser, ParseFunctionExpressionWithoutArgs) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+                    "    return 1 % Foo();"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_return_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+  ASSERT_EQ(1, foo_return_node->child_count());
+
+  Node* foo_return_expression_node = foo_return_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+  ASSERT_EQ(1, foo_return_expression_node->child_count());
+
+  Node* foo_expression_root_node = foo_return_expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::MOD, foo_expression_root_node->rule());
+  ASSERT_EQ(2, foo_expression_root_node->child_count());
+
+  Node* foo_expression_left_node = foo_expression_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, foo_expression_left_node->rule());
+  EXPECT_EQ(1, foo_expression_left_node->int_value());
+
+  Node* foo_expression_call_node = foo_expression_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::CALL, foo_expression_call_node->rule());
+  ASSERT_EQ(2, foo_expression_call_node->child_count());
+
+  Node* foo_expression_call_name_node = foo_expression_call_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, foo_expression_call_name_node->rule());
+  EXPECT_STREQ("Foo", foo_expression_call_name_node->string_value()->c_str());
+
+  Node* foo_expression_call_parameters_node = foo_expression_call_node->GetChild(1);
+  EXPECT_EQ(NodeRule::CALL_PARAMETERS, foo_expression_call_parameters_node->rule());
+  EXPECT_EQ(0, foo_expression_call_parameters_node->child_count());
+
+  delete root;
+}
+
+TEST(Parser, ParseFunctionExpressionWithArgs) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+                    "    return Another(3 + 9, (Single(3))) / 2.5;"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_return_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+  ASSERT_EQ(1, foo_return_node->child_count());
+
+  Node* foo_return_expression_node = foo_return_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+  ASSERT_EQ(1, foo_return_expression_node->child_count());
+
+  Node* foo_expression_root_node = foo_return_expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::DIV, foo_expression_root_node->rule());
+  ASSERT_EQ(2, foo_expression_root_node->child_count());
+
+  Node* foo_expression_call_node = foo_expression_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::CALL, foo_expression_call_node->rule());
+  ASSERT_EQ(2, foo_expression_call_node->child_count());
+
+  Node* foo_expression_call_name_node = foo_expression_call_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, foo_expression_call_name_node->rule());
+  EXPECT_STREQ("Another", foo_expression_call_name_node->string_value()->c_str());
+
+  Node* foo_expression_call_parameters_node = foo_expression_call_node->GetChild(1);
+  EXPECT_EQ(NodeRule::CALL_PARAMETERS, foo_expression_call_parameters_node->rule());
+  EXPECT_EQ(2, foo_expression_call_parameters_node->child_count());
+
+  Node* foo_parameter_0_node = foo_expression_call_parameters_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_parameter_0_node->rule());
+  ASSERT_EQ(1, foo_parameter_0_node->child_count());
+
+  Node* foo_parameter_0_root_node = foo_parameter_0_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ADD, foo_parameter_0_root_node->rule());
+  ASSERT_EQ(2, foo_parameter_0_root_node->child_count());
+
+  Node* foo_parameter_0_left_node = foo_parameter_0_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, foo_parameter_0_left_node->rule());
+  ASSERT_EQ(3, foo_parameter_0_left_node->int_value());
+
+  Node* foo_parameter_0_right_node = foo_parameter_0_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::INT, foo_parameter_0_right_node->rule());
+  ASSERT_EQ(9, foo_parameter_0_right_node->int_value());
+
+  Node* foo_parameter_1_node = foo_expression_call_parameters_node->GetChild(1);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_parameter_1_node->rule());
+  ASSERT_EQ(1, foo_parameter_1_node->child_count());
+
+  Node* foo_parameter_1_root_node = foo_parameter_1_node->GetChild(0);
+  EXPECT_EQ(NodeRule::CALL, foo_parameter_1_root_node->rule());
+  ASSERT_EQ(2, foo_parameter_1_root_node->child_count());
+
+  Node* foo_parameter_1_name_node = foo_parameter_1_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, foo_parameter_1_name_node->rule());
+  EXPECT_STREQ("Single", foo_parameter_1_name_node->string_value()->c_str());
+
+  Node* foo_parameter_1_parameters_node = foo_parameter_1_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::CALL_PARAMETERS, foo_parameter_1_parameters_node->rule());
+  ASSERT_EQ(1, foo_parameter_1_parameters_node->child_count());
+
+  Node* foo_expression_right_node = foo_expression_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::FLOAT, foo_expression_right_node->rule());
+  EXPECT_EQ(2.5, foo_expression_right_node->float_value());
+
+  delete root;
+}
+
+TEST(Parser, ParseMemberExpression) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+		     "    return 1 + this.foo.x * (foo).print();"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_return_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+  ASSERT_EQ(1, foo_return_node->child_count());
+
+  Node* foo_return_expression_node = foo_return_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+  ASSERT_EQ(1, foo_return_expression_node->child_count());
+
+  Node* foo_expression_root_node = foo_return_expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ADD, foo_expression_root_node->rule());
+  ASSERT_EQ(2, foo_expression_root_node->child_count());
+
+  Node* foo_expression_one_node = foo_expression_root_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, foo_expression_one_node->rule());
+  ASSERT_EQ(1, foo_expression_one_node->int_value());
+
+  Node* foo_expression_mul_node = foo_expression_root_node->GetChild(1);
+  EXPECT_EQ(NodeRule::MUL, foo_expression_mul_node->rule());
+  ASSERT_EQ(2, foo_expression_mul_node->child_count());
+
+  Node* foo_expression_xmem_node = foo_expression_mul_node->GetChild(0);
+  EXPECT_EQ(NodeRule::MEMBER, foo_expression_xmem_node->rule());
+  ASSERT_EQ(2, foo_expression_xmem_node->child_count());
+
+  Node* foo_expression_xthismem_node = foo_expression_xmem_node->GetChild(0);
+  EXPECT_EQ(NodeRule::MEMBER, foo_expression_xthismem_node->rule());
+  ASSERT_EQ(2, foo_expression_xthismem_node->child_count());
+
+  Node* foo_expression_xthis_node = foo_expression_xthismem_node->GetChild(0);
+  EXPECT_EQ(NodeRule::SYMBOL, foo_expression_xthis_node->rule());
+  ASSERT_EQ(1, foo_expression_xthis_node->child_count());
+
+  Node* foo_expression_xthisname_node = foo_expression_xthis_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, foo_expression_xthisname_node->rule());
+  ASSERT_STREQ("this", foo_expression_xthisname_node->string_value()->c_str());
+
+  Node* foo_expression_xfoo_node = foo_expression_xthismem_node->GetChild(1);
+  EXPECT_EQ(NodeRule::SYMBOL, foo_expression_xfoo_node->rule());
+  ASSERT_EQ(1, foo_expression_xfoo_node->child_count());
+
+  Node* foo_expression_xfooname_node = foo_expression_xfoo_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, foo_expression_xfooname_node->rule());
+  ASSERT_STREQ("foo", foo_expression_xfooname_node->string_value()->c_str());
+
+  Node* foo_expression_x_node = foo_expression_xmem_node->GetChild(1);
+  EXPECT_EQ(NodeRule::SYMBOL, foo_expression_x_node->rule());
+  ASSERT_EQ(1, foo_expression_x_node->child_count());
+
+  Node* foo_expression_xname_node = foo_expression_x_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, foo_expression_xname_node->rule());
+  ASSERT_STREQ("x", foo_expression_xname_node->string_value()->c_str());
+
+  Node* foo_expression_foomem_node = foo_expression_mul_node->GetChild(1);
+  EXPECT_EQ(NodeRule::MEMBER, foo_expression_foomem_node->rule());
+  ASSERT_EQ(2, foo_expression_foomem_node->child_count());
+
+
+  Node* foo_expression_foofoo_node = foo_expression_foomem_node->GetChild(0);
+  EXPECT_EQ(NodeRule::SYMBOL, foo_expression_foofoo_node->rule());
+  ASSERT_EQ(1, foo_expression_foofoo_node->child_count());
+
+  Node* foo_expression_foofooname_node = foo_expression_foofoo_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, foo_expression_foofooname_node->rule());
+  ASSERT_STREQ("foo", foo_expression_foofooname_node->string_value()->c_str());
+
+  Node* foo_expression_fooprint_node = foo_expression_foomem_node->GetChild(1);
+  EXPECT_EQ(NodeRule::CALL, foo_expression_fooprint_node->rule());
+  ASSERT_EQ(2, foo_expression_fooprint_node->child_count());
+
+  Node* foo_expression_fooprintname_node = foo_expression_fooprint_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, foo_expression_fooprintname_node->rule());
+  ASSERT_STREQ("print", foo_expression_fooprintname_node->string_value()->c_str());
+
+  delete root;
+}
+
+TEST(Parser, ParseMalformedMemberExpression) {
+
+  // Case 1: Single operand reference.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    return this.;"
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 2: Preceding DOT.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    return .foo;"
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+}
+
+TEST(Parser, ParseExpressionMemberExpression) {
+
+  // Ensure that parser doesn't throw exception when parsing expression members.
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+                    "    return ((3 + 5) * 2).ToString();"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  delete parser.Parse();
 }
 
 } // namespace library

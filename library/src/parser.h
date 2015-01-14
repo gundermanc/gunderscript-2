@@ -1,5 +1,5 @@
 // Gunderscript-2 Parser
-// (C) 2014 Christian Gunderman
+// (C) 2014-2015 Christian Gunderman
 
 #ifndef GUNDERSCRIPT_PARSER__H__
 #define GUNDERSCRIPT_PARSER__H__
@@ -7,8 +7,6 @@
 #include "exceptions.h"
 #include "lexer.h"
 #include "node.h"
-
-#include "gtest/gtest_prod.h"
 
 namespace gunderscript {
 namespace library {
@@ -27,6 +25,7 @@ class Parser {
   const LexerToken* NextToken();
   bool AdvanceSymbol(LexerSymbol symbol);
   bool CurrentSymbol(LexerSymbol symbol);
+  bool NextSymbol(LexerSymbol symbol);
   bool AdvanceType(LexerSymbol type);
   bool CurrentType(LexerSymbol type);
   bool AdvanceKeyword(LexerSymbol keyword);
@@ -66,9 +65,16 @@ class Parser {
   Node* ParsePrimaryExpressionB(Node* left_operand_node);
   Node* ParseSecondaryExpressionA();
   Node* ParseSecondaryExpressionB(Node* left_operand_node);
+  Node* ParseTertiaryExpressionA();
+  Node* ParseTertiaryExpressionB(Node* left_operand_node);
   Node* ParseInvertExpression();
   Node* ParseAtomicExpression();
   Node* ParseValueExpression();
+  Node* ParseNamedValueExpression();
+  Node* ParseFunctionCallExpression();
+  Node* ParseMemberNameExpression();
+  void ParseFunctionCallParameters(Node* node);
+  Node* ParseVariableExpression();
   Node* ParseBoolConstant();
   Node* ParseIntConstant();
   Node* ParseFloatConstant();
