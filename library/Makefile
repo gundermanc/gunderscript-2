@@ -1,6 +1,6 @@
 #
 # Gunderscript-2 Library Makefile
-# (C) 2014 Christian Gunderman
+# (C) 2014-2015 Christian Gunderman
 #
 SRCDIR = src
 CC = g++
@@ -36,7 +36,7 @@ all-test:
 
 .PHONY: all-debug
 all-debug: FFLAGS+=$(DFLAGS)
-all-debug: gslib
+all-debug: debug gslib
 
 .PHONY: gslib
 gslib: $(SOURCES)
@@ -52,6 +52,9 @@ clean:
 	$(MAKE) -C $(TESTDIR) clean
 
 # Individual File Targets:
+
+debug: $(SRCDIR)/debug.cc
+	$(CC) $(CFLAGS) $(FFLAGS) -c $(SRCDIR)/debug.cc
 
 symbol_table: $(SRCDIR)/symbol_table.cc
 	$(CC) $(CFLAGS) $(FFLAGS) -c $(SRCDIR)/symbol_table.cc
