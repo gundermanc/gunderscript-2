@@ -447,16 +447,49 @@ void Parser::ParseReturnStatement(Node* node) {
 }
 
 void Parser::ParseNameStatement(Node* node) {
-  // TODO: call ParseCallStatement, ParseAssignmentStatement, or throw.
-  throw NotImplementedException();
+
+  // Check for name token type.
+  if (CurrentToken()->type != LexerTokenType::NAME ||
+      NextToken()->type != LexerTokenType::SYMBOL) {
+    throw IllegalStateException();
+  }
+
+  switch (NextToken()->symbol) {
+    case LexerSymbol::LPAREN:
+      ParseCallStatement(node);
+      break;
+    case LexerSymbol::ASSIGN:
+      ParseAssignStatement(node);
+      break;
+    default:
+      throw IllegalStateException();
+  }
 }
 
 void Parser::ParseCallStatement(Node* node) {
-  throw NotImplementedException();
+
+  // Check for receiving variable and assign operator.
+  if (CurrentToken()->type != LexerTokenType::NAME ||
+      !NextSymbol(LexerSymbol::LPAREN)) {
+    throw IllegalStateException();
+  }
+
+  node->AddChild(ParseCallExpression());
+  ParseSemicolon(node);
+  AdvanceNext();
 }
 
-void Parser::ParseAssignmentStatement(Node* node) {
-  throw NotImplementedException();
+void Parser::ParseAssignStatement(Node* node) {
+
+  // Check for receiving variable and assign operator.
+  if (CurrentToken()->type != LexerTokenType::NAME ||
+      !NextSymbol(LexerSymbol::ASSIGN)) {
+    throw IllegalStateException();
+  }
+
+  node->AddChild(ParseAssignExpressionA());
+  ParseSemicolon(node);
+  AdvanceNext();
 }
 
 void Parser::ParseExpression(Node* node) {
@@ -465,7 +498,178 @@ void Parser::ParseExpression(Node* node) {
   Node* expression_node = new Node(NodeRule::EXPRESSION);
   node->AddChild(expression_node);
 
-  expression_node->AddChild(ParsePrimaryExpressionA());
+  expression_node->AddChild(ParseAssignExpressionA());
+}
+
+Node* Parser::ParseAssignExpressionA() {
+  Node* left_operand_node = ParseOrExpressionA();
+
+  return ParseAssignExpressionB(left_operand_node);
+}
+
+Node* Parser::ParseAssignExpressionB(Node* left_operand_node) {
+
+  // Return left operand if this isn't an operation.
+  if (CurrentToken()->type != LexerTokenType::SYMBOL) {
+    return left_operand_node;
+  }
+
+  Node* operation_node = NULL;
+
+  switch (CurrentToken()->symbol) {
+    case LexerSymbol::ASSIGN:
+      operation_node = new Node(NodeRule::ASSIGN);
+      break;
+    default:
+      // Return left operand if this isn't an operation.
+      return left_operand_node;
+  }
+
+  Node* parent_node = NULL;
+
+  try {
+    AdvanceNext();
+    operation_node->AddChild(left_operand_node);
+    operation_node->AddChild(ParseOrExpressionA());
+    parent_node = ParseAssignExpressionB(operation_node);
+  } catch (const ParserException& ex) {
+    delete operation_node;
+    throw;
+  }
+ 
+  return parent_node;
+}
+
+Node* Parser::ParseOrExpressionA() {
+  Node* left_operand_node = ParseAndExpressionA();
+
+  return ParseOrExpressionB(left_operand_node);
+}
+
+Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
+
+  // Return left operand if this isn't an operation.
+  if (CurrentToken()->type != LexerTokenType::SYMBOL) {
+    return left_operand_node;
+  }
+
+  Node* operation_node = NULL;
+
+  switch (CurrentToken()->symbol) {
+    case LexerSymbol::LOGOR:
+      operation_node = new Node(NodeRule::LOGOR);
+      break;
+    default:
+      // Return left operand if this isn't an operation.
+      return left_operand_node;
+  }
+
+  Node* parent_node = NULL;
+
+  try {
+    AdvanceNext();
+    operation_node->AddChild(left_operand_node);
+    operation_node->AddChild(ParseAndExpressionA());
+    parent_node = ParseOrExpressionB(operation_node);
+  } catch (const ParserException& ex) {
+    delete operation_node;
+    throw;
+  }
+ 
+  return parent_node;
+}
+
+Node* Parser::ParseAndExpressionA() {
+  Node* left_operand_node = ParseComparisonExpressionA();
+
+  return ParseAndExpressionB(left_operand_node);
+}
+
+Node* Parser::ParseAndExpressionB(Node* left_operand_node) {
+
+  // Return left operand if this isn't an operation.
+  if (CurrentToken()->type != LexerTokenType::SYMBOL) {
+    return left_operand_node;
+  }
+
+  Node* operation_node = NULL;
+
+  switch (CurrentToken()->symbol) {
+    case LexerSymbol::LOGAND:
+      operation_node = new Node(NodeRule::LOGAND);
+      break;
+    default:
+      // Return left operand if this isn't an operation.
+      return left_operand_node;
+  }
+
+  Node* parent_node = NULL;
+
+  try {
+    AdvanceNext();
+    operation_node->AddChild(left_operand_node);
+    operation_node->AddChild(ParseComparisonExpressionA());
+    parent_node = ParseAndExpressionB(operation_node);
+  } catch (const ParserException& ex) {
+    delete operation_node;
+    throw;
+  }
+ 
+  return parent_node;
+}
+
+Node* Parser::ParseComparisonExpressionA() {
+  Node* left_operand_node = ParsePrimaryExpressionA();
+
+  return ParseComparisonExpressionB(left_operand_node);
+}
+
+Node* Parser::ParseComparisonExpressionB(Node* left_operand_node) {
+
+  // Return left operand if this isn't an operation.
+  if (CurrentToken()->type != LexerTokenType::SYMBOL) {
+    return left_operand_node;
+  }
+
+  Node* operation_node = NULL;
+
+  switch (CurrentToken()->symbol) {
+    case LexerSymbol::EQUALS:
+      operation_node = new Node(NodeRule::EQUALS);
+      break;
+    case LexerSymbol::NOTEQUALS:
+      operation_node = new Node(NodeRule::NOT_EQUALS);
+      break;
+    case LexerSymbol::LESS:
+      operation_node = new Node(NodeRule::LESS);
+      break;
+    case LexerSymbol::LESSEQUALS:
+      operation_node = new Node(NodeRule::LESS_EQUALS);
+      break;
+    case LexerSymbol::GREATER:
+      operation_node = new Node(NodeRule::GREATER);
+      break;
+    case LexerSymbol::GREATEREQUALS:
+      operation_node = new Node(NodeRule::GREATER_EQUALS);
+      break;
+    default:
+      // Return left operand if this isn't an operation.
+      return left_operand_node;
+  }
+
+  Node* parent_node = NULL;
+
+  try {
+    AdvanceNext();
+    operation_node->AddChild(left_operand_node);
+    operation_node->AddChild(ParsePrimaryExpressionA());
+    parent_node = ParseComparisonExpressionB(operation_node);
+  } catch (const ParserException& ex) {
+    delete operation_node;
+    throw;
+  }
+ 
+  return parent_node;
 }
 
 Node* Parser::ParsePrimaryExpressionA() {
@@ -489,9 +693,6 @@ Node* Parser::ParsePrimaryExpressionB(Node* left_operand_node) {
       break;
     case LexerSymbol::SUB:
       operation_node = new Node(NodeRule::SUB);
-      break;
-    case LexerSymbol::LOGOR:
-      operation_node = new Node(NodeRule::LOGOR);
       break;
     default:
       // Return left operand if this isn't an operation.
@@ -537,9 +738,6 @@ Node* Parser::ParseSecondaryExpressionB(Node* left_operand_node) {
       break;
     case LexerSymbol::MOD:
       operation_node = new Node(NodeRule::MOD);
-      break;
-    case LexerSymbol::LOGAND:
-      operation_node = new Node(NodeRule::LOGAND);
       break;
     default:
       // Return left operand if this isn't an operation.
@@ -643,7 +841,7 @@ Node* Parser::ParseAtomicExpression() {
 
   // LPAREN, probably a "(" Expr ")".
   AdvanceNext();
-  Node* node = ParsePrimaryExpressionA();
+  Node* node = ParseAssignExpressionA();
 
   // Check for closing parenthesis.
   if (!CurrentSymbol(LexerSymbol::RPAREN)) {
@@ -688,7 +886,7 @@ Node* Parser::ParseNamedValueExpression() {
 
   switch (NextToken()->symbol) {
     case LexerSymbol::LPAREN:
-      return ParseFunctionCallExpression();
+      return ParseCallExpression();
     default:
       return ParseVariableExpression();
   }
@@ -714,7 +912,7 @@ Node* Parser::ParseMemberNameExpression() {
   return name_node;
 }
 
-Node* Parser::ParseFunctionCallExpression() {
+Node* Parser::ParseCallExpression() {
 
   // Check for function NAME and LPAREN.
   if (CurrentToken()->type != LexerTokenType::NAME ||
@@ -730,7 +928,7 @@ Node* Parser::ParseFunctionCallExpression() {
     AdvanceNext();
     AdvanceNext();
 
-    ParseFunctionCallParameters(function_node);
+    ParseCallParameters(function_node);
 
     // Check closing parenthesis.
     if (!CurrentSymbol(LexerSymbol::RPAREN)) {
@@ -745,7 +943,7 @@ Node* Parser::ParseFunctionCallExpression() {
   return function_node;
 }
 
-void Parser::ParseFunctionCallParameters(Node* node) {
+void Parser::ParseCallParameters(Node* node) {
   Node* parameters_node = new Node(NodeRule::CALL_PARAMETERS);
   node->AddChild(parameters_node);
 

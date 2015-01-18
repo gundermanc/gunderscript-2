@@ -557,7 +557,7 @@ TEST(Lexer, ParseMultiCharChar) {
 TEST(Lexer, FunctionExample) {
   std::string input =
     "public int PrintFormat(string foobar) {"
-    "  int x = 3 * 2.56 + 5;"
+    "  int x <- 3 * 2.56 + 5;"
     "}";
 
   LexerStringSource source(input);
@@ -605,7 +605,7 @@ TEST(Lexer, FunctionExample) {
 
   ASSERT_FALSE(lexer.AdvanceNext() == NULL);
   EXPECT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-  EXPECT_EQ(LexerSymbol::EQUALS, lexer.current_token()->symbol);
+  EXPECT_EQ(LexerSymbol::ASSIGN, lexer.current_token()->symbol);
 
   ASSERT_FALSE(lexer.AdvanceNext() == NULL);
   EXPECT_EQ(LexerTokenType::INT, lexer.current_token()->type);

@@ -1639,5 +1639,330 @@ TEST(Parser, ParseExpressionMemberExpression) {
   delete parser.Parse();
 }
 
+TEST(Parser, ParseAssignStatement) {
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+                    "    x <- 3 = 4 + 5;"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* foo_assign_statement_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ASSIGN, foo_assign_statement_node->rule());
+  ASSERT_EQ(2, foo_assign_statement_node->child_count());
+
+  Node* assign_target_node = foo_assign_statement_node->GetChild(0);
+  EXPECT_EQ(NodeRule::SYMBOL, assign_target_node->rule());
+  ASSERT_EQ(1, assign_target_node->child_count());
+
+  Node* assign_target_name_node = assign_target_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, assign_target_name_node->rule());
+  ASSERT_STREQ("x", assign_target_name_node->string_value()->c_str());
+
+  Node* assign_equals_node = foo_assign_statement_node->GetChild(1);
+  EXPECT_EQ(NodeRule::EQUALS, assign_equals_node->rule());
+  ASSERT_EQ(2, assign_equals_node->child_count());
+
+  Node* assign_equals_left_node = assign_equals_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, assign_equals_left_node->rule());
+  ASSERT_EQ(3, assign_equals_left_node->int_value());
+
+  Node* assign_equals_right_node = assign_equals_node->GetChild(1);
+  EXPECT_EQ(NodeRule::ADD, assign_equals_right_node->rule());
+  ASSERT_EQ(2, assign_equals_right_node->child_count());
+
+  Node* assign_add_left_node = assign_equals_right_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, assign_add_left_node->rule());
+  ASSERT_EQ(4, assign_add_left_node->int_value());
+
+  Node* assign_add_right_node = assign_equals_right_node->GetChild(1);
+  EXPECT_EQ(NodeRule::INT, assign_add_right_node->rule());
+  ASSERT_EQ(5, assign_add_right_node->int_value());
+
+  delete root;
+}
+
+TEST(Parser, ParseCallStatement) {
+
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+                    "    Print(\"Hello\");"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* call_statement_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::CALL, call_statement_node->rule());
+  ASSERT_EQ(2, call_statement_node->child_count());
+
+  Node* call_name_node = call_statement_node->GetChild(0);
+  EXPECT_EQ(NodeRule::NAME, call_name_node->rule());
+  ASSERT_STREQ("Print", call_name_node->string_value()->c_str());
+
+  Node* call_parameters_node = call_statement_node->GetChild(1);
+  EXPECT_EQ(NodeRule::CALL_PARAMETERS, call_parameters_node->rule());
+  ASSERT_EQ(1, call_parameters_node->child_count());
+
+  Node* parameter1_expression_node = call_parameters_node->GetChild(0);
+  EXPECT_EQ(NodeRule::EXPRESSION, parameter1_expression_node->rule());
+  ASSERT_EQ(1, parameter1_expression_node->child_count());
+
+  Node* expression_string_node = parameter1_expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::STRING, expression_string_node->rule());
+  ASSERT_STREQ("Hello", expression_string_node->string_value()->c_str());
+
+  delete root;
+}
+
+TEST(Parser, ParseComparisonExpression) {
+  std::string input("package \"FooPackage\";"
+                    "public spec MySpec {"
+                    "  public bool Foo() {"
+                    "    tfVal <- 3 > 2 || 2 < 4 && 5 >= 4 || !(1.5 <= 4);"
+                    "  }"
+                    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* functions_node = spec_node->GetChild(1);
+  Node* foo_node = functions_node->GetChild(0);
+
+  Node* foo_block_node = foo_node->GetChild(5);
+  EXPECT_EQ(1, foo_block_node->child_count());
+
+  Node* assign_node = foo_block_node->GetChild(0);
+  EXPECT_EQ(NodeRule::ASSIGN, assign_node->rule());
+  ASSERT_EQ(2, assign_node->child_count());
+
+  Node* or1_node = assign_node->GetChild(1);
+  EXPECT_EQ(NodeRule::LOGOR, or1_node->rule());
+  ASSERT_EQ(2, or1_node->child_count());
+
+  Node* or2_node = or1_node->GetChild(0);
+  EXPECT_EQ(NodeRule::LOGOR, or2_node->rule());
+  ASSERT_EQ(2, or2_node->child_count());
+
+  Node* gt_node = or2_node->GetChild(0);
+  EXPECT_EQ(NodeRule::GREATER, gt_node->rule());
+  ASSERT_EQ(2, gt_node->child_count());
+
+  Node* gt_left_node = gt_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, gt_left_node->rule());
+  ASSERT_EQ(3, gt_left_node->int_value());
+
+  Node* gt_right_node = gt_node->GetChild(1);
+  EXPECT_EQ(NodeRule::INT, gt_right_node->rule());
+  ASSERT_EQ(2, gt_right_node->int_value());
+
+  Node* and_node = or2_node->GetChild(1);
+  EXPECT_EQ(NodeRule::LOGAND, and_node->rule());
+  ASSERT_EQ(2, and_node->child_count());
+
+  Node* lt_node = and_node->GetChild(0);
+  EXPECT_EQ(NodeRule::LESS, lt_node->rule());
+  ASSERT_EQ(2, lt_node->child_count());
+
+  Node* lt_left_node = lt_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, lt_left_node->rule());
+  ASSERT_EQ(2, lt_left_node->int_value());
+
+  Node* lt_right_node = lt_node->GetChild(1);
+  EXPECT_EQ(NodeRule::INT, lt_right_node->rule());
+  ASSERT_EQ(4, lt_right_node->int_value());
+
+  Node* gte_node = and_node->GetChild(1);
+  EXPECT_EQ(NodeRule::GREATER_EQUALS, gte_node->rule());
+  ASSERT_EQ(2, gte_node->child_count());
+
+  Node* gte_left_node = gte_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, gte_left_node->rule());
+  ASSERT_EQ(5, gte_left_node->int_value());
+
+  Node* gte_right_node = gte_node->GetChild(1);
+  EXPECT_EQ(NodeRule::INT, gte_right_node->rule());
+  ASSERT_EQ(4, gte_right_node->int_value());
+
+  Node* not_node = or1_node->GetChild(1);
+  EXPECT_EQ(NodeRule::LOGNOT, not_node->rule());
+  ASSERT_EQ(1, not_node->child_count());
+
+  Node* lte_node = not_node->GetChild(0);
+  EXPECT_EQ(NodeRule::LESS_EQUALS, lte_node->rule());
+  ASSERT_EQ(2, lte_node->child_count());
+
+  Node* lte_left_node = lte_node->GetChild(0);
+  EXPECT_EQ(NodeRule::FLOAT, lte_left_node->rule());
+  ASSERT_EQ(1.5, lte_left_node->float_value());
+
+  Node* lte_right_node = lte_node->GetChild(1);
+  EXPECT_EQ(NodeRule::INT, lte_right_node->rule());
+  ASSERT_EQ(4, lte_right_node->int_value());
+
+  delete root;
+}
+
+TEST(Parser, ParseMalformedComparisonExpression) {
+
+  // Case 1: missing left operand.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    return > 2;"
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 2: missing right operand.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    return 3 =;"
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 3: missing right and semicolon.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    return 3 ="
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 4: missing semicolon.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    return 3 <= 4"
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
+  }
+
+  // Case 5: mismatched LPAREN.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    return true && (3 <= 4;"
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 6: mismatched RPAREN.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    return ((3 <= 4) && false;"
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 7: mismatched RPAREN with NOT
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    return !(3 > 3;"
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+
+  // Case 8: previously caused SEGFAULT for unknown reason,
+  // test to prevent regression.
+  {
+    std::string input("package \"FooPackage\";"
+                      "public spec MySpec {"
+                      "  public bool Foo() {"
+                      "    tfVal <- 3 > 2 || 2 < 4 && 5 >= 4 || !(1.5 <= 4;"
+                      "  }"
+                      "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+  }
+}
+
 } // namespace library
 } // namespace gunderscript

@@ -30,6 +30,8 @@ enum class NodeRule {
     FUNCTION_PARAMETER,
     BLOCK,
 
+    ASSIGN,
+
     RETURN,
 
     EXPRESSION,
@@ -40,6 +42,14 @@ enum class NodeRule {
     LOGOR,
     LOGAND,
     LOGNOT,
+
+    EQUALS,
+    NOT_EQUALS,
+    LESS,
+    LESS_EQUALS,
+    GREATER,
+    GREATER_EQUALS,
+
     ADD,
     SUB,
     MUL,
