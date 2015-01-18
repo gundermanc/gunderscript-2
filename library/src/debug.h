@@ -15,6 +15,7 @@ const char* DebugLexerTokenTypeString(LexerTokenType type);
 const char* DebugLexerSymbolString(LexerSymbol symbol);
 const char* DebugNodeRuleString(NodeRule rule);
 void DebugPrintNode(Node* node);
+void DebugPrintNode(Node* node, Node* target_node);
 
 } // namespace debug
 } // namespace gunderscript

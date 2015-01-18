@@ -60,6 +60,18 @@ const char* DebugNodeRuleString(NodeRule rule) {
 }
 
 void DebugPrintNode(Node* node) {
+  DebugPrintNode(node, NULL);
+}
+
+void DebugPrintNode(Node* node, Node* target_node) {
+
+  if (node == target_node) {
+    printf("--> ");
+  }
+
+  if (node == NULL) {
+    printf("** NULL NODE **");
+  }
 
   switch (node->rule()) {
     case NodeRule::NAME:
@@ -109,7 +121,7 @@ void DebugPrintNode(Node* node) {
 
   // Print child nodes.
   for (int i = 0; i < node->child_count(); i++) {
-    DebugPrintNode(node->GetChild(i));
+    DebugPrintNode(node->GetChild(i), target_node);
   }
 }
 
