@@ -4,6 +4,9 @@
 #include <iostream>
 
 #include "cli.h"
+#include "lexer.h"
+
+using gunderscript::library::Lexer;
 
 // Application Entry point
 int main() {
