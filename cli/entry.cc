@@ -1,5 +1,5 @@
 // Gunderscript-2 CLI Application Entry Point
-// (C) 2014 Christian Gunderman
+// (C) 2014-2015 Christian Gunderman
 
 #include <iostream>
 
@@ -7,5 +7,5 @@
 
 // Application Entry point
 int main() {
-  gunderscript::cli::PrintDescription();
+    gunderscript::cli::PrintDescription();
 }

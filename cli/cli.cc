@@ -8,8 +8,8 @@ namespace cli {
 
 // Prints Gunderscript Application Description to stdout.
 void PrintDescription() {
-  std::cout << "Gunderscript 2 CLI Application" << std::endl;
-  std::cout << "(C) 2014 Christian Gunderman" << std::endl;
+    std::cout << "Gunderscript 2 CLI Application" << std::endl;
+    std::cout << "(C) 2014-2015 Christian Gunderman" << std::endl;
 }
 
 } // namespace cli

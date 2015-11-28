@@ -1,5 +1,5 @@
 // Gunderscript-2 CLI Methods
-// (C) 2014 Christian Gunderman
+// (C) 2014-2015 Christian Gunderman
 
 #ifndef GUNDERSCRIPT_CLI_CLI__H__
 #define GUNDERSCRIPT_CLI_CLI__H__
