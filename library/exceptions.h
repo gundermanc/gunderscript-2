@@ -14,7 +14,7 @@ namespace library {
 // Each module's exceptions descend from this class.
 class Exception : public std::exception {
  public:
-  Exception () throw();
+  Exception() throw();
   Exception(const std::string& message) throw() { message_ = message; };
   virtual const char* what() const throw() { return message_.c_str(); }
 
