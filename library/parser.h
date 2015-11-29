@@ -11,6 +11,8 @@
 namespace gunderscript {
 namespace library {
 
+// Accepts a Lexer and converts a stream of lexemes into an abstract syntax tree
+// that is ready to be analyzed.
 class Parser {
  public:
   Parser(Lexer& lexer) : lexer_(lexer) { }
