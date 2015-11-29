@@ -570,12 +570,19 @@ Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
     AdvanceNext();
     operation_node->AddChild(left_operand_node);
     operation_node->AddChild(ParseAndExpressionA());
-    parent_node = ParseOrExpressionB(operation_node);
   } catch (const ParserException& ex) {
     delete operation_node;
     throw;
   }
- 
+
+  try {
+      parent_node = ParseOrExpressionB(operation_node);
+  }
+  catch (const ParserException& ex) {
+      delete parent_node;
+      throw;
+  }
+
   return parent_node;
 }
 
