@@ -537,9 +537,63 @@ TEST(Parser, ParsePropertyAuto) {
 }
 
 TEST(Parser, ParsePropertyWithFunctionBody) {
-  // At the moment, ParseFunctionBody() is incomplete, so there isn't a great
-  // way to test this yet.
-  FAIL();
+  std::string input(
+    "package \"FooPackage\";"
+    "public spec MySpec {"
+    "  int Foo {"
+    "    public get { return 3; }"
+    "  }"
+    "}");
+
+  LexerStringSource source(input);
+  Lexer lexer(source);
+  Parser parser(lexer);
+
+  Node* root = parser.Parse();
+  Node* specs_node = root->GetChild(2);
+  Node* spec_node = specs_node->GetChild(0);
+  Node* properties_node = spec_node->GetChild(2);
+  Node* foo_node = properties_node->GetChild(0);
+  EXPECT_EQ(NodeRule::PROPERTY, foo_node->rule());
+  ASSERT_EQ(4, foo_node->child_count());
+
+  Node* foo_type_node = foo_node->GetChild(0);
+  Node* foo_name_node = foo_node->GetChild(1);
+  Node* foo_getter_node = foo_node->GetChild(2);
+  Node* foo_setter_node = foo_node->GetChild(3);
+
+  EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
+  ASSERT_EQ(LexerSymbol::INT, foo_type_node->symbol_value());
+
+  EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
+  ASSERT_STREQ("Foo", foo_name_node->string_value()->c_str());
+
+  EXPECT_EQ(2, foo_getter_node->child_count());
+
+  Node* access_modifier_node = foo_getter_node->GetChild(0);
+
+  EXPECT_EQ(NodeRule::ACCESS_MODIFIER, access_modifier_node->rule());
+  ASSERT_EQ(LexerSymbol::PUBLIC, access_modifier_node->symbol_value());
+
+  Node* block_node = foo_getter_node->GetChild(1);
+
+  EXPECT_EQ(NodeRule::BLOCK, block_node->rule());
+  ASSERT_EQ(1, block_node->child_count());
+
+  Node* return_node = block_node->GetChild(0);
+
+  EXPECT_EQ(1, return_node->child_count());
+
+  Node* expression_node = return_node->GetChild(0);
+
+  EXPECT_EQ(NodeRule::EXPRESSION, expression_node->rule());
+  ASSERT_EQ(1, expression_node->child_count());
+
+  Node* value_node = expression_node->GetChild(0);
+  EXPECT_EQ(NodeRule::INT, value_node->rule());
+  ASSERT_EQ(3, value_node->int_value());
+
+  delete root;
 }
 
 TEST(Parser, ParseFunctionEmpty) {
