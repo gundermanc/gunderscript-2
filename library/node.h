@@ -12,6 +12,7 @@
 namespace gunderscript {
 namespace library {
 
+// Abstract syntax tree entities that a node may represent in the syntax tree.
 enum class NodeRule {
   MODULE,
     DEPENDS,
@@ -62,6 +63,9 @@ enum class NodeRule {
     STRING
 };
 
+// The abstract syntax tree node object. Each Node is a subtree containing a single
+// language construct. Child nodes represent properties of the language constructs
+// or sub-constructs.
 class Node {
  public:
   Node(NodeRule rule);

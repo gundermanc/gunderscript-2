@@ -6,6 +6,13 @@
 namespace gunderscript {
 namespace library {
 
+// Parses all input in the parser object's Lexer component into an abstract
+// syntax tree of Nodes.
+// NOTE: root node must be deleted upon completion or it will never be freed.
+// Deleting the root node deletes ALL nodes in the tree recursively so deleting
+// the root deletes the tree.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 Node* Parser::Parse() {
 
   // Try to Parse the module. Upon failure, catch
@@ -18,6 +25,9 @@ Node* Parser::Parse() {
   }
 }
 
+// Parses a module (e.g.: a script).
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 Node* Parser::ParseModule() {
   module_node_ = new Node(NodeRule::MODULE);
   ParsePackageDeclaration(module_node_);
@@ -26,7 +36,6 @@ Node* Parser::ParseModule() {
   Node* specs_node = new Node(NodeRule::SPECS);
   module_node_->AddChild(depends_node);
   module_node_->AddChild(specs_node);
-
 
   // Allow end of file after package.
   if (has_next()) {
@@ -42,6 +51,10 @@ Node* Parser::ParseModule() {
   return module_node_;
 }
 
+// Parses a package declaration from a file. Package declaration syntax is:
+// package "MyPackage";
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParsePackageDeclaration(Node* node) {
 
   // Check "package" keyword.
@@ -61,6 +74,11 @@ void Parser::ParsePackageDeclaration(Node* node) {
   ParseSemicolon(node);
 }
 
+// Parses all depends statements from a file. Depends statements indicate that this
+// file requires code in another file to run. Depends comes right after package declarations
+// and may be from 0 to many.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseDependsStatements(Node* node) {
 
   // While in a series of "depends" statements, parse as "depends."
@@ -74,6 +92,11 @@ void Parser::ParseDependsStatements(Node* node) {
   }
 }
 
+// Parses single depends statements from a file. Depends statements indicate that this
+// file requires code in another file to run. Looks like:
+// depends "OtherScript";
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseDependsStatement(Node* node) {
 
   // Check "depends" statement.
@@ -93,6 +116,8 @@ void Parser::ParseDependsStatement(Node* node) {
   ParseSemicolon(node);
 }
 
+// Checks that current lexeme is a semicolon, such as at the end of a line.
+// Throws: Parser exceptions if current lexeme isn't a semicolon.
 void Parser::ParseSemicolon(Node* node) {
 
   // Check for terminating semicolon.
@@ -101,6 +126,10 @@ void Parser::ParseSemicolon(Node* node) {
   }
 }
 
+// Parses all spec definitions (similar to a class definition, but currently without
+// inheritance).
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseSpecDefinitions(Node* node) {
   while (has_next()) {
     ParseSpecDefinition(node);
@@ -111,6 +140,11 @@ void Parser::ParseSpecDefinitions(Node* node) {
   }
 }
 
+// Parses a single spec definition (similar to a class definition, but currently without
+// inheritance). Looks like:
+// public spec MyClassName { .....
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseSpecDefinition(Node* node) {
   Node* spec_node = new Node(NodeRule::SPEC);
   node->AddChild(spec_node);
@@ -146,6 +180,12 @@ void Parser::ParseSpecDefinition(Node* node) {
   }
 }
 
+// Parses the body of a spec, including its functions and properties (stolen from C#).
+// Body syntax is everything that follows the LBRACE up to the RBRACE and may contain
+// only functions and properties. Fields are disallowed, fields must be implemented
+// as properties.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseSpecBody(Node* node) {
   Node* properties_node = new Node(NodeRule::PROPERTIES);
   Node* functions_node = new Node(NodeRule::FUNCTIONS);
@@ -168,6 +208,11 @@ void Parser::ParseSpecBody(Node* node) {
   }
 }
 
+// Parses a single property definition.
+// Looks like:
+// int X { public get; concealed set; }
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseProperty(Node* node) {
   Node* property_node = new Node(NodeRule::PROPERTY);
   node->AddChild(property_node);
@@ -200,6 +245,9 @@ void Parser::ParseProperty(Node* node) {
   }
 }
 
+// Parses between the braces of a property definition.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParsePropertyBody(Node* node) {
   Node* getter_node = new Node(NodeRule::PROPERTY_FUNCTION);
   Node* setter_node = new Node(NodeRule::PROPERTY_FUNCTION);
@@ -213,6 +261,9 @@ void Parser::ParsePropertyBody(Node* node) {
   ParsePropertyBodyFunction(getter_node, setter_node);
 }
 
+// Parses a GET or SET function in a property body (see C# properties for info).
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParsePropertyBodyFunction(Node* getter_node, Node* setter_node) {
 
   // If next token is RBRACE, no body function here, return.
@@ -255,6 +306,10 @@ void Parser::ParsePropertyBodyFunction(Node* getter_node, Node* setter_node) {
   AdvanceNext();
 }
 
+// Parses a function definition.
+// public int sqrt(int value) { ...
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseFunction(Node* node) {
   Node* function_node = new Node(NodeRule::FUNCTION);
   node->AddChild(function_node);
@@ -309,6 +364,9 @@ void Parser::ParseFunction(Node* node) {
   ParseBlockStatement(function_node);
 }
 
+// Parses function arguments.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseFunctionParameters(Node* node) {
   Node* parameters_node = new Node(NodeRule::FUNCTION_PARAMETERS);
   node->AddChild(parameters_node);
@@ -330,6 +388,9 @@ void Parser::ParseFunctionParameters(Node* node) {
   }
 }
 
+// Parses a single function parameter.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseFunctionParameter(Node* node) {
   Node* parameter_node = new Node(NodeRule::FUNCTION_PARAMETER);
   node->AddChild(parameter_node);
@@ -349,6 +410,9 @@ void Parser::ParseFunctionParameter(Node* node) {
   parameter_node->AddChild(new Node(NodeRule::NAME, CurrentToken()->string_const));
 }
 
+// Parses a block of code from an open brace to a closed brace.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseBlockStatement(Node* node) {
   Node* block_node = new Node(NodeRule::BLOCK);
   node->AddChild(block_node);
@@ -370,6 +434,10 @@ void Parser::ParseBlockStatement(Node* node) {
   }
 }
 
+// Parses any stand-alone statement in code (has side effects or control flow,
+// not just an expression).
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseStatement(Node* node) {
   switch (CurrentToken()->type) {
     case LexerTokenType::SYMBOL:
@@ -389,6 +457,9 @@ void Parser::ParseStatement(Node* node) {
   }
 }
 
+// Parses a keyword statement (control flow structures and return statement).
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseKeywordStatement(Node* node) {
   switch (CurrentToken()->symbol) {
     case LexerSymbol::IF:
@@ -427,6 +498,9 @@ void Parser::ParseForStatement(Node* node) {
   throw NotImplementedException();
 }
 
+// Parses a return statement.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseReturnStatement(Node* node) {
 
   // Check for return keyword.
@@ -446,6 +520,10 @@ void Parser::ParseReturnStatement(Node* node) {
   AdvanceNext();
 }
 
+// Parses a statement beginning with a name (a variable or function name) into either
+// a function call or an assignment.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseNameStatement(Node* node) {
 
   // Check for name token type.
@@ -466,6 +544,9 @@ void Parser::ParseNameStatement(Node* node) {
   }
 }
 
+// Parses a function call.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseCallStatement(Node* node) {
 
   // Check for receiving variable and assign operator.
@@ -479,6 +560,9 @@ void Parser::ParseCallStatement(Node* node) {
   AdvanceNext();
 }
 
+// Parses a variable assignment statement.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseAssignStatement(Node* node) {
 
   // Check for receiving variable and assign operator.
@@ -492,9 +576,12 @@ void Parser::ParseAssignStatement(Node* node) {
   AdvanceNext();
 }
 
+// Parses an expression.
+// Throws: Lexer or Parser exceptions from the respective headers if a problem
+// is encountered with lexemes or syntax.
 void Parser::ParseExpression(Node* node) {
   // TODO: Implement:
-  // ParseSpecExpression
+  // ParseSpecExpression for creating and dereferencing objects.
   Node* expression_node = new Node(NodeRule::EXPRESSION);
   node->AddChild(expression_node);
 
