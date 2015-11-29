@@ -1,5 +1,5 @@
 Gunderscript 2 Programming Language
-(C) 2014 Christian Gunderman
+(C) 2014-2015 Christian Gunderman
 Contact Email: gundermanc@gmail.com
 
 INTRODUCTION:
@@ -17,6 +17,12 @@ the Gunderscript 2 VM or native platforms such as x86/64 and ARM.
 IMPLEMENTATION PROGESS:
   - Lexer : 100%
   - SymbolTable : 100%
+  - Parser (except for IF, FOR, WHILE, DO/WHILE) : 100%
+  - Control Flow Operations Parsers
+    - IF : 0%
+    - FOR : 0%
+    - WHILE : 0%
+    - DO/WHILE : 0%
   - See Issues on Github for more info.
 
 Gunderscript 2 is currently under initial construction. Tentative project
@@ -28,6 +34,6 @@ I am seeking developers to help me complete Gunderscript 2 and test it. If anyon
 is interested, please email gundermanc@gmail.com.
 
 BUILDING:
-Build the current code by running 'make all-release' in the root directory.
-Build the debug configuration by running 'make all-debug' in the root directory.
-Build the library unit tests by running 'make all-test' in the library directory.
+Build the current code by generating build files for your platform with CMake.
+Project has been tested on Windows 10 Professional 10586 and Ubuntu 15.04 and
+should be able to run cross platform.
