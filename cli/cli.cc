@@ -84,8 +84,8 @@ void PrintDescription() {
     std::cout << "(C) 2014-2015 Christian Gunderman" << std::endl << std::endl;
     std::cout << "Usage: ./gunderscript_cli [parameters] [files]" << std::endl;
     std::cout << "Parameters:" << std::endl;
-    std::cout << "  -l : Feed code through lexer stage only." << std::endl;
-	std::cout << "  -p : Feed code through lexer and parser stages only." << std::endl;
+    std::cout << "  -l : Feed code through lexer stage only and tokenize output." << std::endl;
+	std::cout << "  -p : Feed code through lexer and parser stages only and emit serialized AST." << std::endl;
 }
 
 // Handles command line arguments and performs appropriate program action.
