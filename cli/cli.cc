@@ -27,30 +27,30 @@ namespace cli {
 // Iterates files given on the command line in the form of argv and argc
 // params and wraps them in an exception handler.
 static CliResult FileOperation(
-	int file_count,
-	const char** file_names,
-	void(*FileOpFunc)(const char *)) {
+    int file_count,
+    const char** file_names,
+    void(*FileOpFunc)(const char *)) {
 
     // Check for input files before we go any farther.
     if (file_count == 0) {
         return CliResult::REQUIRES_FILES;
     }
 
-	// Iterate all files in the given memory.
-	for (int i = 0; i < file_count; i++) {
-		std::cout << "File: " << file_names[i] << "--------------------" << std::endl;
+    // Iterate all files in the given memory.
+    for (int i = 0; i < file_count; i++) {
+        std::cout << "File: " << file_names[i] << "--------------------" << std::endl;
 
-		try {
+        try {
             // Do lambda function provided by caller.
-			FileOpFunc(file_names[i]);
-		}
-		catch (const Exception& ex) {
-			std::cout << std::endl << ex.what() << std::endl;
+            FileOpFunc(file_names[i]);
+        }
+        catch (const Exception& ex) {
+            std::cout << std::endl << ex.what() << std::endl;
             return CliResult::EXCEPTION_BASE;
-		}
+        }
 
-		std::cout << "--------------------------" << std::endl;
-	}
+        std::cout << "--------------------------" << std::endl;
+    }
 
     return CliResult::OK;
 }
@@ -59,31 +59,31 @@ static CliResult FileOperation(
 // debug format.
 static CliResult LexFiles(int file_count, const char** file_names) {
 
-	return FileOperation(file_count, file_names, [](const char* file_name) {
-		LexerFileSource input(file_name);
-		Lexer lexer(input);
+    return FileOperation(file_count, file_names, [](const char* file_name) {
+        LexerFileSource input(file_name);
+        Lexer lexer(input);
 
-		for (const LexerToken* token = lexer.AdvanceNext(); lexer.has_next(); token = lexer.AdvanceNext()) {
-			DebugPrintLexerToken(*token);
-		}
-	});
+        for (const LexerToken* token = lexer.AdvanceNext(); lexer.has_next(); token = lexer.AdvanceNext()) {
+            DebugPrintLexerToken(*token);
+        }
+    });
 }
 
 // Parses the files from the array and prints the serialized abstract syntax tree
 // nodes to the command line in the debug format.
 static CliResult ParseFiles(int file_count, const char** file_names) {
-	return FileOperation(file_count, file_names, [](const char* file_name) {
-		LexerFileSource input(file_name);
-		Lexer lexer(input);
-		Parser parser(lexer);
+    return FileOperation(file_count, file_names, [](const char* file_name) {
+        LexerFileSource input(file_name);
+        Lexer lexer(input);
+        Parser parser(lexer);
 
-		Node* ast_root = parser.Parse();
+        Node* ast_root = parser.Parse();
 
-		DebugPrintNode(ast_root);
+        DebugPrintNode(ast_root);
 
-		// Tree is dynamically allocated and MUST be deleted.
-		delete ast_root;
-	});
+        // Tree is dynamically allocated and MUST be deleted.
+        delete ast_root;
+    });
 }
 
 // Prints Gunderscript Application Description to stdout.
@@ -93,7 +93,7 @@ void PrintDescription() {
     std::cout << "Usage: ./gunderscript_cli [parameters] [files]" << std::endl;
     std::cout << "Parameters:" << std::endl;
     std::cout << "  -l : Feed code through lexer stage only and tokenize output." << std::endl;
-	std::cout << "  -p : Feed code through lexer and parser stages only and emit serialized AST." << std::endl;
+    std::cout << "  -p : Feed code through lexer and parser stages only and emit serialized AST." << std::endl;
 }
 
 // Handles command line arguments and performs appropriate program action.
@@ -118,9 +118,9 @@ CliResult ProcessArguments(int argc, const char** argv) {
         case 'L':
             result = LexFiles(argc - (i + 1), argv + (i + 1));
             break;
-		case 'p':
-		case 'P':
-			result = ParseFiles(argc - (i + 1), argv + (i + 1));
+        case 'p':
+        case 'P':
+            result = ParseFiles(argc - (i + 1), argv + (i + 1));
             break;
         default:
             // Screw you Dijstra! I'll use a goto here if I damn well please.
