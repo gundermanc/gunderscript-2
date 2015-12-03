@@ -9,10 +9,10 @@
 namespace gunderscript {
 namespace cli {
 
-#define GUNDERSCRIPTCLIRESULT_TO_INT(r)  ((int)r)
+#define CLIRESULT_TO_INT(r)  ((int)r)
 
 // Command line exit codes.
-enum class GunderscriptCliResult {
+enum class CliResult {
     OK = EXIT_SUCCESS,
     REQUIRES_FILES = EXIT_FAILURE + 1,
     INVALID_ARG = EXIT_FAILURE + 2,
@@ -28,7 +28,7 @@ void PrintDescription();
 
 // Processes the command line arguments. argc is the number of arguments received
 // and argv is an array of arguments passed in by the operating system.
-GunderscriptCliResult ProcessArguments(int argc, const char** argv);
+CliResult ProcessArguments(int argc, const char** argv);
 
 } // namespace cli
 } // namespace gunderscript
