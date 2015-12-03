@@ -130,9 +130,10 @@ CliResult ProcessArguments(int argc, const char** argv) {
         }
     }
 
-    // We're done here, if an error occurred, show it. Otherwise leave.
+    // We're done here, if invlaid args, let the user know.
+    // Other errors are expected to have already printed.
 eval_cli_result:
-    if (result != CliResult::OK) {
+    if (result == CliResult::INVALID_ARG) {
         PrintDescription();
     }
 
