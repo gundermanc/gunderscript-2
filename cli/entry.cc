@@ -8,7 +8,7 @@
 
 using gunderscript::library::Lexer;
 
-// Application Entry point
+// Application Entry point.
 int main(int argc, const char** argv) {
-    gunderscript::cli::ProcessArguments(argc, argv);
+    return GUNDERSCRIPTCLIRESULT_TO_INT(gunderscript::cli::ProcessArguments(argc, argv));
 }
