@@ -12,7 +12,7 @@ namespace library {
 // automatic minimum depth of 1.
 template <typename ValueType>
 SymbolTable<ValueType>::SymbolTable() {
-  this->Push();
+    this->Push();
 }
 
 // Pushes another level of scope onto the SymbolTable. This
@@ -20,9 +20,8 @@ SymbolTable<ValueType>::SymbolTable() {
 // block of code.
 template <typename ValueType>
 void SymbolTable<ValueType>::Push() {
-  this->map_vector_.push_back(
-    std::unordered_map<std::string, std::string, std::hash<std::string> >()
-  );
+    this->map_vector_.push_back(
+        std::unordered_map<std::string, std::string, std::hash<std::string> >());
 }
 
 // Pops a level of scope off of the SymbolTable. This is
@@ -32,13 +31,13 @@ void SymbolTable<ValueType>::Push() {
 template <typename ValueType>
 bool SymbolTable<ValueType>::Pop() {
 
-  // Check that there are items left to pop.
-  if (this->map_vector_.size() == 1) {
-    return false;
-  }
+    // Check that there are items left to pop.
+    if (this->map_vector_.size() == 1) {
+        return false;
+    }
 
-  this->map_vector_.pop_back();
-  return true;
+    this->map_vector_.pop_back();
+    return true;
 }
 
 // Puts the given key in the topmost level of the SymbolTable
@@ -51,10 +50,10 @@ bool SymbolTable<ValueType>::Pop() {
 template <typename ValueType>
 bool SymbolTable<ValueType>::Put(std::string key, ValueType value) {
 
-  std::pair<typename std::unordered_map<std::string, ValueType>::iterator, bool> result
-    = this->map_vector_.back().insert(std::make_pair(key, value));
+    std::pair<typename std::unordered_map<std::string, ValueType>::iterator, bool> result
+        = this->map_vector_.back().insert(std::make_pair(key, value));
 
-  return result.second;
+    return result.second;
 }
 
 // Gets the most recently declared value associated with the given
@@ -65,15 +64,16 @@ bool SymbolTable<ValueType>::Put(std::string key, ValueType value) {
 template <typename ValueType>
 const ValueType*SymbolTable<ValueType>::Get(const std::string& key) {
 
-  for (int i = this->map_vector_.size()-1; i >= 0; i--) {
-    try {
-      return &(this->map_vector_[i].at(key));
-    } catch (const std::out_of_range ex) {
-      // do nothing
+    for (int i = this->map_vector_.size() - 1; i >= 0; i--) {
+        try {
+            return &(this->map_vector_[i].at(key));
+        }
+        catch (const std::out_of_range ex) {
+            // do nothing
+        }
     }
-  }
 
-  return NULL;
+    return NULL;
 }
 
 // Gets the value associated with the given symbol, if one was Put
@@ -83,11 +83,12 @@ const ValueType*SymbolTable<ValueType>::Get(const std::string& key) {
 // or NULL if there isn't one.
 template <typename ValueType>
 const ValueType* SymbolTable<ValueType>::GetTopOnly(const std::string& key) {
-  try {
-    return &(this->map_vector_.back().at(key));
-  } catch (const std::out_of_range ex) {
-    return NULL;
-  }
+    try {
+        return &(this->map_vector_.back().at(key));
+    }
+    catch (const std::out_of_range ex) {
+        return NULL;
+    }
 }
 
 } // namespace library

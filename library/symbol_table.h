@@ -13,17 +13,17 @@ namespace library {
 
 template <typename ValueType>
 class SymbolTable {
- public:
-  SymbolTable();
-  void Push();
-  bool Pop();
-  bool Put(std::string key, ValueType value);
-  const ValueType* Get(const std::string& key);
-  const ValueType* GetTopOnly(const std::string& key);
-  int depth() const { return this->map_vector_.size(); };
+public:
+    SymbolTable();
+    void Push();
+    bool Pop();
+    bool Put(std::string key, ValueType value);
+    const ValueType* Get(const std::string& key);
+    const ValueType* GetTopOnly(const std::string& key);
+    int depth() const { return this->map_vector_.size(); };
 
- private:
-  std::vector< std::unordered_map<std::string, ValueType, std::hash<std::string> > > map_vector_;
+private:
+    std::vector< std::unordered_map<std::string, ValueType, std::hash<std::string> > > map_vector_;
 };
 
 // instantiate template with strings so we can unit test from external module

@@ -13,28 +13,28 @@ namespace library {
 // Gunderscript Exceptions Parent Class
 // Each module's exceptions descend from this class.
 class Exception : public std::exception {
- public:
-  Exception() throw();
-  Exception(const std::string& message) throw() { message_ = message; };
-  virtual const char* what() const throw() { return message_.c_str(); }
+public:
+    Exception() throw() { };
+    Exception(const std::string& message) throw() { message_ = message; };
+    virtual const char* what() const throw() { return message_.c_str(); }
 
- private:
-  std::string message_;
-  std::exception exception_;
+private:
+    std::string message_;
+    std::exception exception_;
 };
 
 // Not implemented exception.
 class NotImplementedException : public Exception {
- public:
-  NotImplementedException() : Exception("Feature not implemented.") { }
-  NotImplementedException(const std::string& message) : Exception(message) { }
+public:
+    NotImplementedException() : Exception("Feature not implemented.") { }
+    NotImplementedException(const std::string& message) : Exception(message) { }
 };
 
 // Illegal State exception: thrown if bug detected in Gunderscript.
 class IllegalStateException : public Exception {
- public:
-  IllegalStateException() : Exception("Illegal State: bug detected in Gunderscript.") { }
-  IllegalStateException(const std::string& message) : Exception(message) { }
+public:
+    IllegalStateException() : Exception("Illegal State: bug detected in Gunderscript.") { }
+    IllegalStateException(const std::string& message) : Exception(message) { }
 };
 
 } // namespace library
