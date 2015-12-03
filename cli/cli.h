@@ -11,6 +11,8 @@ namespace cli {
 
 void PrintDescription();
 
+void ProcessArguments(int argc, const char** argv);
+
 } // namespace cli
 } // namespace gunderscript
 

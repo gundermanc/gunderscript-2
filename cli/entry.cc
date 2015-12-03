@@ -9,6 +9,6 @@
 using gunderscript::library::Lexer;
 
 // Application Entry point
-int main() {
-    gunderscript::cli::PrintDescription();
+int main(int argc, const char** argv) {
+    gunderscript::cli::ProcessArguments(argc, argv);
 }

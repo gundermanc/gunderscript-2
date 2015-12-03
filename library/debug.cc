@@ -1,10 +1,8 @@
 // Gunderscript-2 Debug Functions
 // (C) 2015 Christian Gunderman
 
-// This code is only compiled into Gunderscript when building in all-debug
-// build configuration. Put non-shipping debug code here.
-
 #include <cstdio>
+#include <cstring>
 
 #include "debug.h"
 
@@ -46,6 +44,39 @@ static const char* kNodeRuleString[] = {
   "GREATER", "GREATER_EQUALS", "ADD", "SUB", "MUL", "DIV", "MOD", "BOOL", "INT",
   "FLOAT", "CHAR", "STRING"
 };
+
+void DebugPrintLexerToken(const LexerToken& token) {
+    const int kMaxValueLen = 255;
+    char value[kMaxValueLen] = "";
+
+    switch (token.type) {
+    case LexerTokenType::CHAR:
+        snprintf(value, kMaxValueLen, "'%c'", token.char_const);
+        break;
+    case LexerTokenType::FLOAT:
+        snprintf(value, kMaxValueLen, "%f", token.float_const);
+        break;
+    case LexerTokenType::INT:
+        snprintf(value, kMaxValueLen, "%i", token.char_const);
+        break;
+    case LexerTokenType::ACCESS_MODIFIER:
+    case LexerTokenType::KEYWORD:
+    case LexerTokenType::SYMBOL:
+    case LexerTokenType::TYPE:
+        snprintf(value, kMaxValueLen, "%s", DebugLexerSymbolString(token.symbol));
+        break;
+    case LexerTokenType::NAME:
+    case LexerTokenType::STRING:
+        snprintf(value, kMaxValueLen, "\"%s\"", token.string_const->c_str());
+        break;
+    default:
+        // Indicative of a bug.
+        printf("**UNKNOWN_LEXER_TOKEN**");
+        return;
+    }
+
+    printf("%s: %s\n", DebugLexerTokenTypeString(token.type), value);
+}
 
 const char* DebugLexerTokenTypeString(LexerTokenType type) {
   return kTokenTypeString[(int)type];

@@ -362,7 +362,7 @@ void Lexer::ParseName() {
 
     this->next_token_.type = value.first;
     this->next_token_.symbol = value.second;
-  } catch (const std::out_of_range& ex) {
+  } catch (const std::out_of_range&) {
     // Not a keyword, treat as name instead.
     this->next_token_.type = LexerTokenType::NAME;
     this->next_token_.string_const = new std::string(name);
@@ -401,9 +401,9 @@ void Lexer::ParseNumber() {
     if (consumed_idx < num_str.length()) {
       throw LexerNumberException(*this);
     }
-  } catch (const std::invalid_argument& ex) {
+  } catch (const std::invalid_argument&) {
     throw LexerNumberException(*this);
-  } catch (const std::out_of_range& ex) {
+  } catch (const std::out_of_range&) {
     throw LexerNumberException(*this);
   }
 
