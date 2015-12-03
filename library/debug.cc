@@ -109,7 +109,7 @@ void DebugPrintNode(Node* node, Node* target_node) {
 
     // Print child nodes.
     for (int i = 0; i < node->child_count(); i++) {
-        DebugPrintNode(node->GetChild(i), target_node);
+        DebugPrintNode(node->child(i), target_node);
     }
 }
 

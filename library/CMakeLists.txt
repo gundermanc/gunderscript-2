@@ -4,7 +4,16 @@
 #
 
 # Compile the Gunderscript library.
-add_library (libgunderscript debug.cc lexer.cc lexer_file_source.cc symbol_table.cc node.cc parser.cc)
+add_library (
+    libgunderscript
+    debug.cc
+    lexer.cc
+    lexer_file_source.cc
+    symbol_table.cc
+    node.cc
+    parser.cc
+    ast_walker.cc
+    semantic_ast_walker.cc)
 
 # Generate tests if option enabled.
 if (libgunderscript_tests)

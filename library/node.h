@@ -79,14 +79,14 @@ public:
     Node(NodeRule rule, const std::string* value);
     ~Node();
     void AddChild(Node* child);
-    Node* GetChild(int child);
+    Node* child(int child) const;
     int child_count() const { return this->children_.size(); }
     bool bool_value() const { return num_value_.bool_value; }
     long int_value() const { return num_value_.int_value; }
     double float_value() const { return num_value_.float_value; }
     LexerSymbol symbol_value() const { return num_value_.symbol_value; }
     const std::string* string_value() const { return string_value_; }
-    NodeRule rule() { return rule_; }
+    NodeRule rule() const { return rule_; }
 
 private:
     std::vector<Node*> children_;
