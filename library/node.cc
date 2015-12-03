@@ -1,10 +1,29 @@
 // Gunderscript-2 Parse/AST Node
-// (C) 2014 Christian Gunderman
+// (C) 2014-2015 Christian Gunderman
 
 #include "node.h"
 
 namespace gunderscript {
 namespace library {
+
+// POTENTIAL BUG BUG BUG: If you update this array you must also update NodeRule
+// enum in the header to be identical. If you don't things will break!
+static const std::string kNodeRuleString[] = {
+    "MODULE", "DEPENDS", "NAME", "TYPE", "ACCESS_MODIFIER", "SPECS", "SPEC",
+    "PROPERTIES", "PROPERTY", "PROPERTY_FUNCTION", "FUNCTIONS", "FUNCTION",
+    "NATIVE", "FUNCTION_PARAMETERS", "FUNCTION_PARAMETER", "BLOCK", "ASSIGN",
+    "RETURN", "EXPRESSION", "MEMBER", "CALL", "CALL_PARAMETERS", "SYMBOL",
+    "LOGOR", "LOGAND", "LOGNOT", "EQUALS", "NOT_EQUALS", "LESS", "LESS_EQUALS",
+    "GREATER", "GREATER_EQUALS", "ADD", "SUB", "MUL", "DIV", "MOD", "BOOL", "INT",
+    "FLOAT", "CHAR", "STRING"
+};
+
+// Gets a string representation of a NodeRule.
+// NOTE: for this method to operate correctly both the string array
+// of rules and the enum must match 1:1 and in the same order.
+const std::string NodeRuleString(NodeRule rule) {
+    return kNodeRuleString[(int)rule];
+}
 
 // Constructs a new node with no children and the specified NodeRule.
 Node::Node(NodeRule rule) {

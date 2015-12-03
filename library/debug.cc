@@ -9,42 +9,7 @@
 namespace gunderscript {
 namespace library {
 
-static const char* kTokenTypeString[] = {
-  "ACCESS_MODIFIER", "TYPE", "KEYWORD", "SYMBOL", "NAME", "INT", "FLOAT",
-  "STRING", "CHAR"
-};
-
-static const char* kLexerSymbolString[] = {
-  // Symbols:
-  "SWAP", "ASSIGN", "LSHIFT", "LESSEQUALS", "LESS", "GREATEREQUALS", "RSHIFT",
-  "GREATER", "ADD", "ADDEQUALS", "SUB", "SUBEQUALS", "MUL", "MULEQUALS", "DIV",
-  "DIVEQUALS", "MOD", "MODEQUALS",
-  "LPAREN", "RPAREN", "LSQUARE", "RSQUARE", "LBRACE", "RBRACE", "DOT", "SEMICOLON", "COMMA", 
-  "LOGOR", "BINOR", "LOGAND", "BINAND", "LOGNOT", "BINNOT", "EQUALS", "NOTEQUALS", "COLON",
-  "TERNARY",
-
-    // Access Modifiers:
-  "PUBLIC", "CONCEALED", "INTERNAL",
-
-  // Keywords:
-  "SPEC", "IF", "ELSE", "DO", "WHILE", "TRUE", "FALSE", "RETURN", "GET", "SET", "CONCEIVE",
-  "ERADICATE", "START", "READONLY", "FOR", "BREAK", "CONTINUE", "DEPENDS", "PACKAGE",
-  "NATIVE",
-
-  // Types:
-  "CHAR", "INT", "FLOAT", "BOOL", "STRING"
-};
-
-static const char* kNodeRuleString[] = {
-  "MODULE", "DEPENDS", "NAME", "TYPE", "ACCESS_MODIFIER", "SPECS", "SPEC",
-  "PROPERTIES", "PROPERTY", "PROPERTY_FUNCTION", "FUNCTIONS", "FUNCTION",
-  "NATIVE", "FUNCTION_PARAMETERS", "FUNCTION_PARAMETER", "BLOCK", "ASSIGN",
-  "RETURN", "EXPRESSION", "MEMBER", "CALL", "CALL_PARAMETERS", "SYMBOL",
-  "LOGOR", "LOGAND", "LOGNOT", "EQUALS", "NOT_EQUALS", "LESS", "LESS_EQUALS",
-  "GREATER", "GREATER_EQUALS", "ADD", "SUB", "MUL", "DIV", "MOD", "BOOL", "INT",
-  "FLOAT", "CHAR", "STRING"
-};
-
+// Prints the debug representation of the given token to the console.
 void DebugPrintLexerToken(const LexerToken& token) {
     const int kMaxValueLen = 255;
     char value[kMaxValueLen] = "";
@@ -63,7 +28,7 @@ void DebugPrintLexerToken(const LexerToken& token) {
     case LexerTokenType::KEYWORD:
     case LexerTokenType::SYMBOL:
     case LexerTokenType::TYPE:
-        snprintf(value, kMaxValueLen, "%s", DebugLexerSymbolString(token.symbol));
+        snprintf(value, kMaxValueLen, "%s", LexerSymbolString(token.symbol).c_str());
         break;
     case LexerTokenType::NAME:
     case LexerTokenType::STRING:
@@ -75,85 +40,78 @@ void DebugPrintLexerToken(const LexerToken& token) {
         return;
     }
 
-    printf("%s: %s\n", DebugLexerTokenTypeString(token.type), value);
+    printf("%s: %s\n", LexerTokenTypeString(token.type).c_str(), value);
 }
 
-const char* DebugLexerTokenTypeString(LexerTokenType type) {
-  return kTokenTypeString[(int)type];
-}
-
-const char* DebugLexerSymbolString(LexerSymbol symbol) {
-  return kLexerSymbolString[(int)symbol];
-}
-
-const char* DebugNodeRuleString(NodeRule rule) {
-  return kNodeRuleString[(int)rule];
-}
-
+// Prints the debug representation of an abstract syntax tree node
+// to the console along with all of its children.
 void DebugPrintNode(Node* node) {
-  DebugPrintNode(node, NULL);
+    DebugPrintNode(node, NULL);
 }
 
+// Prints the debug representation of an abstract syntax tree node
+// to the console along with all of its children.
+// The target_node is marked with an arrow.
 void DebugPrintNode(Node* node, Node* target_node) {
 
-  if (node == target_node) {
-    printf("--> ");
-  }
+    if (node == target_node) {
+        printf("--> ");
+    }
 
-  if (node == NULL) {
-    printf("** NULL NODE **");
-  }
+    if (node == NULL) {
+        printf("** NULL NODE **");
+    }
 
-  switch (node->rule()) {
+    switch (node->rule()) {
     case NodeRule::NAME:
     case NodeRule::STRING:
-      printf("%i:%s, \"%s\"\n",
-             node->child_count(),
-             DebugNodeRuleString(node->rule()),
-             node->string_value()->c_str());
-             break;
+        printf("%i:%s, \"%s\"\n",
+            node->child_count(),
+            NodeRuleString(node->rule()).c_str(),
+            node->string_value()->c_str());
+        break;
 
     case NodeRule::TYPE:
     case NodeRule::ACCESS_MODIFIER:
-      printf("%i:%s, %s\n",
-             node->child_count(),
-             DebugNodeRuleString(node->rule()),
-             DebugLexerSymbolString(node->symbol_value()));
-      break;
+        printf("%i:%s, %s\n",
+            node->child_count(),
+            NodeRuleString(node->rule()).c_str(),
+            LexerSymbolString(node->symbol_value()).c_str());
+        break;
 
     case NodeRule::BOOL:
     case NodeRule::NATIVE:
-      printf("%i:%s, %s\n",
-             node->child_count(),
-             DebugNodeRuleString(node->rule()),
-             node->bool_value() ? "true" : "false");
-      break;
+        printf("%i:%s, %s\n",
+            node->child_count(),
+            NodeRuleString(node->rule()).c_str(),
+            node->bool_value() ? "true" : "false");
+        break;
 
     case NodeRule::CHAR:
     case NodeRule::INT:
-      printf("%i:%s, %lu\n",
-             node->child_count(),
-             DebugNodeRuleString(node->rule()),
-             node->int_value());
-      break;
+        printf("%i:%s, %lu\n",
+            node->child_count(),
+            NodeRuleString(node->rule()).c_str(),
+            node->int_value());
+        break;
 
     case NodeRule::FLOAT:
-      printf("%i:%s, %lf\n",
-             node->child_count(),
-             DebugNodeRuleString(node->rule()),
-             node->float_value());
-      break;
+        printf("%i:%s, %lf\n",
+            node->child_count(),
+            NodeRuleString(node->rule()).c_str(),
+            node->float_value());
+        break;
 
     default:
-      printf("%i:%s\n",
-             node->child_count(),
-             DebugNodeRuleString(node->rule()));
-  }
+        printf("%i:%s\n",
+            node->child_count(),
+            NodeRuleString(node->rule()).c_str());
+    }
 
-  // Print child nodes.
-  for (int i = 0; i < node->child_count(); i++) {
-    DebugPrintNode(node->GetChild(i), target_node);
-  }
+    // Print child nodes.
+    for (int i = 0; i < node->child_count(); i++) {
+        DebugPrintNode(node->GetChild(i), target_node);
+    }
 }
 
 } // namespace library

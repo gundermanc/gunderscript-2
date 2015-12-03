@@ -10,11 +10,15 @@
 namespace gunderscript {
 namespace library {
 
+// Prints the debug representation of a lexer token to the console.
 void DebugPrintLexerToken(const LexerToken& token);
-const char* DebugLexerTokenTypeString(LexerTokenType type);
-const char* DebugLexerSymbolString(LexerSymbol symbol);
-const char* DebugNodeRuleString(NodeRule rule);
+
+// Prints the debug representation of a node and all of its children
+// to the console.
 void DebugPrintNode(Node* node);
+
+// Prints the debug representation of a node and all of its children
+// to the console. The target_node is marked with an arrow.
 void DebugPrintNode(Node* node, Node* target_node);
 
 } // namespace debug
