@@ -12,18 +12,26 @@ completely new language that will be written from scratch in a combination of
 C/C++ and Gunderscript. The focus is to create a clean, object oriented scripting
 language that borrows the best features from C#, Java, C, and C++ and that is
 small, efficient, and modular in design, allowing for the user to target either
-the Gunderscript 2 VM or native platforms such as x86/64 and ARM.
+the Gunderscript 2 interpreter or Gunderscript 2 VM.
 
-IMPLEMENTATION PROGESS:
+ROADMAP:
   - Lexer : 100%
-  - SymbolTable : 100%
-  - Parser (except for IF, FOR, WHILE, DO/WHILE) : 100%
-  - Control Flow Operations Parsers
+  - Parser (except for IF, FOR, WHILE, DO/WHILE and other control flow) : 100%
+  - Syntax tree walker : 0%
+  - Semantic (type checker), minus control flow : 0%
+  - AST interpreter (non-compiled), minus control flow : 0%
+  - End to end control flow support
     - IF : 0%
     - FOR : 0%
     - WHILE : 0%
     - DO/WHILE : 0%
-  - See Issues on Github for more info.
+  - Investigate more complex language features:
+    - Exceptions
+    - Switches
+    - Enhanced or "shortcut" operators
+  - Refactor and cleanup
+  - Unified, extensible engine API.
+  - Code generator for VM and VM : 0%
 
 Gunderscript 2 is currently under initial construction. Tentative project
 information can be found in arch.org file. If you are interested in joining this
