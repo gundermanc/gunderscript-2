@@ -37,6 +37,8 @@ class LexerStringSource : public LexerSourceInterface {
   size_t index = 0;
 };
 
+// POTENTIAL BUG BUG BUG: Whenever you update this enum be sure to update
+// kLexerTokenTypeString array in implementation file or things will break!
 // LexerToken Types.
 // ACCESS_MODIFIER: contains LexerSymbol.
 // TYPE: contains LexerSymbol.
@@ -204,6 +206,12 @@ class LexerNoMatchException : public LexerException {
                  ", column " + std::to_string(lexer.current_column_number()) +
                  ".") { }
 };
+
+// Maps a lexer token enum value to its string representation.
+const std::string LexerTokenTypeString(LexerTokenType type);
+
+// Maps a lexer symbol enum value to its string representation.
+const std::string LexerSymbolString(LexerSymbol symbol);
 
 } // namespace library
 } // namespace gunderscript

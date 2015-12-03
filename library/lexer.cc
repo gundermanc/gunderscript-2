@@ -56,6 +56,52 @@ namespace library {
 #define DEFINE_KEYWORD(k, t, s)                                         \
   this->keywords_map_.insert(std::make_pair(k, std::make_pair(t, s)));
 
+// POTENTIAL BUG BUG BUG: Whenever you update this array be sure to update
+// LexerTokenType enum in header. These two MUST be identical or things will
+// break.
+static const std::string kLexerTokenTypeString[] = {
+  "ACCESS_MODIFIER", "TYPE", "KEYWORD", "SYMBOL", "NAME", "INT", "FLOAT",
+  "STRING", "CHAR"
+};
+
+// POTENTIAL BUG BUG BUG: Whenever you update this array be sure to update
+// LexerSymbolString enum in header. These two must be identical or things will
+// break.
+static const std::string kLexerSymbolString[] = {
+    // Symbols:
+    "SWAP", "ASSIGN", "LSHIFT", "LESSEQUALS", "LESS", "GREATEREQUALS", "RSHIFT",
+    "GREATER", "ADD", "ADDEQUALS", "SUB", "SUBEQUALS", "MUL", "MULEQUALS", "DIV",
+    "DIVEQUALS", "MOD", "MODEQUALS",
+    "LPAREN", "RPAREN", "LSQUARE", "RSQUARE", "LBRACE", "RBRACE", "DOT", "SEMICOLON", "COMMA",
+    "LOGOR", "BINOR", "LOGAND", "BINAND", "LOGNOT", "BINNOT", "EQUALS", "NOTEQUALS", "COLON",
+    "TERNARY",
+
+    // Access Modifiers:
+    "PUBLIC", "CONCEALED", "INTERNAL",
+
+    // Keywords:
+    "SPEC", "IF", "ELSE", "DO", "WHILE", "TRUE", "FALSE", "RETURN", "GET", "SET", "CONCEIVE",
+    "ERADICATE", "START", "READONLY", "FOR", "BREAK", "CONTINUE", "DEPENDS", "PACKAGE",
+    "NATIVE",
+
+    // Types:
+    "CHAR", "INT", "FLOAT", "BOOL", "STRING"
+};
+
+// Gets a string representation of each token.
+// NOTE: for this method to operate correctly both the string array
+// of tokens and the enum must match 1:1 and in the same order.
+const std::string LexerTokenTypeString(LexerTokenType type) {
+    return kLexerTokenTypeString[(int)type];
+}
+
+// Gets a string representation of each lexer symbol.
+// NOTE: for this method to operate correctly both the string array
+// of symbols and the enum must match 1:1 and in the same order.
+const std::string LexerSymbolString(LexerSymbol symbol) {
+    return kLexerSymbolString[(int)symbol];
+}
+
 // Gets the current character from an instance of LexerStringSource
 // and advances the iterator to the next char.
 // Returns: The next char, or -1 if no characters remain.

@@ -63,6 +63,9 @@ enum class NodeRule {
     STRING
 };
 
+// Maps a NodeRule enum value to its string representation.
+const std::string NodeRuleString(NodeRule rule);
+
 // The abstract syntax tree node object. Each Node is a subtree containing a single
 // language construct. Child nodes represent properties of the language constructs
 // or sub-constructs.
