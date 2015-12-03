@@ -1,7 +1,6 @@
 // Gunderscript-2 Debug Functions
 // (C) 2015 Christian Gunderman
 
-#include <cstdio>
 #include <cstring>
 
 #include "debug.h"
