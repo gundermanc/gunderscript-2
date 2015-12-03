@@ -10,5 +10,5 @@ using gunderscript::library::Lexer;
 
 // Application Entry point.
 int main(int argc, const char** argv) {
-    return CLIRESULT_TO_INT(gunderscript::cli::ProcessArguments(argc, argv));
+    return CLIRESULT_INT(gunderscript::cli::ProcessArguments(argc, argv));
 }

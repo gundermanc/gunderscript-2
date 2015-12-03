@@ -9,7 +9,7 @@
 namespace gunderscript {
 namespace cli {
 
-#define CLIRESULT_TO_INT(r)  ((int)r)
+#define CLIRESULT_INT(r)  ((int)r)
 
 // Command line exit codes.
 enum class CliResult {
