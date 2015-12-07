@@ -45,11 +45,21 @@ void AstWalker<ReturnType>::WalkModuleChildren() {
 }
 
 // Walks all child nodes of the DEPENDS node (nodes that indicate
-// which files this script depends on).
-// TODO: update comments.
+// which files this script depends on). Children will all be NAME nodes
+// with the name of another script file.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleDependsChildren(Node* depends_node) {
-    throw NotImplementedException();
+
+    // Iterate through all classes that this class depends on.
+    for (int i = 0; i < depends_node->child_count(); i++) {
+
+        // Check that each node is a NAME node with the name of a script.
+        if (depends_node->child(i)->rule() != NodeRule::NAME) {
+            throw IllegalStateException();
+        }
+
+        WalkModuleDependsName(depends_node->child(i));
+    }
 }
 
 // Walks all child nodes of the SPECS node (nodes defining the specs/classes

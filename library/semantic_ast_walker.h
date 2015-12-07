@@ -20,8 +20,13 @@ class SemanticAstWalker : public AstWalker<LexerSymbol> {
 public:
     SemanticAstWalker(Node& node) : AstWalker(node) { }
 
+protected:
     LexerSymbol WalkModule(Node* module_node);
     LexerSymbol WalkModuleName(Node* module_name);
+    LexerSymbol WalkModuleDependsName(Node* name_node);
+
+private:
+    void CheckValidModuleNameOrDie(const std::string& module_name);
 };
 
 // SemanticAstWalker Exceptions Parent Class

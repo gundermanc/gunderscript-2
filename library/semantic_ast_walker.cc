@@ -27,15 +27,29 @@ LexerSymbol SemanticAstWalker::WalkModule(Node* module_node) {
 // pattern matching.
 LexerSymbol SemanticAstWalker::WalkModuleName(Node* name_node) {
 
-    // Check that the module name is a valid name.
-    // Valid names are a series of 1 or more dot separated words.
-    // TODO: broader range of accepted names here.
-    if (!std::regex_match(*name_node->string_value(), module_name_pattern)) {
-        throw SemanticAstWalkerInvalidPackageNameException(*this);
-    }
+    CheckValidModuleNameOrDie(*name_node->string_value());
 
     // Return type does nothing for this checker.
     return LexerSymbol::TNULL;
+}
+
+// Checks that the given dependency module name is valid.
+// If not, throws an exception.
+// TODO: calculate dependency graph and lex/parse/typecheck the
+// dependency first.
+LexerSymbol SemanticAstWalker::WalkModuleDependsName(Node* name_node) {
+    CheckValidModuleNameOrDie(*name_node->string_value());
+
+    // Return type does nothing for this checker.
+    return LexerSymbol::TNULL;
+}
+
+// Checks to see if the given module name is valid. If it is not, throws
+// an exception.
+void SemanticAstWalker::CheckValidModuleNameOrDie(const std::string& module_name) {
+    if (!std::regex_match(module_name, module_name_pattern)) {
+        throw SemanticAstWalkerInvalidPackageNameException(*this);
+    }
 }
 
 } // namespace library

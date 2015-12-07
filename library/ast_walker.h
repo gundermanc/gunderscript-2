@@ -25,6 +25,7 @@ protected:
 
     virtual ReturnType WalkModule(Node* module_node) = 0;
     virtual ReturnType WalkModuleName(Node* name_node) = 0;
+    virtual ReturnType WalkModuleDependsName(Node* name_node) = 0;
 
 private:
     Node& root_;
