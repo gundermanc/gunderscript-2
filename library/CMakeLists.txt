@@ -18,7 +18,12 @@ add_library (
 # Generate tests if option enabled.
 if (libgunderscript_tests)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-    add_executable (libgunderscript_tests lexer_unittest.cc symbol_table_unittest.cc parser_unittest.cc)
+    add_executable (
+        libgunderscript_tests
+        lexer_unittest.cc
+        symbol_table_unittest.cc
+        parser_unittest.cc
+        semantic_ast_walker_unittest.cc)
     target_link_libraries(libgunderscript_tests libgunderscript)
     target_link_libraries(libgunderscript_tests gtest gtest_main)
 endif ()

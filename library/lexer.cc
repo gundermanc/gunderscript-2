@@ -85,7 +85,7 @@ static const std::string kLexerSymbolString[] = {
     "NATIVE",
 
     // Types:
-    "CHAR", "INT", "FLOAT", "BOOL", "STRING"
+    "CHAR", "INT", "FLOAT", "BOOL", "STRING", "NULL"
 };
 
 // Gets a string representation of each token.
@@ -218,6 +218,7 @@ void Lexer::LoadKeywords() {
     DEFINE_KEYWORD("continue", LexerTokenType::KEYWORD, LexerSymbol::CONTINUE);
     DEFINE_KEYWORD("depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
     DEFINE_KEYWORD("native", LexerTokenType::KEYWORD, LexerSymbol::NATIVE);
+    DEFINE_KEYWORD("null", LexerTokenType::KEYWORD, LexerSymbol::TNULL);
 
     // Primitive Types:
     DEFINE_KEYWORD("int", LexerTokenType::TYPE, LexerSymbol::INT);

@@ -70,7 +70,7 @@ enum class LexerSymbol {
     NATIVE,
 
     // Types:
-    CHAR, INT, FLOAT, BOOL, STRING
+    CHAR, INT, FLOAT, BOOL, STRING, TNULL
 };
 
 // LexerToken.
