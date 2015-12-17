@@ -14,9 +14,7 @@ template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleChildren() {
     // We can't have a non-module node as the root. If we do, indicate
     // that this is a bug.
-    if (this->root().rule() != NodeRule::MODULE) {
-        throw IllegalStateException();
-    }
+    CheckNodeRule(this->root().rule(), NodeRule::MODULE);
 
     // Check that we have the proper number of MODULE node children.
     if (this->root().child_count() != 3) {
@@ -32,11 +30,9 @@ void AstWalker<ReturnType>::WalkModuleChildren() {
     Node* specs_node = this->root().child(2);
 
     // Check child node types.
-    if (name_node->rule() != NodeRule::NAME ||
-        depends_node->rule() != NodeRule::DEPENDS ||
-        specs_node->rule() != NodeRule::SPECS) {
-        throw IllegalStateException();
-    }
+    CheckNodeRule(name_node, NodeRule::NAME);
+    CheckNodeRule(depends_node, NodeRule::DEPENDS);
+    CheckNodeRule(specs_node, NodeRule::SPECS);
 
     // Walk children.
     WalkModuleName(name_node);
@@ -50,24 +46,72 @@ void AstWalker<ReturnType>::WalkModuleChildren() {
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleDependsChildren(Node* depends_node) {
 
-    // Iterate through all classes that this class depends on.
+    // Iterate through all modules that this modules depends on.
     for (int i = 0; i < depends_node->child_count(); i++) {
 
-        // Check that each node is a NAME node with the name of a script.
-        if (depends_node->child(i)->rule() != NodeRule::NAME) {
-            throw IllegalStateException();
-        }
-
+        // Check that each node is a NAME node and then walk it.
+        CheckNodeRule(depends_node->child(i), NodeRule::NAME);
         WalkModuleDependsName(depends_node->child(i));
     }
 }
 
 // Walks all child nodes of the SPECS node (nodes defining the specs/classes
 // defined in this module.
-// TODO: update comments.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleSpecsChildren(Node* specs_node) {
+
+    // Iterate through all specs defined by this class.
+    for (int i = 0; i < specs_node->child_count(); i++) {
+
+        // Check that each node is a SPEC node and then walk it.
+        CheckNodeRule(specs_node->child(i), NodeRule::SPEC);
+        WalkSpec(specs_node->child(i));
+    }
+}
+
+// Walks a SPEC node and it's children recursively defining a 
+// spec.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkSpec(Node* spec_node) {
+
+    CheckNodeRule(spec_node, NodeRule::SPEC);
+
+    Node* access_modifier_node = spec_node->child(0);
+    Node* name_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
+    Node* properties_node = spec_node->child(3);
+
+    CheckNodeRule(access_modifier_node, NodeRule::ACCESS_MODIFIER);
+    CheckNodeRule(name_node, NodeRule::NAME);
+    CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
+    CheckNodeRule(properties_node, NodeRule::PROPERTIES);
+
+    WalkSpecDeclaration(access_modifier_node, name_node);
+    WalkSpecFunctionsChildren(spec_node, functions_node);
+    WalkSpecPropertiesChildren(spec_node, properties_node);
+}
+
+// Walks the children of the FUNCTION node child of the SPEC node.
+// TODO: complete this.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkSpecFunctionsChildren(Node* spec_node, Node* functions_node) {
     throw NotImplementedException();
+}
+
+// Walks the children of the PROPERTIES node child of the SPEC node.
+// TODO: complete this.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node) {
+    throw NotImplementedException();
+}
+
+// Checks that the given node is for the given rule. If it is not,
+// throws IllegalStateException to indicate a bug somewhere.
+template <typename ReturnType>
+void AstWalker<ReturnType>::CheckNodeRule(Node* node, NodeRule rule) {
+    if (node->rule() != rule) {
+        throw IllegalStateException();
+    }
 }
 
 } // namespace library

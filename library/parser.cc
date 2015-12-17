@@ -155,6 +155,8 @@ void Parser::ParseSpecDefinition(Node* node) {
         throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
     }
 
+    spec_node->AddChild(new Node(NodeRule::ACCESS_MODIFIER, CurrentToken()->symbol));
+
     // Check for "spec" keyword in declaration.
     if (!AdvanceKeyword(LexerSymbol::SPEC)) {
         throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);

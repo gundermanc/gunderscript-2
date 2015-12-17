@@ -10,6 +10,7 @@
 #include "ast_walker.h"
 #include "lexer.h"
 #include "node.h"
+#include "symbol_table.h"
 
 namespace gunderscript {
 namespace library {
@@ -21,12 +22,14 @@ public:
     SemanticAstWalker(Node& node) : AstWalker(node) { }
 
 protected:
-    LexerSymbol WalkModule(Node* module_node);
-    LexerSymbol WalkModuleName(Node* module_name);
-    LexerSymbol WalkModuleDependsName(Node* name_node);
-
+    void WalkModule(Node* module_node);
+    void WalkModuleName(Node* module_name);
+    void WalkModuleDependsName(Node* name_node);
+    void WalkSpecDeclaration(Node* access_modifier_node, Node* name_node);
+     
 private:
-    void CheckValidModuleNameOrDie(const std::string& module_name);
+    void CheckValidModuleName(const std::string& module_name);
+    SymbolTable<& symbol_table_;
 };
 
 // SemanticAstWalker Exceptions Parent Class

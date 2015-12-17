@@ -23,9 +23,10 @@ public:
 protected:
     Node& root() const { return this->root_; }
 
-    virtual ReturnType WalkModule(Node* module_node) = 0;
-    virtual ReturnType WalkModuleName(Node* name_node) = 0;
-    virtual ReturnType WalkModuleDependsName(Node* name_node) = 0;
+    virtual void WalkModule(Node* module_node) = 0;
+    virtual void WalkModuleName(Node* name_node) = 0;
+    virtual void WalkModuleDependsName(Node* name_node) = 0;
+    virtual void WalkSpecDeclaration(Node* access_modifier_node, Node* name_node) = 0;
 
 private:
     Node& root_;
@@ -33,6 +34,10 @@ private:
     void WalkModuleChildren();
     void WalkModuleDependsChildren(Node* depends_node);
     void WalkModuleSpecsChildren(Node* specs_node);
+    void WalkSpec(Node* spec_node);
+    void WalkSpecFunctionsChildren(Node* spec_node, Node* functions_node);
+    void WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node);
+    void CheckNodeRule(Node* node, NodeRule rule);
 };
 
 // Instantiate template with LexerSymbol so we can unit test from external module
