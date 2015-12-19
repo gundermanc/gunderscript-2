@@ -38,7 +38,9 @@ void SemanticAstWalker::WalkModuleDependsName(Node* name_node) {
 // Attempts to declare a new spec in the given scope. Throws if spec
 // name is taken in this context.
 void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* name_node) {
-    
+    Symbol spec_symbol(access_modifier_node->symbol_value(), *name_node->string_value());
+
+    this->symbol_table().Put(*name_node->string_value(), spec_symbol);
 }
 
 // Checks to see if the given module name is valid. If it is not, throws

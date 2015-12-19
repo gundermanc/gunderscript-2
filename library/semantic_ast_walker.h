@@ -19,6 +19,8 @@ namespace library {
 // Walks along the AST and checks for type correctness.
 class SemanticAstWalker : public AstWalker<LexerSymbol> {
 public:
+    SymbolTable<Symbol> symbol_table() const { return symbol_table_; }
+
     SemanticAstWalker(Node& node) : AstWalker(node) { }
 
 protected:
@@ -28,6 +30,8 @@ protected:
     void WalkSpecDeclaration(Node* access_modifier_node, Node* name_node);
      
 private:
+    SymbolTable<Symbol> symbol_table_;
+
     void CheckValidModuleName(const std::string& module_name);
 };
 
