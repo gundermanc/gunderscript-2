@@ -244,35 +244,45 @@ TEST(Parser, EmptySpec) {
 
     Node* spec_node_0 = specs_node->child(0);
     EXPECT_EQ(NodeRule::SPEC, spec_node_0->rule());
-    EXPECT_EQ(3, spec_node_0->child_count());
+    EXPECT_EQ(4, spec_node_0->child_count());
 
     Node* spec_node_1 = specs_node->child(1);
     EXPECT_EQ(NodeRule::SPEC, spec_node_1->rule());
-    EXPECT_EQ(3, spec_node_1->child_count());
+    EXPECT_EQ(4, spec_node_1->child_count());
 
-    Node* spec_node_0_name = spec_node_0->child(0);
+    Node* spec_node_0_access_modifier = spec_node_0->child(0);
+    EXPECT_EQ(NodeRule::ACCESS_MODIFIER, spec_node_0_access_modifier->rule());
+    EXPECT_EQ(0, spec_node_0_access_modifier->child_count());
+    EXPECT_EQ(LexerSymbol::PUBLIC, spec_node_0_access_modifier->symbol_value());
+
+    Node* spec_node_0_name = spec_node_0->child(1);
     EXPECT_EQ(NodeRule::NAME, spec_node_0_name->rule());
     EXPECT_EQ(0, spec_node_0_name->child_count());
     EXPECT_STREQ("MySpec", spec_node_0_name->string_value()->c_str());
 
-    Node* spec_node_0_functions = spec_node_0->child(1);
+    Node* spec_node_0_functions = spec_node_0->child(2);
     EXPECT_EQ(NodeRule::FUNCTIONS, spec_node_0_functions->rule());
     EXPECT_EQ(0, spec_node_0_functions->child_count());
 
-    Node* spec_node_0_properties = spec_node_0->child(2);
+    Node* spec_node_0_properties = spec_node_0->child(3);
     EXPECT_EQ(NodeRule::PROPERTIES, spec_node_0_properties->rule());
     EXPECT_EQ(0, spec_node_0_properties->child_count());
 
-    Node* spec_node_1_name = spec_node_1->child(0);
+    Node* spec_node_1_access_modifier = spec_node_1->child(0);
+    EXPECT_EQ(NodeRule::ACCESS_MODIFIER, spec_node_1_access_modifier->rule());
+    EXPECT_EQ(0, spec_node_1_access_modifier->child_count());
+    EXPECT_EQ(LexerSymbol::CONCEALED, spec_node_1_access_modifier->symbol_value());
+
+    Node* spec_node_1_name = spec_node_1->child(1);
     EXPECT_EQ(NodeRule::NAME, spec_node_1_name->rule());
     EXPECT_EQ(0, spec_node_1_name->child_count());
     EXPECT_STREQ("Foo", spec_node_1_name->string_value()->c_str());
 
-    Node* spec_node_1_functions = spec_node_1->child(1);
+    Node* spec_node_1_functions = spec_node_1->child(2);
     EXPECT_EQ(NodeRule::FUNCTIONS, spec_node_1_functions->rule());
     EXPECT_EQ(0, spec_node_1_functions->child_count());
 
-    Node* spec_node_1_properties = spec_node_1->child(2);
+    Node* spec_node_1_properties = spec_node_1->child(3);
     EXPECT_EQ(NodeRule::PROPERTIES, spec_node_1_properties->rule());
     EXPECT_EQ(0, spec_node_1_properties->child_count());
 
@@ -401,9 +411,9 @@ TEST(Parser, ParsePropertyEmpty) {
     ASSERT_EQ(1, specs_node->child_count());
 
     Node* spec_node = specs_node->child(0);
-    ASSERT_EQ(3, spec_node->child_count());
+    ASSERT_EQ(4, spec_node->child_count());
 
-    Node* properties_node = spec_node->child(2);
+    Node* properties_node = spec_node->child(3);
     ASSERT_EQ(2, properties_node->child_count());
 
     Node* x_node = properties_node->child(0);
@@ -469,9 +479,9 @@ TEST(Parser, ParsePropertyAuto) {
         ASSERT_EQ(1, specs_node->child_count());
 
         Node* spec_node = specs_node->child(0);
-        ASSERT_EQ(3, spec_node->child_count());
+        ASSERT_EQ(4, spec_node->child_count());
 
-        Node* properties_node = spec_node->child(2);
+        Node* properties_node = spec_node->child(3);
         ASSERT_EQ(1, properties_node->child_count());
 
         Node* x_node = properties_node->child(0);
@@ -519,7 +529,7 @@ TEST(Parser, ParsePropertyAuto) {
         Node* root = parser.Parse();
         Node* specs_node = root->child(2);
         Node* spec_node = specs_node->child(0);
-        Node* properties_node = spec_node->child(2);
+        Node* properties_node = spec_node->child(3);
         Node* x_node = properties_node->child(0);
 
         Node*  x_getter_node = x_node->child(2);
@@ -552,7 +562,7 @@ TEST(Parser, ParsePropertyWithFunctionBody) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* properties_node = spec_node->child(2);
+    Node* properties_node = spec_node->child(3);
     Node* foo_node = properties_node->child(0);
     EXPECT_EQ(NodeRule::PROPERTY, foo_node->rule());
     ASSERT_EQ(4, foo_node->child_count());
@@ -611,7 +621,7 @@ TEST(Parser, ParseFunctionEmpty) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
     EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
     ASSERT_EQ(6, foo_node->child_count());
@@ -656,7 +666,7 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
     EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
     ASSERT_EQ(5, foo_node->child_count());
@@ -710,7 +720,7 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
     EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
     ASSERT_EQ(5, foo_node->child_count());
@@ -942,7 +952,7 @@ TEST(Parser, ParseEmptyReturn) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -971,7 +981,7 @@ TEST(Parser, ParseReturnWithExpression) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1044,7 +1054,7 @@ TEST(Parser, ParseArithmeticExpression) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1244,7 +1254,7 @@ TEST(Parser, ParseBooleanExpression) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1319,7 +1329,7 @@ TEST(Parser, ParseStringExpression) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1372,7 +1382,7 @@ TEST(Parser, ParseVariableExpression) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1421,7 +1431,7 @@ TEST(Parser, ParseFunctionExpressionWithoutArgs) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1474,7 +1484,7 @@ TEST(Parser, ParseFunctionExpressionWithArgs) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1559,7 +1569,7 @@ TEST(Parser, ParseMemberExpression) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1708,7 +1718,7 @@ TEST(Parser, ParseAssignStatement) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1765,7 +1775,7 @@ TEST(Parser, ParseCallStatement) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
@@ -1809,7 +1819,7 @@ TEST(Parser, ParseComparisonExpression) {
     Node* root = parser.Parse();
     Node* specs_node = root->child(2);
     Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(1);
+    Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
     Node* foo_block_node = foo_node->child(5);
