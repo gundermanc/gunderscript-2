@@ -14,7 +14,7 @@ template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleChildren() {
     // We can't have a non-module node as the root. If we do, indicate
     // that this is a bug.
-    CheckNodeRule(this->root().rule(), NodeRule::MODULE);
+    CheckNodeRule(&this->root(), NodeRule::MODULE);
 
     // Check that we have the proper number of MODULE node children.
     if (this->root().child_count() != 3) {

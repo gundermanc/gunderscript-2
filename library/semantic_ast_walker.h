@@ -29,7 +29,6 @@ protected:
      
 private:
     void CheckValidModuleName(const std::string& module_name);
-    SymbolTable<& symbol_table_;
 };
 
 // SemanticAstWalker Exceptions Parent Class
