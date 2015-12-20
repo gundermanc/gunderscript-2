@@ -14,6 +14,7 @@ using gunderscript::library::Node;
 using gunderscript::library::Parser;
 using gunderscript::library::SemanticAstWalker;
 using gunderscript::library::SemanticAstWalkerInvalidPackageNameException;
+using gunderscript::library::SymbolTableDuplicateKeyException;
 
 // This module tests the semantic checker layer for Gunderscript 2.
 // The tests cover only the expected positive and negative cases from
@@ -139,4 +140,19 @@ TEST(SemanticAstWalker, ModuleDependsNameStartsWithPeriodThrows) {
     EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerInvalidPackageNameException);
 
     delete root;
+}
+
+TEST(SemanticAstWalker, SpecDuplicateDefinition) {
+    LexerStringSource source(std::string(
+        "package \"Gundersoft\";"
+        "public spec Test { } "
+        "public spec Test { }"));
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
 }
