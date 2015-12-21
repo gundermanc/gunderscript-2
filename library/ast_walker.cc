@@ -92,16 +92,89 @@ void AstWalker<ReturnType>::WalkSpec(Node* spec_node) {
 }
 
 // Walks the children of the FUNCTION node child of the SPEC node.
-// TODO: complete this.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkSpecFunctionsChildren(Node* spec_node, Node* functions_node) {
-    throw NotImplementedException();
+    CheckNodeRule(spec_node, NodeRule::SPEC);
+    CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
+
+    // Iterates through all function declarations in the spec.
+    for (int i = 0; i < functions_node->child_count(); i++) {
+        Node* function_node = functions_node->child(i);
+
+        // Get function attribute objects.
+        Node* access_modifier_node = function_node->child(0);
+        Node* native_node = function_node->child(1);
+        Node* type_node = function_node->child(2);
+        Node* name_node = function_node->child(3);
+        Node* function_params_node = function_node->child(4);
+        Node* block_node = function_node->child(5);
+
+        // Naively check the node rules for basic troubleshooting.
+        CheckNodeRule(access_modifier_node, NodeRule::ACCESS_MODIFIER);
+        CheckNodeRule(native_node, NodeRule::NATIVE);
+        CheckNodeRule(type_node, NodeRule::TYPE);
+        CheckNodeRule(name_node, NodeRule::NAME);
+        CheckNodeRule(function_params_node, NodeRule::FUNCTION_PARAMETERS);
+        CheckNodeRule(block_node, NodeRule::BLOCK);
+
+        // Dispatch the arguments walker to subclass.
+        std::vector<ReturnType> arguments_result;
+        WalkSpecFunctionDeclarationParametersChildren(
+            spec_node,
+            function_node,
+            function_params_node,
+            arguments_result);
+
+        // Dispatch to subclass.
+        WalkSpecFunctionDeclaration(
+            spec_node,
+            access_modifier_node,
+            native_node,
+            type_node,
+            name_node,
+            block_node,
+            arguments_result);
+    }
+}
+
+// Walks the children of the the FUNCTION_PARAMS node.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkSpecFunctionDeclarationParametersChildren(
+    Node* spec_node,
+    Node* function_node, 
+    Node* function_params_node,
+    std::vector<ReturnType>& argument_result) {
+
+    CheckNodeRule(spec_node, NodeRule::SPEC);
+    CheckNodeRule(function_node, NodeRule::FUNCTION);
+    CheckNodeRule(function_params_node, NodeRule::FUNCTION_PARAMETERS); 
+
+    // Iterate all FUNCTION_PARAMETER nodes in the FUNCTION_PARAMETERS node
+    // and dispatch to subclass function.
+    for (int i = 0; i < function_params_node->child_count(); i++) {
+        Node* function_param_node = function_params_node->child(i);
+
+        CheckNodeRule(function_param_node, NodeRule::FUNCTION_PARAMETER);
+
+        argument_result.push_back(
+            WalkSpecFunctionDeclarationParameter(
+                spec_node,
+                function_node, 
+                function_param_node));
+    }
 }
 
 // Walks the children of the PROPERTIES node child of the SPEC node.
 // TODO: complete this.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node) {
+    throw NotImplementedException();
+}
+
+// Walks the Children of the BLOCK AST nodes.
+// TODO: Complete this.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkBlockChildren(Node* function_node, Node* block_node) {
     throw NotImplementedException();
 }
 

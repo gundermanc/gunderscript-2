@@ -1,5 +1,5 @@
 // Gunderscript-2 Symbol Table Symbol
-// (C) 2014 Christian Gunderman
+// (C) 2015 Christian Gunderman
 
 #ifndef GUNDERSCRIPT_SYMBOL__H__
 #define GUNDERSCRIPT_SYMBOL__H__
@@ -23,6 +23,22 @@ public:
 private:
     const LexerSymbol access_modifier_;
     const std::string name_;
+};
+
+class FunctionSymbol : public Symbol {
+public:
+    FunctionSymbol(
+        LexerSymbol access_modifier, 
+        const std::string& name,
+        bool native,
+        LexerSymbol type) : Symbol(access_modifier, name), native_(native), type_(type) { }
+
+    bool native() const { return native_; }
+    LexerSymbol type() const { return type_; }
+
+private:
+    const bool native_;
+    const LexerSymbol type_;
 };
 
 } // namespace library

@@ -156,3 +156,20 @@ TEST(SemanticAstWalker, SpecDuplicateDefinition) {
 
     EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
 }
+
+TEST(SemanticAstWalker, FunctionDuplicateDefinition) {
+    LexerStringSource source(std::string(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public int main(int x, string y) { }"
+        "    public int main(int x, string y) { }"
+        "}"));
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
+}

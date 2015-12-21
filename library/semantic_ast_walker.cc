@@ -2,7 +2,9 @@
 // (C) 2015 Christian Gunderman
 
 #include <regex>
+#include <sstream>
 
+#include "lexer.h"
 #include "semantic_ast_walker.h"
 
 namespace gunderscript {
@@ -41,6 +43,51 @@ void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* na
     Symbol spec_symbol(access_modifier_node->symbol_value(), *name_node->string_value());
 
     this->symbol_table_.Put(*name_node->string_value(), spec_symbol);
+}
+
+// Walks a single function declaration inside of a SPEC.
+// Throws if the function already exists in the symbol table.
+void SemanticAstWalker::WalkSpecFunctionDeclaration(
+    Node* spec_node,
+    Node* access_modifier_node,
+    Node* native_node,
+    Node* type_node,
+    Node* name_node,
+    Node* block_node,
+    std::vector<LexerSymbol>& arguments_result) {
+
+    Node* spec_name_node = spec_node->child(1);
+
+    // Format the symbol name {class}::{function}$arg1$arg2...
+    std::ostringstream name_buf;
+    name_buf << *spec_name_node->string_value();
+    name_buf << "::";
+    name_buf << *name_node->string_value();
+
+    // Append arguments to the symbol name.
+    for (size_t i = 0; i < arguments_result.size(); i++) {
+        name_buf << "$";
+        name_buf << LexerSymbolString(arguments_result[i]);
+    }
+
+    FunctionSymbol function_symbol(
+        access_modifier_node->symbol_value(),
+        *name_node->string_value(),
+        native_node->bool_value(),
+        type_node->symbol_value());
+
+    std::string symbol_name = name_buf.str();
+    this->symbol_table_.Put(symbol_name, function_symbol);
+}
+
+// Walks a single parameter in a spec function declaration.
+// Returns it to the Function Declaration walker.
+LexerSymbol SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
+    Node* spec_node,
+    Node* function_node,
+    Node* param_node) {
+
+    return param_node->symbol_value();
 }
 
 // Checks to see if the given module name is valid. If it is not, throws

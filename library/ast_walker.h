@@ -27,6 +27,18 @@ protected:
     virtual void WalkModuleName(Node* name_node) = 0;
     virtual void WalkModuleDependsName(Node* name_node) = 0;
     virtual void WalkSpecDeclaration(Node* access_modifier_node, Node* name_node) = 0;
+    virtual void WalkSpecFunctionDeclaration(
+        Node* spec_node,
+        Node* access_modifier_node,
+        Node* native_node,
+        Node* type_node,
+        Node* name_node,
+        Node* block_node,
+        std::vector<ReturnType>& argument_result) = 0;
+    virtual ReturnType WalkSpecFunctionDeclarationParameter(
+        Node* spec_node,
+        Node* function_node,
+        Node* param_node) = 0;
 
 private:
     Node& root_;
@@ -36,7 +48,13 @@ private:
     void WalkModuleSpecsChildren(Node* specs_node);
     void WalkSpec(Node* spec_node);
     void WalkSpecFunctionsChildren(Node* spec_node, Node* functions_node);
+    void WalkSpecFunctionDeclarationParametersChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* params_node,
+        std::vector<ReturnType>& argument_result);
     void WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node);
+    void WalkBlockChildren(Node* function_node, Node* block);
     void CheckNodeRule(Node* node, NodeRule rule);
 };
 

@@ -27,6 +27,18 @@ protected:
     void WalkModuleName(Node* module_name);
     void WalkModuleDependsName(Node* name_node);
     void WalkSpecDeclaration(Node* access_modifier_node, Node* name_node);
+    void WalkSpecFunctionDeclaration(
+        Node* spec_node,
+        Node* access_modifier_node,
+        Node* native_node,
+        Node* type_node,
+        Node* name_node,
+        Node* block_node,
+        std::vector<LexerSymbol>& arguments_result);
+    LexerSymbol WalkSpecFunctionDeclarationParameter(
+        Node* spec_node,
+        Node* function_node,
+        Node* param_node);
      
 private:
     SymbolTable<Symbol> symbol_table_;
