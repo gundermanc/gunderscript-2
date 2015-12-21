@@ -50,6 +50,68 @@ protected:
         Node* spec_node,
         Node* name_node,
         std::vector<LexerSymbol>& arguments_result);
+    LexerSymbol WalkAdd(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkSub(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkMul(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkDiv(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkMod(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkLogAnd(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkLogOr(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkBool(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* bool_node);
+    LexerSymbol WalkInt(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* int_node);
+    LexerSymbol WalkFloat(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* float_node);
+    LexerSymbol WalkString(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* string_node);
      
 private:
     SymbolTable<Symbol> symbol_table_;
@@ -59,6 +121,9 @@ private:
         const std::string& caller_class,
         const std::string& callee_class,
         LexerSymbol callee_access_modifier);
+    LexerSymbol CalculateResultantType(LexerSymbol left, LexerSymbol right);
+    LexerSymbol CalculateNumericResultantType(LexerSymbol left, LexerSymbol right);
+    LexerSymbol CalculateBoolResultantType(LexerSymbol left, LexerSymbol right);
 };
 
 // SemanticAstWalker Exceptions Parent Class
@@ -82,12 +147,20 @@ public:
             "Invalid package name.") { }
 };
 
-// SemanticAstWalker member not accessible exception.s
+// SemanticAstWalker member not accessible exception.
 class SemanticAstWalkerNotAccessibleException : public SemanticAstWalkerException {
 public:
     SemanticAstWalkerNotAccessibleException(const SemanticAstWalker& walker) :
         SemanticAstWalkerException(walker,
             "Class or class member not accessible.") { }
+};
+
+// SemanticAstWalker type mismatch exception.
+class SemanticAstWalkerTypeMismatchException : public SemanticAstWalkerException {
+public:
+    SemanticAstWalkerTypeMismatchException(const SemanticAstWalker& walker) :
+        SemanticAstWalkerException(walker,
+            "Invalid type in operation.") { }
 };
 
 } // namespace library

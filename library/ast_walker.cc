@@ -301,9 +301,116 @@ ReturnType AstWalker<ReturnType>::WalkExpressionChildren(
     Node* property_node,
     Node* expression_node) {
 
+    // Check mandatory nodes used by this walker.
+    CheckNodeRule(expression_node, NodeRule::EXPRESSION);
+
+    return WalkBinaryOperationChildren(
+        spec_node,
+        function_node,
+        property_node,
+        expression_node->child(0));
+}
+
+// Walks all children of binary expressions.
+// TODO: complete this.
+template <typename ReturnType>
+ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* binary_operation_node) {
+
+    // This node has children, treat it as a binary operation.
+    if (binary_operation_node->child_count() == 2) {
+        Node* left_node = binary_operation_node->child(0);
+        Node* right_node = binary_operation_node->child(1);
+
+        LexerSymbol left_result = WalkBinaryOperationChildren(
+            spec_node,
+            function_node,
+            property_node,
+            left_node);
+
+        LexerSymbol right_result = WalkBinaryOperationChildren(
+            spec_node,
+            function_node,
+            property_node,
+            right_node);
+
+        // Switch all binary operations.
+        switch (binary_operation_node->rule()) {
+        case NodeRule::ADD:
+            return WalkAdd(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::SUB:
+            return WalkSub(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::MUL:
+            return WalkMul(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::DIV:
+            return WalkDiv(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::MOD:
+            return WalkMod(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::LOGAND:
+            return WalkLogAnd(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::LOGOR:
+            return WalkLogOr(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        default:
+            throw IllegalStateException();
+        }
+    }
+
+    // Not a binary operation, it's an atomic expression.
+    return WalkAtomicExpressionChildren(
+        spec_node,
+        function_node,
+        property_node,
+        binary_operation_node);
+}
+
+// Parses any atomic expression such as STRING, BOOL, INT, and FLOAT.
+template <typename ReturnType>
+ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* atomic_node) {
+
     // Check mandatory nodes.
     CheckNodeRule(spec_node, NodeRule::SPEC);
-    CheckNodeRule(expression_node, NodeRule::EXPRESSION);
 
     // Check optional nodes. Property and function are optional
     // because expressions can operate in the context of either.
@@ -314,11 +421,41 @@ ReturnType AstWalker<ReturnType>::WalkExpressionChildren(
         CheckNodeRule(property_node, NodeRule::PROPERTY);
     }
 
-    // TODO: evaluate the expression.
-    // Switch the lines below to make the tests pass
-    // until EXPRESSION is implemented.
-    //return LexerSymbol::INT;
-    throw NotImplementedException();
+    switch (atomic_node->rule()) {
+    case NodeRule::BOOL:
+        return WalkBool(
+            spec_node,
+            function_node,
+            property_node,
+            atomic_node);
+        break;
+    case NodeRule::INT:
+        return WalkInt(
+            spec_node,
+            function_node,
+            property_node,
+            atomic_node);
+        break;
+    case NodeRule::FLOAT:
+        return WalkFloat(
+            spec_node,
+            function_node,
+            property_node,
+            atomic_node);
+        break;
+    case NodeRule::STRING:
+        return WalkString(
+            spec_node,
+            function_node,
+            property_node,
+            atomic_node);
+        break;
+    default:
+        // Normally we'd throw IllegalStateException but we have lots of stuff that isn't
+        // implemented yet.
+        throw new NotImplementedException();
+        //throw new IllegalStateException();
+    }
 }
 
 // Checks that the given node is for the given rule. If it is not,

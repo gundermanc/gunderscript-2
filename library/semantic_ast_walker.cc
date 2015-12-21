@@ -188,6 +188,121 @@ void SemanticAstWalker::CheckValidModuleName(const std::string& module_name) {
     }
 }
 
+// Walks the ADD node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkAdd(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    return CalculateResultantType(left_result, right_result);
+}
+
+// Walks the SUB node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkSub(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    return CalculateNumericResultantType(left_result, right_result);
+}
+
+// Walks the MUL node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkMul(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    return CalculateNumericResultantType(left_result, right_result);
+}
+
+// Walks the DIV node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkDiv(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    return CalculateNumericResultantType(left_result, right_result);
+}
+// Walks the MOD node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkMod(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    return CalculateNumericResultantType(left_result, right_result);
+}
+
+// Walks the LOGAND node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkLogAnd(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    return CalculateBoolResultantType(left_result, right_result);
+}
+// Walks the LOGOR node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkLogOr(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    return CalculateBoolResultantType(left_result, right_result);
+}
+
+// Walks the BOOL node and returns the type for it.
+LexerSymbol SemanticAstWalker::WalkBool(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* bool_node) {
+
+    return LexerSymbol::BOOL;
+}
+
+// Walks the INT node and returns the type for it.
+LexerSymbol SemanticAstWalker::WalkInt(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* int_node) {
+
+    return LexerSymbol::INT;
+}
+
+// Walks the FLOAT node and returns the type for it.
+LexerSymbol SemanticAstWalker::WalkFloat(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* float_node) {
+
+    return LexerSymbol::FLOAT;
+}
+
+// Walks the STRING node and returns the type for it.
+LexerSymbol SemanticAstWalker::WalkString(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* string_node) {
+
+    return LexerSymbol::STRING;
+}
+
 // Compares the access modifier of the member and the calling function's
 // class names to prevent access to private members.
 void SemanticAstWalker::CheckAccessModifier(
@@ -217,6 +332,49 @@ void SemanticAstWalker::CheckAccessModifier(
         throw IllegalStateException();
     }
 }
+
+// Calculates the type of a binary operator expression from the types of its
+// operands.
+LexerSymbol SemanticAstWalker::CalculateResultantType(LexerSymbol left, LexerSymbol right) {
+
+    // We're going to take a stickler model in Gunderscript:
+    // you must explicitly typecast everything. There are absolutely no
+    // auto conversions between types.
+    if (left == right) {
+        return right;
+    }
+
+    // Types don't match. Might require a typecast. (e.g.: float to int).
+    throw SemanticAstWalkerTypeMismatchException(*this);
+}
+
+// Calculates the type of a binary operator expression from the types of its
+// operands. Operands must both be numeric.
+LexerSymbol SemanticAstWalker::CalculateNumericResultantType(LexerSymbol left, LexerSymbol right) {
+
+    // Disallow non-numerical operands.
+    if (left != LexerSymbol::INT && left != LexerSymbol::FLOAT &&
+        right != LexerSymbol::INT && right != LexerSymbol::FLOAT) {
+        throw SemanticAstWalkerTypeMismatchException(*this);
+    }
+
+    // Do other checks.
+    CalculateResultantType(left, right);
+}
+
+// Calculates the type of a binary operator expression from the types of its
+// operands. Operands must both be numeric.
+LexerSymbol SemanticAstWalker::CalculateBoolResultantType(LexerSymbol left, LexerSymbol right) {
+
+    // Both operands must be BOOL.
+    if (left != LexerSymbol::BOOL || right != LexerSymbol::BOOL) {
+        throw SemanticAstWalkerTypeMismatchException(*this);
+    }
+
+    return right;
+}
+
+
 
 } // namespace library
 } // namespace gunderscript

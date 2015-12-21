@@ -46,10 +46,72 @@ protected:
         Node* name_node,
         Node* get_access_modifier_node,
         Node* set_access_modifier_node) = 0;
-    virtual LexerSymbol WalkFunctionCall(
+    virtual ReturnType WalkFunctionCall(
         Node* spec_node,
         Node* name_node,
         std::vector<ReturnType>& arguments_result) = 0;
+    virtual ReturnType WalkAdd(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkSub(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkMul(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkDiv(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkMod(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkLogAnd(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkLogOr(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkBool(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* bool_node) = 0;
+    virtual ReturnType WalkInt(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* int_node) = 0;
+    virtual ReturnType WalkFloat(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* float_node) = 0;
+    virtual ReturnType WalkString(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* string_node) = 0;
 
 private:
     Node& root_;
@@ -79,6 +141,16 @@ private:
         Node* function_node,
         Node* property_node,
         Node* expression_node);
+    ReturnType WalkBinaryOperationChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* binary_operation_node);
+    ReturnType WalkAtomicExpressionChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* atomic_node);
     void CheckNodeRule(Node* node, NodeRule rule);
 };
 
