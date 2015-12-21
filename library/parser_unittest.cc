@@ -390,6 +390,21 @@ TEST(Parser, ParseMalformedProperty) {
         // TODO: this exception may be incorrect.
         EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
     }
+
+    // Case 8: missing accessor/mutator.
+    {
+        std::string input("package \"FooPackage\";"
+            "public spec MySpec { "
+            "  float X { public get; }"
+            "}");
+
+        LexerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        // TODO: this exception may be incorrect.
+        EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+    }
 }
 
 TEST(Parser, ParsePropertyEmpty) {
@@ -404,59 +419,7 @@ TEST(Parser, ParsePropertyEmpty) {
     Lexer lexer(source);
     Parser parser(lexer);
 
-    Node* root = parser.Parse();
-    ASSERT_EQ(3, root->child_count());
-
-    Node* specs_node = root->child(2);
-    ASSERT_EQ(1, specs_node->child_count());
-
-    Node* spec_node = specs_node->child(0);
-    ASSERT_EQ(4, spec_node->child_count());
-
-    Node* properties_node = spec_node->child(3);
-    ASSERT_EQ(2, properties_node->child_count());
-
-    Node* x_node = properties_node->child(0);
-    EXPECT_EQ(NodeRule::PROPERTY, x_node->rule());
-    ASSERT_EQ(4, x_node->child_count());
-
-    Node* x_type_node = x_node->child(0);
-    EXPECT_EQ(NodeRule::TYPE, x_type_node->rule());
-    EXPECT_EQ(LexerSymbol::INT, x_type_node->symbol_value());
-
-    Node* x_name_node = x_node->child(1);
-    EXPECT_EQ(NodeRule::NAME, x_name_node->rule());
-    EXPECT_STREQ("X", x_name_node->string_value()->c_str());
-
-    Node*  x_getter_node = x_node->child(2);
-    EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, x_getter_node->rule());
-    ASSERT_EQ(0, x_getter_node->child_count());
-
-    Node* x_setter_node = x_node->child(3);
-    EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, x_setter_node->rule());
-    ASSERT_EQ(0, x_setter_node->child_count());
-
-    Node* y_node = properties_node->child(1);
-    EXPECT_EQ(NodeRule::PROPERTY, y_node->rule());
-    ASSERT_EQ(4, y_node->child_count());
-
-    Node* y_type_node = y_node->child(0);
-    EXPECT_EQ(NodeRule::TYPE, y_type_node->rule());
-    EXPECT_EQ(LexerSymbol::STRING, y_type_node->symbol_value());
-
-    Node* y_name_node = y_node->child(1);
-    EXPECT_EQ(NodeRule::NAME, y_name_node->rule());
-    EXPECT_STREQ("Y", y_name_node->string_value()->c_str());
-
-    Node* y_getter_node = y_node->child(2);
-    EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, y_getter_node->rule());
-    ASSERT_EQ(0, y_getter_node->child_count());
-
-    Node* y_setter_node = y_node->child(3);
-    EXPECT_EQ(NodeRule::PROPERTY_FUNCTION, y_setter_node->rule());
-    ASSERT_EQ(0, y_setter_node->child_count());
-
-    delete root;
+    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
 }
 
 TEST(Parser, ParsePropertyAuto) {
@@ -552,6 +515,7 @@ TEST(Parser, ParsePropertyWithFunctionBody) {
         "public spec MySpec {"
         "  int Foo {"
         "    public get { return 3; }"
+        "    public set;"
         "  }"
         "}");
 
@@ -766,7 +730,7 @@ TEST(Parser, ParseMultipleFunctions) {
         "  }  "
         "  public int Mul() {"
         "  }"
-        "  string FooStringProperty { public get; }"
+        "  string FooStringProperty { public get; public set; }"
         "}");
 
     LexerStringSource source(input);

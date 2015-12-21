@@ -258,10 +258,15 @@ void Parser::ParsePropertyBody(Node* node) {
     node->AddChild(getter_node);
     node->AddChild(setter_node);
 
-    // There can be at most 2 body functions (get/set), parse twice.
+    // There must be exactly 2 body functions (get/set), parse twice.
     // Functions return if there is no body function.
     ParsePropertyBodyFunction(getter_node, setter_node);
     ParsePropertyBodyFunction(getter_node, setter_node);
+
+    // Properties MUST define both members.
+    if (getter_node->child_count() == 0 || setter_node->child_count() == 0) {
+        throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+    }
 }
 
 // Parses a GET or SET function in a property body (see C# properties for info).
