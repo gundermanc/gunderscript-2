@@ -46,11 +46,19 @@ protected:
         Node* name_node,
         Node* get_access_modifier_node,
         Node* set_access_modifier_node);
+    LexerSymbol WalkFunctionCall(
+        Node* spec_node,
+        Node* name_node,
+        std::vector<LexerSymbol>& arguments_result);
      
 private:
     SymbolTable<Symbol> symbol_table_;
 
     void CheckValidModuleName(const std::string& module_name);
+    void CheckAccessModifier(
+        const std::string& caller_class,
+        const std::string& callee_class,
+        LexerSymbol callee_access_modifier);
 };
 
 // SemanticAstWalker Exceptions Parent Class
@@ -72,6 +80,14 @@ public:
     SemanticAstWalkerInvalidPackageNameException(const SemanticAstWalker& walker) :
         SemanticAstWalkerException(walker,
             "Invalid package name.") { }
+};
+
+// SemanticAstWalker member not accessible exception.s
+class SemanticAstWalkerNotAccessibleException : public SemanticAstWalkerException {
+public:
+    SemanticAstWalkerNotAccessibleException(const SemanticAstWalker& walker) :
+        SemanticAstWalkerException(walker,
+            "Class or class member not accessible.") { }
 };
 
 } // namespace library

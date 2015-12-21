@@ -134,6 +134,9 @@ void AstWalker<ReturnType>::WalkSpecFunctionsChildren(Node* spec_node, Node* fun
             name_node,
             block_node,
             arguments_result);
+
+        // Walk the BLOCK node and its children in the block.
+        WalkBlockChildren(spec_node, function_node, NULL, block_node);
     }
 }
 
@@ -231,6 +234,90 @@ void AstWalker<ReturnType>::WalkBlockChildren(
     Node* function_node,
     Node* property_node,
     Node* block_node) {
+
+    CheckNodeRule(block_node, NodeRule::BLOCK);
+
+    // Iterate through all statements in the block.
+    for (int i = 0; i < block_node->child_count(); i++) {
+        Node* statement_node = block_node->child(i);
+
+        switch (statement_node->rule())
+        {
+        case NodeRule::CALL:
+            WalkFunctionCallChildren(spec_node, function_node, statement_node);
+            break;
+        default:
+            // There are still some unimplemented features so for now throw this.
+            // TODO: implement other statements.
+            throw NotImplementedException();
+            //throw new IllegalStateException();
+        }
+    }
+}
+
+// Walks through a CALL Node's children.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkFunctionCallChildren(
+    Node* spec_node, 
+    Node* function_node, 
+    Node* call_node) {
+
+    CheckNodeRule(spec_node, NodeRule::SPEC);
+    CheckNodeRule(call_node, NodeRule::CALL);
+
+    Node* name_node = call_node->child(0);
+    Node* arguments_node = call_node->child(1);
+    std::vector<ReturnType> arguments_result;
+
+    CheckNodeRule(name_node, NodeRule::NAME);
+    CheckNodeRule(arguments_node, NodeRule::CALL_PARAMETERS);
+
+    // Iterate through all call param expressions and evaluate their
+    // types.
+    for (int i = 0; i < arguments_node->child_count(); i++) {
+        Node* expression_node = arguments_node->child(i);
+
+        // Walk the parameter expressions and add the results
+        // to the params vector.
+        arguments_result.push_back(
+            WalkExpressionChildren(
+                spec_node,
+                function_node,
+                NULL,
+                expression_node));
+    }
+
+    // Walk the function call and provide it with the results of our
+    // walk of the arguments.
+    WalkFunctionCall(spec_node, name_node, arguments_result);
+}
+
+// Walks all children of the EXPRESSION node.
+// TODO: complete this.
+template <typename ReturnType>
+ReturnType AstWalker<ReturnType>::WalkExpressionChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* expression_node) {
+
+    // Check mandatory nodes.
+    CheckNodeRule(spec_node, NodeRule::SPEC);
+    CheckNodeRule(expression_node, NodeRule::EXPRESSION);
+
+    // Check optional nodes. Property and function are optional
+    // because expressions can operate in the context of either.
+    if (function_node != NULL) {
+        CheckNodeRule(function_node, NodeRule::FUNCTION);
+    }
+    if (property_node != NULL) {
+        CheckNodeRule(property_node, NodeRule::PROPERTY);
+    }
+
+    // TODO: evaluate the expression.
+    // Switch the lines below to make the tests pass
+    // until EXPRESSION is implemented.
+    //return LexerSymbol::INT;
     throw NotImplementedException();
 }
 

@@ -11,7 +11,32 @@ namespace gunderscript {
 namespace library {
 
 // The pattern for checking module names.
-std::regex module_name_pattern = std::regex("^([A-Z]|[a-z])+(\\.([A-Z]|[a-z])+)?$");
+const std::regex module_name_pattern = std::regex("^([A-Z]|[a-z])+(\\.([A-Z]|[a-z])+)?$");
+
+// Mangles function symbol name to include class name and arguments so that
+// symbol table guarantees uniqueness for functions while allowing overloads
+// with different argument types.
+static const std::string MangleFunctionSymbolName(
+    Node* spec_node, 
+    Node* name_node,
+    std::vector<LexerSymbol>& arguments_result) {
+
+    Node* spec_name_node = spec_node->child(1);
+
+    // Format the symbol name {class}::{function}$arg1$arg2...
+    std::ostringstream name_buf;
+    name_buf << *spec_name_node->string_value();
+    name_buf << "::";
+    name_buf << *name_node->string_value();
+
+    // Append arguments to the symbol name.
+    for (size_t i = 0; i < arguments_result.size(); i++) {
+        name_buf << "$";
+        name_buf << LexerSymbolString(arguments_result[i]);
+    }
+
+    return name_buf.str();
+}
 
 // Walks the MODULE node in the abstract syntax tree.
 // Since there is no type information in this node, we can
@@ -58,25 +83,16 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
 
     Node* spec_name_node = spec_node->child(1);
 
-    // Format the symbol name {class}::{function}$arg1$arg2...
-    std::ostringstream name_buf;
-    name_buf << *spec_name_node->string_value();
-    name_buf << "::";
-    name_buf << *name_node->string_value();
-
-    // Append arguments to the symbol name.
-    for (size_t i = 0; i < arguments_result.size(); i++) {
-        name_buf << "$";
-        name_buf << LexerSymbolString(arguments_result[i]);
-    }
-
     FunctionSymbol function_symbol(
         access_modifier_node->symbol_value(),
+        *spec_name_node->string_value(),
         *name_node->string_value(),
         native_node->bool_value(),
         type_node->symbol_value());
 
-    this->symbol_table_.Put(name_buf.str(), function_symbol);
+    this->symbol_table_.Put(
+        MangleFunctionSymbolName(spec_node, name_node, arguments_result),
+        function_symbol);
 }
 
 // Walks a single parameter in a spec function declaration.
@@ -110,6 +126,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
     // Create the symbol table symbol for the getter.
     FunctionSymbol get_function_symbol(
         get_access_modifier_node->symbol_value(),
+        *spec_name_node->string_value(),
         *name_node->string_value(),
         false,
         type_node->symbol_value());
@@ -126,6 +143,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
     // Create the symbol table symbol for the getter.
     FunctionSymbol set_function_symbol(
         set_access_modifier_node->symbol_value(),
+        *spec_name_node->string_value(),
         *name_node->string_value(),
         false,
         type_node->symbol_value());
@@ -134,11 +152,69 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
     this->symbol_table_.Put(name_buf.str(), set_function_symbol);
 }
 
+// Walks a function call and checks to make sure that the types
+// of the function matches the context.
+LexerSymbol SemanticAstWalker::WalkFunctionCall(
+    Node* spec_node,
+    Node* name_node,
+    std::vector<LexerSymbol>& arguments_result) {
+
+    Node* spec_name_node = spec_node->child(1);
+
+    // Lookup the function. Throws if there isn't a function with the correct arguments.
+    const Symbol& symbol = this->symbol_table_.Get(
+        MangleFunctionSymbolName(spec_node, name_node, arguments_result));
+
+    // NOTE: unsafe cast here, this depends on the integrity and encapsulation
+    // of the symbol_table_ being maintained.
+    const FunctionSymbol* function_symbol = static_cast<const FunctionSymbol*>(&symbol);
+
+    // Check for access to the callee function.
+    // TODO: as of the moment this does nothing because we don't support calls between classes
+    // yet. Implement calls between classes.
+    CheckAccessModifier(
+        *spec_name_node->string_value(),
+        function_symbol->class_name(),
+        function_symbol->access_modifier());
+
+    return function_symbol->type();
+}
+
 // Checks to see if the given module name is valid. If it is not, throws
 // an exception.
 void SemanticAstWalker::CheckValidModuleName(const std::string& module_name) {
     if (!std::regex_match(module_name, module_name_pattern)) {
         throw SemanticAstWalkerInvalidPackageNameException(*this);
+    }
+}
+
+// Compares the access modifier of the member and the calling function's
+// class names to prevent access to private members.
+void SemanticAstWalker::CheckAccessModifier(
+    const std::string& caller_class,
+    const std::string& callee_class,
+    LexerSymbol callee_access_modifier) {
+
+    switch (callee_access_modifier) {
+    case LexerSymbol::PUBLIC:
+        return;
+    case LexerSymbol::CONCEALED:
+        if (caller_class != callee_class) {
+            throw SemanticAstWalkerNotAccessibleException(*this);
+        }
+    case LexerSymbol::PACKAGE:
+        // What exactly a 'package' will be is currently up in the air.
+        // TODO: complete this.
+        throw new NotImplementedException();
+    case LexerSymbol::INTERNAL:
+        // What exactly 'internal'is currently up in the air.
+        // Internal is INTENDED to mean that it is internal to the file,
+        // but there isn't support for multifile lex/parse/typecheck yet.
+        // TODO: complete this.
+        throw new NotImplementedException();
+    default:
+        // Throw If someone adds a new access modifier that we don't know of.
+        throw IllegalStateException();
     }
 }
 

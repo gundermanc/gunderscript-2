@@ -46,6 +46,10 @@ protected:
         Node* name_node,
         Node* get_access_modifier_node,
         Node* set_access_modifier_node) = 0;
+    virtual LexerSymbol WalkFunctionCall(
+        Node* spec_node,
+        Node* name_node,
+        std::vector<ReturnType>& arguments_result) = 0;
 
 private:
     Node& root_;
@@ -66,6 +70,15 @@ private:
         Node* function_node,
         Node* property_node,
         Node* block);
+    void WalkFunctionCallChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* call_node);
+    ReturnType WalkExpressionChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* expression_node);
     void CheckNodeRule(Node* node, NodeRule rule);
 };
 
