@@ -76,8 +76,7 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
         native_node->bool_value(),
         type_node->symbol_value());
 
-    std::string symbol_name = name_buf.str();
-    this->symbol_table_.Put(symbol_name, function_symbol);
+    this->symbol_table_.Put(name_buf.str(), function_symbol);
 }
 
 // Walks a single parameter in a spec function declaration.
@@ -85,9 +84,54 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
 LexerSymbol SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* spec_node,
     Node* function_node,
-    Node* param_node) {
+    Node* type_node,
+    Node* name_node) {
 
-    return param_node->symbol_value();
+    return type_node->symbol_value();
+}
+
+// Walks a single property in a spec property declaration.
+// Defines it in the symbol table.
+void SemanticAstWalker::WalkSpecPropertyDeclaration(
+    Node* spec_node,
+    Node* type_node,
+    Node* name_node,
+    Node* get_access_modifier_node,
+    Node* set_access_modifier_node) {
+
+    Node* spec_name_node = spec_node->child(1);
+
+    // Format the getter symbol name {class}::{function}$arg1$arg2...
+    std::ostringstream name_buf;
+    name_buf << *spec_name_node->string_value();
+    name_buf << "<-";
+    name_buf << *name_node->string_value();
+
+    // Create the symbol table symbol for the getter.
+    FunctionSymbol get_function_symbol(
+        get_access_modifier_node->symbol_value(),
+        *name_node->string_value(),
+        false,
+        type_node->symbol_value());
+
+    // Define the getter symbol.
+    this->symbol_table_.Put(name_buf.str(), get_function_symbol);
+
+    // Format the setter symbol name {class}::{function}$arg1$arg2...
+    name_buf.clear();
+    name_buf << *spec_name_node->string_value();
+    name_buf << "->";
+    name_buf << *name_node->string_value();
+
+    // Create the symbol table symbol for the getter.
+    FunctionSymbol set_function_symbol(
+        set_access_modifier_node->symbol_value(),
+        *name_node->string_value(),
+        false,
+        type_node->symbol_value());
+
+    // Define the setter symbol.
+    this->symbol_table_.Put(name_buf.str(), set_function_symbol);
 }
 
 // Checks to see if the given module name is valid. If it is not, throws

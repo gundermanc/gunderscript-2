@@ -173,3 +173,37 @@ TEST(SemanticAstWalker, FunctionDuplicateDefinition) {
 
     EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
 }
+
+TEST(SemanticAstWalker, AutoPropertyDuplicateDefinition) {
+    LexerStringSource source(std::string(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    int Y { concealed get; concealed set; }"
+        "    int Y { public get; public set; }"
+        "}"));
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
+}
+
+TEST(SemanticAstWalker, PropertyWithBodyDuplicateDefinition) {
+    LexerStringSource source(std::string(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    int Y { concealed get { } concealed set { } }"
+        "    int Y { public get { } public set { } }"
+        "}"));
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+    
+    EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
+}

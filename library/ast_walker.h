@@ -38,7 +38,14 @@ protected:
     virtual ReturnType WalkSpecFunctionDeclarationParameter(
         Node* spec_node,
         Node* function_node,
-        Node* param_node) = 0;
+        Node* type_node,
+        Node* name_node) = 0;
+    virtual void WalkSpecPropertyDeclaration(
+        Node* spec_node,
+        Node* type_node,
+        Node* name_node,
+        Node* get_access_modifier_node,
+        Node* set_access_modifier_node) = 0;
 
 private:
     Node& root_;
@@ -54,7 +61,11 @@ private:
         Node* params_node,
         std::vector<ReturnType>& argument_result);
     void WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node);
-    void WalkBlockChildren(Node* function_node, Node* block);
+    void WalkBlockChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* block);
     void CheckNodeRule(Node* node, NodeRule rule);
 };
 

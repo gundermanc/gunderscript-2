@@ -38,7 +38,14 @@ protected:
     LexerSymbol WalkSpecFunctionDeclarationParameter(
         Node* spec_node,
         Node* function_node,
-        Node* param_node);
+        Node* type_node,
+        Node* name_node);
+    void WalkSpecPropertyDeclaration(
+        Node* spec_node,
+        Node* type_node,
+        Node* name_node,
+        Node* get_access_modifier_node,
+        Node* set_access_modifier_node);
      
 private:
     SymbolTable<Symbol> symbol_table_;
