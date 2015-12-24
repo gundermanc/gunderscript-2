@@ -303,6 +303,16 @@ LexerSymbol SemanticAstWalker::WalkString(
     return LexerSymbol::STRING;
 }
 
+// Walks the CHAR node and returns the type for it.
+LexerSymbol SemanticAstWalker::WalkChar(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* char_node) {
+
+    return LexerSymbol::CHAR;
+}
+
 // Compares the access modifier of the member and the calling function's
 // class names to prevent access to private members.
 void SemanticAstWalker::CheckAccessModifier(

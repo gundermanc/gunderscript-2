@@ -111,7 +111,12 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
-        Node* string_node) = 0;
+        Node* string_node) = 0;    
+    virtual ReturnType WalkChar(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* char_node) = 0;
 
 private:
     Node& root_;

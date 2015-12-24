@@ -428,28 +428,30 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
             function_node,
             property_node,
             atomic_node);
-        break;
     case NodeRule::INT:
         return WalkInt(
             spec_node,
             function_node,
             property_node,
             atomic_node);
-        break;
     case NodeRule::FLOAT:
         return WalkFloat(
             spec_node,
             function_node,
             property_node,
             atomic_node);
-        break;
     case NodeRule::STRING:
         return WalkString(
             spec_node,
             function_node,
             property_node,
             atomic_node);
-        break;
+    case NodeRule::CHAR:
+        return WalkChar(
+            spec_node,
+            function_node,
+            property_node,
+            atomic_node);
     default:
         // Normally we'd throw IllegalStateException but we have lots of stuff that isn't
         // implemented yet.

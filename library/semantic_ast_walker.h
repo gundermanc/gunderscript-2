@@ -112,6 +112,11 @@ protected:
         Node* function_node,
         Node* property_node,
         Node* string_node);
+    LexerSymbol WalkChar(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* char_node);
      
 private:
     SymbolTable<Symbol> symbol_table_;
