@@ -92,6 +92,42 @@ protected:
         Node* right_node,
         LexerSymbol left_result,
         LexerSymbol right_result);
+    LexerSymbol WalkGreater(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkNotEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkLess(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkGreaterEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
+    LexerSymbol WalkLessEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        LexerSymbol left_result,
+        LexerSymbol right_result);
     LexerSymbol WalkBool(
         Node* spec_node,
         Node* function_node,

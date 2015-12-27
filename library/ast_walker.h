@@ -92,6 +92,42 @@ protected:
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
+    virtual ReturnType WalkGreater(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkNotEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkLess(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkGreaterEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
+    virtual ReturnType WalkLessEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        ReturnType left_result,
+        ReturnType right_result) = 0;
     virtual ReturnType WalkBool(
         Node* spec_node,
         Node* function_node,

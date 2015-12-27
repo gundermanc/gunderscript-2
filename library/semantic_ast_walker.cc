@@ -252,6 +252,7 @@ LexerSymbol SemanticAstWalker::WalkLogAnd(
 
     return CalculateBoolResultantType(left_result, right_result);
 }
+
 // Walks the LOGOR node and calculates it's return type.
 LexerSymbol SemanticAstWalker::WalkLogOr(
     Node* spec_node,
@@ -261,6 +262,102 @@ LexerSymbol SemanticAstWalker::WalkLogOr(
     LexerSymbol right_result) {
 
     return CalculateBoolResultantType(left_result, right_result);
+}
+
+// Walks the GREATER node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkGreater(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    // Check that comparision types are the same.
+    // Function will throw if different.
+    CalculateNumericResultantType(left_result, right_result);
+
+    // Resultant type is a BOOL telling whether comparision is true or false.
+    return LexerSymbol::BOOL;
+}
+
+// Walks the EQUALS node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkEquals(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    // Check that comparision types are the same.
+    // Function will throw if different.
+    CalculateResultantType(left_result, right_result);
+
+    // Resultant type is a BOOL telling whether comparision is true or false.
+    return LexerSymbol::BOOL;
+}
+
+// Walks the NOT_EQUALS node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkNotEquals(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    // Check that comparision types are the same.
+    // Function will throw if different.
+    CalculateResultantType(left_result, right_result);
+
+    // Resultant type is a BOOL telling whether comparision is true or false.
+    return LexerSymbol::BOOL;
+}
+
+// Walks the LESS node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkLess(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    // Check that comparision types are the same.
+    // Function will throw if different.
+    CalculateNumericResultantType(left_result, right_result);
+
+    // Resultant type is a BOOL telling whether comparision is true or false.
+    return LexerSymbol::BOOL;
+}
+
+// Walks the GREATER_EQUALS node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkGreaterEquals(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    // Check that comparision types are the same.
+    // Function will throw if different.
+    CalculateNumericResultantType(left_result, right_result);
+
+    // Resultant type is a BOOL telling whether comparision is true or false.
+    return LexerSymbol::BOOL;
+}
+
+// Walks the LESS_EQUALS node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkLessEquals(
+    Node* spec_node,
+    Node* left_node,
+    Node* right_node,
+    LexerSymbol left_result,
+    LexerSymbol right_result) {
+
+    // Check that comparision types are the same.
+    // Function will throw if different.
+    CalculateNumericResultantType(left_result, right_result);
+
+    // Resultant type is a BOOL telling whether comparision is true or false.
+    return LexerSymbol::BOOL;
 }
 
 // Walks the BOOL node and returns the type for it.

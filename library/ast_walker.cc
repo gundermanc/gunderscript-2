@@ -388,6 +388,48 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
                 right_node,
                 left_result,
                 right_result);
+        case NodeRule::GREATER:
+            return WalkGreater(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::EQUALS:
+            return WalkEquals(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::NOT_EQUALS:
+            return WalkNotEquals(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::LESS:
+            return WalkLess(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::GREATER_EQUALS:
+            return WalkGreaterEquals(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
+        case NodeRule::LESS_EQUALS:
+            return WalkLessEquals(
+                spec_node,
+                left_node,
+                right_node,
+                left_result,
+                right_result);
         default:
             throw IllegalStateException();
         }
