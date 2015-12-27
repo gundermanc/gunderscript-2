@@ -117,6 +117,11 @@ protected:
         Node* function_node,
         Node* property_node,
         Node* char_node) = 0;
+    virtual ReturnType WalkAnyType(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* any_type_node) = 0;
 
 private:
     Node& root_;

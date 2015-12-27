@@ -85,7 +85,7 @@ static const std::string kLexerSymbolString[] = {
     "NATIVE",
 
     // Types:
-    "CHAR", "INT", "FLOAT", "BOOL", "STRING", "NULL"
+    "CHAR", "INT", "FLOAT", "BOOL", "STRING", "NULL", "ANY_TYPE"
 };
 
 // Gets a string representation of each token.

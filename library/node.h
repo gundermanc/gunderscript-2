@@ -60,7 +60,11 @@ enum class NodeRule {
     INT,
     FLOAT,
     CHAR,
-    STRING
+    STRING,
+
+    // Special NodeRule that matches with any type in the SemanticAstWalker.
+    // Acts like a NULL/int(0) and may have to be special cased.
+    ANY_TYPE
 };
 
 // Maps a NodeRule enum value to its string representation.

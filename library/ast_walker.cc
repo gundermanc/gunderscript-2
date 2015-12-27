@@ -452,6 +452,12 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
             function_node,
             property_node,
             atomic_node);
+    case NodeRule::ANY_TYPE:
+        return WalkAnyType(
+            spec_node,
+            function_node,
+            property_node,
+            atomic_node);
     default:
         // Normally we'd throw IllegalStateException but we have lots of stuff that isn't
         // implemented yet.

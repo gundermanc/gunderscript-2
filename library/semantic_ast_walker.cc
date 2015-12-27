@@ -313,6 +313,16 @@ LexerSymbol SemanticAstWalker::WalkChar(
     return LexerSymbol::CHAR;
 }
 
+// Walks the ANY_TYPE node and returns the type for it.
+LexerSymbol SemanticAstWalker::WalkAnyType(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* any_type_node) {
+
+    return LexerSymbol::ANY_TYPE;
+}
+
 // Compares the access modifier of the member and the calling function's
 // class names to prevent access to private members.
 void SemanticAstWalker::CheckAccessModifier(
@@ -352,6 +362,14 @@ LexerSymbol SemanticAstWalker::CalculateResultantType(LexerSymbol left, LexerSym
     // auto conversions between types.
     if (left == right) {
         return right;
+    }
+
+    // Accept ANY_TYPE nodes as matches for any given type.
+    if (left == LexerSymbol::ANY_TYPE) {
+        return right;
+    }
+    if (right == LexerSymbol::ANY_TYPE) {
+        return left;
     }
 
     // Types don't match. Might require a typecast. (e.g.: float to int).

@@ -1068,8 +1068,11 @@ TEST(Parser, ParseArithmeticExpression) {
     EXPECT_EQ(NodeRule::SUB, foo_negate_node->rule());
     EXPECT_EQ(2, foo_negate_node->child_count());
 
+    // This node is an ANY_TYPE node indicating to the type checker that it
+    // matches any type and implicitly has the default value for whichever
+    // type it operates with.
     Node* foo_negate_left_operand_node = foo_negate_node->child(0);
-    EXPECT_EQ(NodeRule::CHAR, foo_negate_left_operand_node->rule());
+    EXPECT_EQ(NodeRule::ANY_TYPE, foo_negate_left_operand_node->rule());
     EXPECT_EQ(0, foo_negate_left_operand_node->int_value());
 
     Node* foo_negate_right_operand_node = foo_negate_node->child(1);
@@ -1083,6 +1086,224 @@ TEST(Parser, ParseArithmeticExpression) {
     Node* foo_denominator_node = foo_expression_root_node->child(1);
     EXPECT_EQ(NodeRule::CHAR, foo_denominator_node->rule());
     EXPECT_EQ('c', foo_denominator_node->int_value());
+
+    delete root;
+}
+
+TEST(Parser, ParseDoubleNegative) {
+
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public int Foo() {"
+        "    return -(-3);"
+        "  }"
+        "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* specs_node = root->child(2);
+    Node* spec_node = specs_node->child(0);
+    Node* functions_node = spec_node->child(2);
+    Node* foo_node = functions_node->child(0);
+
+    Node* foo_block_node = foo_node->child(5);
+    EXPECT_EQ(1, foo_block_node->child_count());
+
+    Node* foo_return_node = foo_block_node->child(0);
+    EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+    ASSERT_EQ(1, foo_return_node->child_count());
+
+    Node* foo_return_expression_node = foo_return_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+    EXPECT_EQ(1, foo_return_expression_node->child_count());
+
+    Node* foo_expression_root_node = foo_return_expression_node->child(0);
+    EXPECT_EQ(NodeRule::SUB, foo_expression_root_node->rule());
+    EXPECT_EQ(2, foo_expression_root_node->child_count());
+
+    Node* left_root_child_node = foo_expression_root_node->child(0);
+    EXPECT_EQ(NodeRule::ANY_TYPE, left_root_child_node->rule());
+    EXPECT_EQ(0, left_root_child_node->child_count());
+    EXPECT_EQ(0, left_root_child_node->int_value());
+
+    Node* foo_sub_2_node = foo_expression_root_node->child(1);
+    EXPECT_EQ(NodeRule::SUB, foo_expression_root_node->rule());
+    EXPECT_EQ(2, foo_expression_root_node->child_count());
+
+    Node* left_sub_child_node = foo_sub_2_node->child(0);
+    EXPECT_EQ(NodeRule::ANY_TYPE, left_sub_child_node->rule());
+    EXPECT_EQ(0, left_sub_child_node->child_count());
+    EXPECT_EQ(0, left_sub_child_node->int_value());
+
+    Node* right_sub_child_node = foo_sub_2_node->child(1);
+    EXPECT_EQ(NodeRule::INT, right_sub_child_node->rule());
+    EXPECT_EQ(0, right_sub_child_node->child_count());
+    EXPECT_EQ(3, right_sub_child_node->int_value());
+
+    delete root;
+}
+
+TEST(Parser, ParseDoubleNot) {
+
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return !(!true);"
+        "  }"
+        "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* specs_node = root->child(2);
+    Node* spec_node = specs_node->child(0);
+    Node* functions_node = spec_node->child(2);
+    Node* foo_node = functions_node->child(0);
+
+    Node* foo_block_node = foo_node->child(5);
+    EXPECT_EQ(1, foo_block_node->child_count());
+
+    Node* foo_return_node = foo_block_node->child(0);
+    EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+    ASSERT_EQ(1, foo_return_node->child_count());
+
+    Node* foo_return_expression_node = foo_return_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+    EXPECT_EQ(1, foo_return_expression_node->child_count());
+
+    Node* foo_expression_root_node = foo_return_expression_node->child(0);
+    EXPECT_EQ(NodeRule::LOGNOT, foo_expression_root_node->rule());
+    EXPECT_EQ(1, foo_expression_root_node->child_count());
+
+    Node* foo_not_2_node = foo_expression_root_node->child(0);
+    EXPECT_EQ(NodeRule::LOGNOT, foo_not_2_node->rule());
+    EXPECT_EQ(1, foo_not_2_node->child_count());
+
+    Node* bool_node = foo_not_2_node->child(0);
+    EXPECT_EQ(NodeRule::BOOL, bool_node->rule());
+    EXPECT_EQ(0, bool_node->child_count());
+    EXPECT_EQ(true, bool_node->bool_value());
+
+    delete root;
+}
+
+TEST(Parser, ParseDoubleNegativeNoParens) {
+
+    // This case is not TECHNICALLY supported by our intended language spec 
+    // and should not be used but it seems to work with the current parser 
+    // implementation and therefore we MUST have tests to make sure that we
+    // don't have a weird, broken, or inconsistent AST or a parser crash if 
+    // this pops up in the code.
+    // Eventually I'd like to make '--' it's own operator but for now the
+    // important thing is stability.
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public int Foo() {"
+        "    return --3;"
+        "  }"
+        "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* specs_node = root->child(2);
+    Node* spec_node = specs_node->child(0);
+    Node* functions_node = spec_node->child(2);
+    Node* foo_node = functions_node->child(0);
+
+    Node* foo_block_node = foo_node->child(5);
+    EXPECT_EQ(1, foo_block_node->child_count());
+
+    Node* foo_return_node = foo_block_node->child(0);
+    EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+    ASSERT_EQ(1, foo_return_node->child_count());
+
+    Node* foo_return_expression_node = foo_return_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+    EXPECT_EQ(1, foo_return_expression_node->child_count());
+
+    Node* foo_expression_root_node = foo_return_expression_node->child(0);
+    EXPECT_EQ(NodeRule::SUB, foo_expression_root_node->rule());
+    EXPECT_EQ(2, foo_expression_root_node->child_count());
+
+    Node* left_root_child_node = foo_expression_root_node->child(0);
+    EXPECT_EQ(NodeRule::ANY_TYPE, left_root_child_node->rule());
+    EXPECT_EQ(0, left_root_child_node->child_count());
+    EXPECT_EQ(0, left_root_child_node->int_value());
+
+    Node* foo_sub_2_node = foo_expression_root_node->child(1);
+    EXPECT_EQ(NodeRule::SUB, foo_expression_root_node->rule());
+    EXPECT_EQ(2, foo_expression_root_node->child_count());
+
+    Node* left_sub_child_node = foo_sub_2_node->child(0);
+    EXPECT_EQ(NodeRule::ANY_TYPE, left_sub_child_node->rule());
+    EXPECT_EQ(0, left_sub_child_node->child_count());
+    EXPECT_EQ(0, left_sub_child_node->int_value());
+
+    Node* right_sub_child_node = foo_sub_2_node->child(1);
+    EXPECT_EQ(NodeRule::INT, right_sub_child_node->rule());
+    EXPECT_EQ(0, right_sub_child_node->child_count());
+    EXPECT_EQ(3, right_sub_child_node->int_value());
+
+    delete root;
+}
+
+TEST(Parser, ParseDoubleNotNoParens) {
+
+    // This case is not TECHNICALLY supported by our intended language spec 
+    // and should not be used but it seems to work with the current parser 
+    // implementation and therefore we MUST have tests to make sure that we
+    // don't have a weird, broken, or inconsistent AST or a parser crash if 
+    // this pops up in the code.
+    // Eventually I'd like to make '!!' it's own operator but for now the
+    // important thing is stability.
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return !!true;"
+        "  }"
+        "}");
+
+    LexerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* specs_node = root->child(2);
+    Node* spec_node = specs_node->child(0);
+    Node* functions_node = spec_node->child(2);
+    Node* foo_node = functions_node->child(0);
+
+    Node* foo_block_node = foo_node->child(5);
+    EXPECT_EQ(1, foo_block_node->child_count());
+
+    Node* foo_return_node = foo_block_node->child(0);
+    EXPECT_EQ(NodeRule::RETURN, foo_return_node->rule());
+    ASSERT_EQ(1, foo_return_node->child_count());
+
+    Node* foo_return_expression_node = foo_return_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, foo_return_expression_node->rule());
+    EXPECT_EQ(1, foo_return_expression_node->child_count());
+
+    Node* foo_expression_root_node = foo_return_expression_node->child(0);
+    EXPECT_EQ(NodeRule::LOGNOT, foo_expression_root_node->rule());
+    EXPECT_EQ(1, foo_expression_root_node->child_count());
+
+    Node* foo_not_2_node = foo_expression_root_node->child(0);
+    EXPECT_EQ(NodeRule::LOGNOT, foo_not_2_node->rule());
+    EXPECT_EQ(1, foo_not_2_node->child_count());
+
+    Node* bool_node = foo_not_2_node->child(0);
+    EXPECT_EQ(NodeRule::BOOL, bool_node->rule());
+    EXPECT_EQ(0, bool_node->child_count());
+    EXPECT_EQ(true, bool_node->bool_value());
 
     delete root;
 }

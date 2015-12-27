@@ -921,7 +921,7 @@ Node* Parser::ParseInvertExpression() {
     case LexerSymbol::SUB:
         // Add NEGATE node if there is a '-'.
         invert_node = new Node(NodeRule::SUB);
-        invert_node->AddChild(new Node(NodeRule::CHAR, 0l));
+        invert_node->AddChild(new Node(NodeRule::ANY_TYPE, 0l));
         break;
 
     case LexerSymbol::LOGNOT:
@@ -932,9 +932,12 @@ Node* Parser::ParseInvertExpression() {
         return ParseAtomicExpression();
     }
 
+    // If we got this far without returning it means that we found either a '-' number
+    // or '!' boolean, so Advance to the next symbol and recurse into this function again
+    // instead of ParseAtomicExpression() in case there is another '-' or '!'.
     try {
         AdvanceNext();
-        invert_node->AddChild(ParseAtomicExpression());
+        invert_node->AddChild(ParseInvertExpression());
     }
     catch (const ParserException& ex) {
         delete invert_node;
