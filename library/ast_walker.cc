@@ -258,6 +258,14 @@ void AstWalker<ReturnType>::WalkBlockChildren(
                 statement_node,
                 arguments_result);
             break;
+        case NodeRule::BLOCK:
+            WalkBlockChildren(
+                spec_node,
+                function_node,
+                property_node,
+                statement_node,
+                arguments_result);
+            break;
         default:
             // There are still some unimplemented features so for now throw this.
             // TODO: implement other statements.
