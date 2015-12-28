@@ -181,6 +181,9 @@ protected:
     // of ASTWalker that MAY be optionally overridden by subclasses for increased
     // customization.
 
+    virtual void WalkSpecFunctionChildren(
+        Node* spec_node,
+        Node* function_node);
     virtual void WalkBlockChildren(
         Node* spec_node,
         Node* function_node,

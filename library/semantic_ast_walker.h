@@ -174,6 +174,9 @@ protected:
         Node* property_node,
         Node* any_type_node);
 
+    void WalkSpecFunctionChildren(
+        Node* spec_node,
+        Node* function_node);
     void WalkBlockChildren(
         Node* spec_node,
         Node* function_node,

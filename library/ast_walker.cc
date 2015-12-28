@@ -101,43 +101,52 @@ void AstWalker<ReturnType>::WalkSpecFunctionsChildren(Node* spec_node, Node* fun
     for (int i = 0; i < functions_node->child_count(); i++) {
         Node* function_node = functions_node->child(i);
 
-        // Get function attribute objects.
-        Node* access_modifier_node = function_node->child(0);
-        Node* native_node = function_node->child(1);
-        Node* type_node = function_node->child(2);
-        Node* name_node = function_node->child(3);
-        Node* function_params_node = function_node->child(4);
-        Node* block_node = function_node->child(5);
-
-        // Naively check the node rules for basic troubleshooting.
-        CheckNodeRule(access_modifier_node, NodeRule::ACCESS_MODIFIER);
-        CheckNodeRule(native_node, NodeRule::NATIVE);
-        CheckNodeRule(type_node, NodeRule::TYPE);
-        CheckNodeRule(name_node, NodeRule::NAME);
-        CheckNodeRule(function_params_node, NodeRule::FUNCTION_PARAMETERS);
-        CheckNodeRule(block_node, NodeRule::BLOCK);
-
-        // Dispatch the arguments walker to subclass.
-        std::vector<ReturnType> arguments_result;
-        WalkSpecFunctionDeclarationParametersChildren(
-            spec_node,
-            function_node,
-            function_params_node,
-            arguments_result);
-
-        // Dispatch to subclass.
-        WalkSpecFunctionDeclaration(
-            spec_node,
-            access_modifier_node,
-            native_node,
-            type_node,
-            name_node,
-            block_node,
-            arguments_result);
-
-        // Walk the BLOCK node and its children in the block.
-        WalkBlockChildren(spec_node, function_node, NULL, block_node, &arguments_result);
+        WalkSpecFunctionChildren(spec_node, function_node);
     }
+}
+
+// Walks the children of a FUNCTION node.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkSpecFunctionChildren(Node* spec_node, Node* function_node) {
+    CheckNodeRule(spec_node, NodeRule::SPEC);
+    CheckNodeRule(function_node, NodeRule::FUNCTION);
+
+    // Get function attribute objects.
+    Node* access_modifier_node = function_node->child(0);
+    Node* native_node = function_node->child(1);
+    Node* type_node = function_node->child(2);
+    Node* name_node = function_node->child(3);
+    Node* function_params_node = function_node->child(4);
+    Node* block_node = function_node->child(5);
+
+    // Naively check the node rules for basic troubleshooting.
+    CheckNodeRule(access_modifier_node, NodeRule::ACCESS_MODIFIER);
+    CheckNodeRule(native_node, NodeRule::NATIVE);
+    CheckNodeRule(type_node, NodeRule::TYPE);
+    CheckNodeRule(name_node, NodeRule::NAME);
+    CheckNodeRule(function_params_node, NodeRule::FUNCTION_PARAMETERS);
+    CheckNodeRule(block_node, NodeRule::BLOCK);
+
+    // Dispatch the arguments walker to subclass.
+    std::vector<ReturnType> arguments_result;
+    WalkSpecFunctionDeclarationParametersChildren(
+        spec_node,
+        function_node,
+        function_params_node,
+        arguments_result);
+
+    // Dispatch to subclass.
+    WalkSpecFunctionDeclaration(
+        spec_node,
+        access_modifier_node,
+        native_node,
+        type_node,
+        name_node,
+        block_node,
+        arguments_result);
+
+    // Walk the BLOCK node and its children in the block.
+    WalkBlockChildren(spec_node, function_node, NULL, block_node, &arguments_result);
 }
 
 // Walks the children of the the FUNCTION_PARAMS node.

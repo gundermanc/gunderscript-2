@@ -119,6 +119,23 @@ LexerSymbol SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* type_node,
     Node* name_node) {
 
+    Node* spec_name_node = spec_node->child(1);
+
+    // Create a new symbol for the variable.
+    // Extraneous values are arbitrary.
+    Symbol variable_symbol(
+        LexerSymbol::CONCEALED,
+        false,
+        type_node->symbol_value(),
+        *spec_name_node->string_value(),
+        *name_node->string_value());
+
+    // Insert the symbol into the table.
+    this->symbol_table_.Put(
+        MangleLocalVariableSymbolName(name_node),
+        variable_symbol);
+
+    // Return the type.
     return type_node->symbol_value();
 }
 
@@ -539,6 +556,24 @@ void SemanticAstWalker::CheckAccessModifier(
         // Throw If someone adds a new access modifier that we don't know of.
         throw IllegalStateException();
     }
+}
+
+// Optional implemented function that overrides base class implementation.
+// In SemanticAstWalker, this function pushes a new table to the SymbolTable
+// to introduce new context for each FUNCTION entered, limiting the
+// scope of function arguments.
+void SemanticAstWalker::WalkSpecFunctionChildren(
+    Node* spec_node,
+    Node* function_node) {
+
+    // Push new scope.
+    this->symbol_table_.Push();
+
+    // Walk the Node via parent class.
+    AstWalker::WalkSpecFunctionChildren(spec_node, function_node);
+
+    // Pop the scope.
+    this->symbol_table_.Pop();
 }
 
 // Optional implemented function that overrides base class implementation.
