@@ -239,10 +239,14 @@ void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* pr
             set_access_modifier_node);
 
         // Walk property function blocks.
-        WalkBlockChildren(spec_node, NULL, property_node,
-            PropertyFunction::GET, get_block_node, NULL);
-        WalkBlockChildren(spec_node, NULL, property_node,
-            PropertyFunction::SET, set_block_node, NULL);
+        if (get_block_node != NULL) {
+            WalkBlockChildren(spec_node, NULL, property_node,
+                PropertyFunction::GET, get_block_node, NULL);
+        }
+        if (set_block_node != NULL) {
+            WalkBlockChildren(spec_node, NULL, property_node,
+                PropertyFunction::SET, set_block_node, NULL);
+        }
     }
 }
 

@@ -100,7 +100,7 @@ void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* na
         std::string(),
         *name_node->string_value());
 
-    this->symbol_table_.Put(*name_node->string_value(), spec_symbol);
+    this->symbol_table_.PutBottom(*name_node->string_value(), spec_symbol);
 }
 
 // Walks a single function declaration inside of a SPEC.
@@ -123,7 +123,7 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
         *spec_name_node->string_value(),
         *name_node->string_value());
 
-    this->symbol_table_.Put(
+    this->symbol_table_.PutBottom(
         MangleFunctionSymbolName(spec_node, name_node, arguments_result),
         function_symbol);
 }
@@ -180,7 +180,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         *name_node->string_value());
 
     // Define the getter symbol.
-    this->symbol_table_.Put(get_function_symbol_name, get_function_symbol);
+    this->symbol_table_.PutBottom(get_function_symbol_name, get_function_symbol);
 
     // Determine the setter function symbol name.
     std::string set_function_symbol_name
@@ -195,7 +195,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         *name_node->string_value());
 
     // Define the setter symbol.
-    this->symbol_table_.Put(set_function_symbol_name, set_function_symbol);
+    this->symbol_table_.PutBottom(set_function_symbol_name, set_function_symbol);
 }
 
 // Walks a function call and checks to make sure that the types

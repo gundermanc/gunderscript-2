@@ -57,6 +57,24 @@ void SymbolTable<ValueType>::Put(const std::string& key, ValueType value) {
     }
 }
 
+// Puts the given key in the bottommost level of the SymbolTable
+// with the given value.
+// key: the symbol to associate with value.
+// value: the value to associate with symbol.
+// Throws: subclass of SymbolTableException if symbol was already
+// defined.
+template <typename ValueType>
+void SymbolTable<ValueType>::PutBottom(const std::string& key, ValueType value) {
+
+    std::pair<typename std::unordered_map<std::string, ValueType>::iterator, bool> result
+        = this->map_vector_.front().insert(std::make_pair(key, value));
+
+    // Result of operation is second tuple entry.
+    if (!result.second) {
+        throw SymbolTableDuplicateKeyException();
+    }
+}
+
 // Gets the most recently declared value associated with the given
 // key by selecting the definition of value from the top most table.
 // key: the symbol to look up.

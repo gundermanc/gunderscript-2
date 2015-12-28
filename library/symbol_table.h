@@ -21,6 +21,7 @@ public:
     void Push();
     void Pop();
     void Put(const std::string& key, ValueType value);
+    void PutBottom(const std::string& key, ValueType value);
     const ValueType& Get(const std::string& key) const;
     const ValueType& GetTopOnly(const std::string& key) const;
     int depth() const { return this->map_vector_.size(); };

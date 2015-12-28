@@ -111,3 +111,43 @@ TEST(SymbolTable, MultiLevelPutGet) {
     ASSERT_THROW(table.Get("Item3"), SymbolTableUndefinedSymbolException);
     ASSERT_THROW(table.GetTopOnly("Item3"), SymbolTableUndefinedSymbolException);
 }
+
+// Checks to make sure we can put an item in the bottom most level
+// of symbol table with PutBottom.
+TEST(SymbolTable, PutBottom) {
+    SymbolTable<std::string> table;
+
+    // Item 1.
+    table.Put("Item1", "Value1");
+
+    // Push second table and item 2.
+    table.Push();
+    table.Put("Item2", "Value2");
+
+    // Push third table and item 3.
+    table.Push();
+    table.Put("Item3", "Value3");
+    table.PutBottom("Item4", "Value4");
+
+    // Check all items are in.
+    ASSERT_STREQ("Value1", table.Get("Item1").c_str());
+    ASSERT_STREQ("Value2", table.Get("Item2").c_str());
+    ASSERT_STREQ("Value3", table.Get("Item3").c_str());
+    ASSERT_STREQ("Value4", table.Get("Item4").c_str());
+
+    // Pop table 3 and validate.
+    table.Pop();
+    ASSERT_STREQ("Value1", table.Get("Item1").c_str());
+    ASSERT_STREQ("Value2", table.Get("Item2").c_str());
+    ASSERT_THROW(table.Get("Item3").c_str(), SymbolTableUndefinedSymbolException);
+    ASSERT_STREQ("Value4", table.Get("Item4").c_str());
+
+    // Pop table 2 and validate.
+    table.Pop();
+    ASSERT_STREQ("Value1", table.Get("Item1").c_str());
+    ASSERT_THROW(table.Get("Item2").c_str(), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.Get("Item3").c_str(), SymbolTableUndefinedSymbolException);
+    ASSERT_STREQ("Value4", table.Get("Item4").c_str());
+
+    ASSERT_THROW(table.Pop(), SymbolTableBottomOfStackException);
+}
