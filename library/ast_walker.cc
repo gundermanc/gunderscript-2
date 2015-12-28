@@ -136,7 +136,7 @@ void AstWalker<ReturnType>::WalkSpecFunctionsChildren(Node* spec_node, Node* fun
             arguments_result);
 
         // Walk the BLOCK node and its children in the block.
-        WalkBlockChildren(spec_node, function_node, NULL, block_node);
+        WalkBlockChildren(spec_node, function_node, NULL, block_node, &arguments_result);
     }
 }
 
@@ -207,12 +207,12 @@ void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* pr
         if (get_property_function_node->child_count() >= 2) {
             Node* get_block_node = get_property_function_node->child(1);
             CheckNodeRule(get_block_node, NodeRule::BLOCK);
-            WalkBlockChildren(spec_node, NULL, property_node, get_block_node);
+            WalkBlockChildren(spec_node, NULL, property_node, get_block_node, NULL);
         }
         if (get_property_function_node->child_count() >= 2) {
             Node* set_block_node = set_property_function_node->child(1);
             CheckNodeRule(set_block_node, NodeRule::BLOCK);
-            WalkBlockChildren(spec_node, NULL, property_node, set_block_node);
+            WalkBlockChildren(spec_node, NULL, property_node, set_block_node, NULL);
         }
 
         // Dispatch to subclass function.
@@ -228,12 +228,13 @@ void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* pr
 // Walks the Children of the BLOCK AST nodes.
 // property_function_node can be either a property or a function node.
 // TODO: Complete this.
-template <typename ReturnType>
+template<typename ReturnType>
 void AstWalker<ReturnType>::WalkBlockChildren(
-    Node* spec_node,
+    Node* spec_node, 
     Node* function_node,
     Node* property_node,
-    Node* block_node) {
+    Node* block_node,
+    std::vector<ReturnType>* arguments_result) {
 
     CheckNodeRule(block_node, NodeRule::BLOCK);
 
@@ -248,6 +249,14 @@ void AstWalker<ReturnType>::WalkBlockChildren(
             break;
         case NodeRule::ASSIGN:
             WalkAssignChildren(spec_node, function_node, property_node, statement_node);
+            break;
+        case NodeRule::RETURN:
+            WalkReturnChildren(
+                spec_node,
+                function_node, 
+                property_node,
+                statement_node,
+                arguments_result);
             break;
         default:
             // There are still some unimplemented features so for now throw this.
@@ -333,6 +342,46 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
         spec_node,
         name_node,
         binary_operation_result);
+}
+
+// Walks through a RETURN statement Node's children.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkReturnChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* return_node,
+    std::vector<ReturnType>* arguments_result) {
+
+    // Check mandatory nodes.
+    CheckNodeRule(spec_node, NodeRule::SPEC);
+    CheckNodeRule(return_node, NodeRule::RETURN);
+
+    // Check optional nodes.
+    if (function_node != NULL) {
+        CheckNodeRule(function_node, NodeRule::FUNCTION);
+    }
+    if (property_node != NULL) {
+        CheckNodeRule(property_node, NodeRule::PROPERTY);
+    }
+
+    Node* expression_node = return_node->child(0);
+    CheckNodeRule(expression_node, NodeRule::EXPRESSION);
+
+    // Walk the return expression.
+    ReturnType expression_result = WalkExpressionChildren(
+        spec_node,
+        function_node,
+        property_node,
+        expression_node);
+
+    // Dispatch the results of walking the expression to the child class.
+    WalkReturn(
+        spec_node,
+        function_node,
+        property_node,
+        expression_result,
+        arguments_result);
 }
 
 // Walks all children of the EXPRESSION node.

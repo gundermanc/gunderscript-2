@@ -232,6 +232,31 @@ LexerSymbol SemanticAstWalker::WalkAssign(
     }
 }
 
+// Walks and validates a return value type for a function or property.
+// TODO: make this work for properties.
+LexerSymbol SemanticAstWalker::WalkReturn(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    LexerSymbol expression_result,
+    std::vector<LexerSymbol>* arguments_result) {
+
+    // Determine the symbol name of the function.
+    Node* function_name_node = function_node->child(3);
+    std::string function_symbol_name = MangleFunctionSymbolName(
+        spec_node, function_name_node, *arguments_result);
+
+    // Lookup the function symbol. Shouldn't be able to throw since the
+    // caller of this method is the function containing the statement.
+    const Symbol& function_symbol = this->symbol_table_.Get(function_symbol_name);
+
+    // Check to make sure that the type of the function symbol matches the type
+    // of the return statement expression.
+    if (function_symbol.type() != expression_result) {
+        throw SemanticAstWalkerTypeMismatchException(*this);
+    }
+}
+
 // Checks to see if the given module name is valid. If it is not, throws
 // an exception.
 void SemanticAstWalker::CheckValidModuleName(const std::string& module_name) {
@@ -505,7 +530,7 @@ void SemanticAstWalker::CheckAccessModifier(
         // TODO: complete this.
         throw new NotImplementedException();
     case LexerSymbol::INTERNAL:
-        // What exactly 'internal'is currently up in the air.
+        // What exactly 'internal' means is currently up in the air.
         // Internal is INTENDED to mean that it is internal to the file,
         // but there isn't support for multifile lex/parse/typecheck yet.
         // TODO: complete this.
@@ -518,13 +543,14 @@ void SemanticAstWalker::CheckAccessModifier(
 
 // Optional implemented function that overrides base class implementation.
 // In SemanticAstWalker, this function pushes a new table to the SymbolTable
-// to introduce new context for each BLOCK '{' to '}' entered, limiting the
+// to introduce new context for each BLOCK ('{' to '}') entered, limiting the
 // scope of block variables.
 void SemanticAstWalker::WalkBlockChildren(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
-    Node* block) {
+    Node* block,
+    std::vector<LexerSymbol>* arguments_result) {
 
     // Push new scope.
     this->symbol_table_.Push();
@@ -534,7 +560,8 @@ void SemanticAstWalker::WalkBlockChildren(
         spec_node,
         function_node,
         property_node,
-        block);
+        block,
+        arguments_result);
 
     // Pop the scope.
     this->symbol_table_.Pop();

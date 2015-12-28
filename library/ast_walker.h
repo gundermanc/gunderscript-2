@@ -57,6 +57,12 @@ protected:
         Node* spec_node,
         Node* name_node,
         ReturnType operations_result) = 0;
+    virtual ReturnType WalkReturn(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        ReturnType expression_result,
+        std::vector<LexerSymbol>* arguments_result) = 0;
     virtual ReturnType WalkAdd(
         Node* spec_node,
         Node* left_node,
@@ -179,7 +185,8 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
-        Node* block);
+        Node* block,
+        std::vector<ReturnType>* arguments_result);
 
 private:
     Node& root_;
@@ -204,6 +211,12 @@ private:
         Node* function_node,
         Node* property_node,
         Node* assign_node);
+    void WalkReturnChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* return_node,
+        std::vector<ReturnType>* arguments_result);
     ReturnType WalkExpressionChildren(
         Node* spec_node,
         Node* function_node,

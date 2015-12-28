@@ -54,6 +54,12 @@ protected:
         Node* spec_node,
         Node* name_node,
         LexerSymbol operations_result);
+    LexerSymbol WalkReturn(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        LexerSymbol expression_result,
+        std::vector<LexerSymbol>* arguments_result);
     LexerSymbol WalkAdd(
         Node* spec_node,
         Node* left_node,
@@ -172,7 +178,8 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
-        Node* block);
+        Node* block,
+        std::vector<LexerSymbol>* arguments_result);
      
 private:
     SymbolTable<Symbol> symbol_table_;
