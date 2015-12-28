@@ -23,6 +23,9 @@ public:
 protected:
     Node& root() const { return this->root_; }
 
+    // Mandatory Pure-Virtual (Abstract) methods that MUST be implemented
+    // by child classes:
+
     virtual void WalkModule(Node* module_node) = 0;
     virtual void WalkModuleName(Node* name_node) = 0;
     virtual void WalkModuleDependsName(Node* name_node) = 0;
@@ -50,6 +53,10 @@ protected:
         Node* spec_node,
         Node* name_node,
         std::vector<ReturnType>& arguments_result) = 0;
+    virtual ReturnType WalkAssign(
+        Node* spec_node,
+        Node* name_node,
+        ReturnType operations_result) = 0;
     virtual ReturnType WalkAdd(
         Node* spec_node,
         Node* left_node,
@@ -153,11 +160,26 @@ protected:
         Node* function_node,
         Node* property_node,
         Node* char_node) = 0;
+    virtual ReturnType WalkVariable(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* name_node) = 0;
     virtual ReturnType WalkAnyType(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
         Node* any_type_node) = 0;
+
+    // Optional Implementation method(s) that are critical for proper operation
+    // of ASTWalker that MAY be optionally overridden by subclasses for increased
+    // customization.
+
+    virtual void WalkBlockChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* block);
 
 private:
     Node& root_;
@@ -173,15 +195,15 @@ private:
         Node* params_node,
         std::vector<ReturnType>& argument_result);
     void WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node);
-    void WalkBlockChildren(
-        Node* spec_node,
-        Node* function_node,
-        Node* property_node,
-        Node* block);
     void WalkFunctionCallChildren(
         Node* spec_node,
         Node* function_node,
         Node* call_node);
+    ReturnType WalkAssignChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* assign_node);
     ReturnType WalkExpressionChildren(
         Node* spec_node,
         Node* function_node,

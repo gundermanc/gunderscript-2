@@ -50,6 +50,10 @@ protected:
         Node* spec_node,
         Node* name_node,
         std::vector<LexerSymbol>& arguments_result);
+    LexerSymbol WalkAssign(
+        Node* spec_node,
+        Node* name_node,
+        LexerSymbol operations_result);
     LexerSymbol WalkAdd(
         Node* spec_node,
         Node* left_node,
@@ -153,11 +157,22 @@ protected:
         Node* function_node,
         Node* property_node,
         Node* char_node);
+    LexerSymbol WalkVariable(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* name_node);
     LexerSymbol WalkAnyType(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
         Node* any_type_node);
+
+    void WalkBlockChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        Node* block);
      
 private:
     SymbolTable<Symbol> symbol_table_;

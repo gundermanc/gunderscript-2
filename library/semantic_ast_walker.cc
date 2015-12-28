@@ -38,6 +38,16 @@ static const std::string MangleFunctionSymbolName(
     return name_buf.str();
 }
 
+// Mangles local variable symbol name to the format Local%%{variable}
+// so that they do not collide with class names in the symbol table.
+static const std::string MangleLocalVariableSymbolName(Node* name_node) {
+    std::ostringstream name_buf;
+    name_buf << "Local%%";
+    name_buf << *name_node->string_value();
+
+    return name_buf.str();
+}
+
 // Walks the MODULE node in the abstract syntax tree.
 // Since there is no type information in this node, we can
 // safely do nothing.
@@ -65,7 +75,13 @@ void SemanticAstWalker::WalkModuleDependsName(Node* name_node) {
 // Attempts to declare a new spec in the given scope. Throws if spec
 // name is taken in this context.
 void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* name_node) {
-    Symbol spec_symbol(access_modifier_node->symbol_value(), *name_node->string_value());
+    // Construct symbol with extranous fields filled in arbitrarily.
+    Symbol spec_symbol(
+        access_modifier_node->symbol_value(),
+        false,
+        LexerSymbol::CONCEALED,
+        std::string(),
+        *name_node->string_value());
 
     this->symbol_table_.Put(*name_node->string_value(), spec_symbol);
 }
@@ -83,12 +99,12 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
 
     Node* spec_name_node = spec_node->child(1);
 
-    FunctionSymbol function_symbol(
+    Symbol function_symbol(
         access_modifier_node->symbol_value(),
-        *spec_name_node->string_value(),
-        *name_node->string_value(),
         native_node->bool_value(),
-        type_node->symbol_value());
+        type_node->symbol_value(),
+        *spec_name_node->string_value(),
+        *name_node->string_value());
 
     this->symbol_table_.Put(
         MangleFunctionSymbolName(spec_node, name_node, arguments_result),
@@ -117,36 +133,36 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
 
     Node* spec_name_node = spec_node->child(1);
 
-    // Format the getter symbol name {class}::{function}$arg1$arg2...
+    // Format the getter symbol name {class}<-{function}
     std::ostringstream name_buf;
     name_buf << *spec_name_node->string_value();
     name_buf << "<-";
     name_buf << *name_node->string_value();
 
     // Create the symbol table symbol for the getter.
-    FunctionSymbol get_function_symbol(
+    Symbol get_function_symbol(
         get_access_modifier_node->symbol_value(),
-        *spec_name_node->string_value(),
-        *name_node->string_value(),
         false,
-        type_node->symbol_value());
+        type_node->symbol_value(),
+        *spec_name_node->string_value(),
+        *name_node->string_value());
 
     // Define the getter symbol.
     this->symbol_table_.Put(name_buf.str(), get_function_symbol);
 
-    // Format the setter symbol name {class}::{function}$arg1$arg2...
+    // Format the setter symbol name {class}->{function}
     name_buf.clear();
     name_buf << *spec_name_node->string_value();
     name_buf << "->";
     name_buf << *name_node->string_value();
 
     // Create the symbol table symbol for the getter.
-    FunctionSymbol set_function_symbol(
+    Symbol set_function_symbol(
         set_access_modifier_node->symbol_value(),
-        *spec_name_node->string_value(),
-        *name_node->string_value(),
         false,
-        type_node->symbol_value());
+        type_node->symbol_value(),
+        *spec_name_node->string_value(),
+        *name_node->string_value());
 
     // Define the setter symbol.
     this->symbol_table_.Put(name_buf.str(), set_function_symbol);
@@ -165,19 +181,55 @@ LexerSymbol SemanticAstWalker::WalkFunctionCall(
     const Symbol& symbol = this->symbol_table_.Get(
         MangleFunctionSymbolName(spec_node, name_node, arguments_result));
 
-    // NOTE: unsafe cast here, this depends on the integrity and encapsulation
-    // of the symbol_table_ being maintained.
-    const FunctionSymbol* function_symbol = static_cast<const FunctionSymbol*>(&symbol);
-
     // Check for access to the callee function.
     // TODO: as of the moment this does nothing because we don't support calls between classes
     // yet. Implement calls between classes.
     CheckAccessModifier(
         *spec_name_node->string_value(),
-        function_symbol->class_name(),
-        function_symbol->access_modifier());
+        symbol.spec_name(),
+        symbol.access_modifier());
 
-    return function_symbol->type();
+    return symbol.type();
+}
+
+// Walks an assignment statement or expression and checks to make sure
+// that the types match the context in which it was used.
+LexerSymbol SemanticAstWalker::WalkAssign(
+    Node* spec_node,
+    Node* name_node,
+    LexerSymbol operations_result) {
+
+    std::string symbol_name = MangleLocalVariableSymbolName(name_node);
+
+    // Lookup the variable to check to see if it is already defined.
+    // Gunderscript is strongly typed and once a variable is defined, it CANNOT change
+    // type.
+    try {
+        const Symbol& variable_symbol = this->symbol_table_.Get(symbol_name);
+
+        // Check to make sure that type of new assignment matches original declared type.
+        if (variable_symbol.type() != operations_result) {
+            throw SemanticAstWalkerTypeMismatchException(*this);
+        }
+
+        return variable_symbol.type();
+    }
+    catch (const SymbolTableUndefinedSymbolException& ex) {
+        // The variable isn't defined yet, so it can be assigned to whatever
+        // type we want.
+        // We'll assign it to the resolved type of the value we're assigning
+        // and fill in any remaining symbol fields with arbitrary values.
+        this->symbol_table_.Put(
+            symbol_name,
+            Symbol(
+                LexerSymbol::CONCEALED,
+                false,
+                operations_result,
+                std::string(),
+                *name_node->string_value()));
+
+        return operations_result;
+    }
 }
 
 // Checks to see if the given module name is valid. If it is not, throws
@@ -410,6 +462,20 @@ LexerSymbol SemanticAstWalker::WalkChar(
     return LexerSymbol::CHAR;
 }
 
+// Walks the SYMBOL->NAME subtree that represents a variable reference
+// and returns the type for it.
+LexerSymbol SemanticAstWalker::WalkVariable(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* name_node) {
+
+    // Looks up the variable in the SymbolTable and returns its type.
+    // Throws if the symbol is undefined.
+    const Symbol& symbol = this->symbol_table_.Get(MangleLocalVariableSymbolName(name_node));
+    return symbol.type();
+}
+
 // Walks the ANY_TYPE node and returns the type for it.
 LexerSymbol SemanticAstWalker::WalkAnyType(
     Node* spec_node,
@@ -448,6 +514,30 @@ void SemanticAstWalker::CheckAccessModifier(
         // Throw If someone adds a new access modifier that we don't know of.
         throw IllegalStateException();
     }
+}
+
+// Optional implemented function that overrides base class implementation.
+// In SemanticAstWalker, this function pushes a new table to the SymbolTable
+// to introduce new context for each BLOCK '{' to '}' entered, limiting the
+// scope of block variables.
+void SemanticAstWalker::WalkBlockChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* block) {
+
+    // Push new scope.
+    this->symbol_table_.Push();
+    
+    // Walk the Block.
+    AstWalker::WalkBlockChildren(
+        spec_node,
+        function_node,
+        property_node,
+        block);
+
+    // Pop the scope.
+    this->symbol_table_.Pop();
 }
 
 // Calculates the type of a binary operator expression from the types of its
@@ -498,8 +588,6 @@ LexerSymbol SemanticAstWalker::CalculateBoolResultantType(LexerSymbol left, Lexe
 
     return right;
 }
-
-
 
 } // namespace library
 } // namespace gunderscript

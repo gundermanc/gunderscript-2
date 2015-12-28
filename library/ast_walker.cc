@@ -246,6 +246,9 @@ void AstWalker<ReturnType>::WalkBlockChildren(
         case NodeRule::CALL:
             WalkFunctionCallChildren(spec_node, function_node, statement_node);
             break;
+        case NodeRule::ASSIGN:
+            WalkAssignChildren(spec_node, function_node, property_node, statement_node);
+            break;
         default:
             // There are still some unimplemented features so for now throw this.
             // TODO: implement other statements.
@@ -292,8 +295,47 @@ void AstWalker<ReturnType>::WalkFunctionCallChildren(
     WalkFunctionCall(spec_node, name_node, arguments_result);
 }
 
+// Walks through an ASSIGN Node's children.
+template <typename ReturnType>
+ReturnType AstWalker<ReturnType>::WalkAssignChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    Node* assign_node) {
+
+    CheckNodeRule(spec_node, NodeRule::SPEC);
+    CheckNodeRule(assign_node, NodeRule::ASSIGN);
+
+    
+    Node* symbol_node = assign_node->child(0);
+    CheckNodeRule(symbol_node, NodeRule::SYMBOL);
+
+    // OK, so, binary_operation_node is a bit weird. When ASSIGN is used as
+    // a statement you would expect the value being assigned to be an
+    // EXPRESSION node, but expressions are top level and assigns can
+    // be embedded in an EXPRESSION, so instead the value being assigned
+    // is simply any binary operation and has no specific NodeRule to check.
+    Node* name_node = symbol_node->child(0);
+    Node* binary_operation_node = assign_node->child(1);
+
+    CheckNodeRule(name_node, NodeRule::NAME);
+
+    // Walk the binary operation and obtain the result.
+    ReturnType binary_operation_result = WalkBinaryOperationChildren(
+        spec_node,
+        function_node,
+        property_node,
+        binary_operation_node);
+    
+    // Dispatch assignment walker to child class and feed in result of
+    // of the binary operation walk.
+    return WalkAssign(
+        spec_node,
+        name_node,
+        binary_operation_result);
+}
+
 // Walks all children of the EXPRESSION node.
-// TODO: complete this.
 template <typename ReturnType>
 ReturnType AstWalker<ReturnType>::WalkExpressionChildren(
     Node* spec_node,
@@ -322,6 +364,22 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
 
     // This node has children, treat it as a binary operation.
     if (binary_operation_node->child_count() == 2) {
+
+        // The ASSIGN expression special case.
+        // Although we COULD treat the assign operator as a normal
+        // binary operation, we instead special case it to make
+        // the ASTWalker have it's own assign statement walker
+        // function, making writing an interpreter easier than if
+        // we had separate walkers for the symbol reference and the
+        // binary_operation_node.
+        if (binary_operation_node->rule() == NodeRule::ASSIGN) {
+            return WalkAssignChildren(
+                spec_node,
+                function_node,
+                property_node,
+                binary_operation_node);
+        }
+
         Node* left_node = binary_operation_node->child(0);
         Node* right_node = binary_operation_node->child(1);
 
@@ -494,6 +552,12 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
             function_node,
             property_node,
             atomic_node);
+    case NodeRule::SYMBOL:
+        return WalkVariable(
+            spec_node,
+            function_node,
+            property_node,
+            atomic_node->child(0));
     case NodeRule::ANY_TYPE:
         return WalkAnyType(
             spec_node,
