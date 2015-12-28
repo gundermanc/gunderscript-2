@@ -156,36 +156,43 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* bool_node) = 0;
     virtual ReturnType WalkInt(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* int_node) = 0;
     virtual ReturnType WalkFloat(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* float_node) = 0;
     virtual ReturnType WalkString(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* string_node) = 0;    
     virtual ReturnType WalkChar(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* char_node) = 0;
     virtual ReturnType WalkVariable(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* name_node) = 0;
     virtual ReturnType WalkAnyType(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* any_type_node) = 0;
 
     // Optional Implementation method(s) that are critical for proper operation
@@ -225,6 +232,7 @@ private:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* assign_node);
     void WalkReturnChildren(
         Node* spec_node,
@@ -237,16 +245,19 @@ private:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* expression_node);
     ReturnType WalkBinaryOperationChildren(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* binary_operation_node);
     ReturnType WalkAtomicExpressionChildren(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* atomic_node);
     void CheckNodeRule(Node* node, NodeRule rule);
 };

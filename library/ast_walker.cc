@@ -270,7 +270,7 @@ void AstWalker<ReturnType>::WalkBlockChildren(
             WalkFunctionCallChildren(spec_node, function_node, statement_node);
             break;
         case NodeRule::ASSIGN:
-            WalkAssignChildren(spec_node, function_node, property_node, statement_node);
+            WalkAssignChildren(spec_node, function_node, property_node, property_function, statement_node);
             break;
         case NodeRule::RETURN:
             WalkReturnChildren(
@@ -328,6 +328,7 @@ void AstWalker<ReturnType>::WalkFunctionCallChildren(
                 spec_node,
                 function_node,
                 NULL,
+                PropertyFunction::NONE,
                 expression_node));
     }
 
@@ -342,6 +343,7 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* assign_node) {
 
     CheckNodeRule(spec_node, NodeRule::SPEC);
@@ -366,6 +368,7 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
         spec_node,
         function_node,
         property_node,
+        property_function,
         binary_operation_node);
     
     // Dispatch assignment walker to child class and feed in result of
@@ -406,6 +409,7 @@ void AstWalker<ReturnType>::WalkReturnChildren(
         spec_node,
         function_node,
         property_node,
+        property_function,
         expression_node);
 
     // Dispatch the results of walking the expression to the child class.
@@ -424,6 +428,7 @@ ReturnType AstWalker<ReturnType>::WalkExpressionChildren(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* expression_node) {
 
     // Check mandatory nodes used by this walker.
@@ -433,6 +438,7 @@ ReturnType AstWalker<ReturnType>::WalkExpressionChildren(
         spec_node,
         function_node,
         property_node,
+        property_function,
         expression_node->child(0));
 }
 
@@ -443,6 +449,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* binary_operation_node) {
 
     // This node has children, treat it as a binary operation.
@@ -460,6 +467,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
                 spec_node,
                 function_node,
                 property_node,
+                property_function,
                 binary_operation_node);
         }
 
@@ -470,12 +478,14 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
             spec_node,
             function_node,
             property_node,
+            property_function,
             left_node);
 
         LexerSymbol right_result = WalkBinaryOperationChildren(
             spec_node,
             function_node,
             property_node,
+            property_function,
             right_node);
 
         // Switch all binary operations.
@@ -581,6 +591,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         spec_node,
         function_node,
         property_node,
+        property_function,
         binary_operation_node);
 }
 
@@ -590,6 +601,7 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* atomic_node) {
 
     // Check mandatory nodes.
@@ -610,42 +622,49 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
             spec_node,
             function_node,
             property_node,
+            property_function,
             atomic_node);
     case NodeRule::INT:
         return WalkInt(
             spec_node,
             function_node,
             property_node,
+            property_function,
             atomic_node);
     case NodeRule::FLOAT:
         return WalkFloat(
             spec_node,
             function_node,
             property_node,
+            property_function,
             atomic_node);
     case NodeRule::STRING:
         return WalkString(
             spec_node,
             function_node,
             property_node,
+            property_function,
             atomic_node);
     case NodeRule::CHAR:
         return WalkChar(
             spec_node,
             function_node,
             property_node,
+            property_function,
             atomic_node);
     case NodeRule::SYMBOL:
         return WalkVariable(
             spec_node,
             function_node,
             property_node,
+            property_function,
             atomic_node->child(0));
     case NodeRule::ANY_TYPE:
         return WalkAnyType(
             spec_node,
             function_node,
             property_node,
+            property_function,
             atomic_node);
     default:
         // Normally we'd throw IllegalStateException but we have lots of stuff that isn't

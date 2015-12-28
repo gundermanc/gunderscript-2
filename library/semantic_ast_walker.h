@@ -143,36 +143,43 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* bool_node);
     LexerSymbol WalkInt(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* int_node);
     LexerSymbol WalkFloat(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* float_node);
     LexerSymbol WalkString(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* string_node);
     LexerSymbol WalkChar(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* char_node);
     LexerSymbol WalkVariable(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* name_node);
     LexerSymbol WalkAnyType(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* any_type_node);
 
     void WalkSpecFunctionChildren(

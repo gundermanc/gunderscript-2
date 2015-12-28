@@ -497,6 +497,7 @@ LexerSymbol SemanticAstWalker::WalkBool(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* bool_node) {
 
     return LexerSymbol::BOOL;
@@ -507,6 +508,7 @@ LexerSymbol SemanticAstWalker::WalkInt(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* int_node) {
 
     return LexerSymbol::INT;
@@ -517,6 +519,7 @@ LexerSymbol SemanticAstWalker::WalkFloat(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* float_node) {
 
     return LexerSymbol::FLOAT;
@@ -527,6 +530,7 @@ LexerSymbol SemanticAstWalker::WalkString(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* string_node) {
 
     return LexerSymbol::STRING;
@@ -537,6 +541,7 @@ LexerSymbol SemanticAstWalker::WalkChar(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* char_node) {
 
     return LexerSymbol::CHAR;
@@ -548,6 +553,7 @@ LexerSymbol SemanticAstWalker::WalkVariable(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* name_node) {
 
     // Looks up the variable in the SymbolTable and returns its type.
@@ -561,6 +567,7 @@ LexerSymbol SemanticAstWalker::WalkAnyType(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* any_type_node) {
 
     return LexerSymbol::ANY_TYPE;
