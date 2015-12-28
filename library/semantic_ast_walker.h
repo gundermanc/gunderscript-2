@@ -47,7 +47,8 @@ protected:
         Node* type_node,
         Node* name_node,
         Node* get_access_modifier_node,
-        Node* set_access_modifier_node);
+        Node* set_access_modifier_node,
+        bool prescan);
     LexerSymbol WalkFunctionCall(
         Node* spec_node,
         Node* name_node,

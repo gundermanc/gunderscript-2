@@ -60,7 +60,8 @@ protected:
         Node* type_node,
         Node* name_node,
         Node* get_access_modifier_node,
-        Node* set_access_modifier_node) = 0;
+        Node* set_access_modifier_node,
+        bool prescan) = 0;
     virtual ReturnType WalkFunctionCall(
         Node* spec_node,
         Node* name_node,
@@ -227,7 +228,15 @@ private:
         Node* params_node,
         std::vector<ReturnType>& argument_result,
         bool prescan);
+    void WalkSpecPropertiesFunctionsPrescanChildren(
+        Node* spec_node,
+        Node* functions_node,
+        Node* properties_node);
     void WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node);
+    void WalkSpecPropertyChildren(
+        Node* spec_node,
+        Node* property_node,
+        bool prescan);
     void WalkFunctionCallChildren(
         Node* spec_node,
         Node* function_node,

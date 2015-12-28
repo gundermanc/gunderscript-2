@@ -177,7 +177,16 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
     Node* type_node,
     Node* name_node,
     Node* get_access_modifier_node,
-    Node* set_access_modifier_node) {
+    Node* set_access_modifier_node,
+    bool prescan) {
+
+    // Only define symbols for the property functions if this is the prescan.
+    // Prescan is an initial scan of the properties by signature only and is
+    // useful because it allows us to define symbols for the properties before
+    // we type check their bodies, allowing properties to be aware of one another.
+    if (!prescan) {
+        return;
+    }
 
     Node* spec_name_node = spec_node->child(1);
 

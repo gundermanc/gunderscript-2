@@ -87,6 +87,7 @@ void AstWalker<ReturnType>::WalkSpec(Node* spec_node) {
     CheckNodeRule(properties_node, NodeRule::PROPERTIES);
 
     WalkSpecDeclaration(access_modifier_node, name_node);
+    WalkSpecPropertiesFunctionsPrescanChildren(spec_node, functions_node, properties_node);
     WalkSpecFunctionsChildren(spec_node, functions_node);
     WalkSpecPropertiesChildren(spec_node, properties_node);
 }
@@ -96,14 +97,6 @@ template <typename ReturnType>
 void AstWalker<ReturnType>::WalkSpecFunctionsChildren(Node* spec_node, Node* functions_node) {
     CheckNodeRule(spec_node, NodeRule::SPEC);
     CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
-
-    // Iterates through all function declarations in the spec
-    // reading only the function headers and definitions.
-    for (int i = 0; i < functions_node->child_count(); i++) {
-        Node* function_node = functions_node->child(i);
-
-        WalkSpecFunctionChildren(spec_node, function_node, true);
-    }
 
     // Iterates through all function declarations in the spec,
     // this time looking only at the function implentation.
@@ -179,6 +172,35 @@ void AstWalker<ReturnType>::WalkSpecFunctionChildren(
         &arguments_result);
 }
 
+// Walks the Functions and Properties and prescans them so that subclasses
+// that inherit from ASTWalker will have an opportunity to define symbols for
+// functions and properties before walking the function and property bodies.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkSpecPropertiesFunctionsPrescanChildren(
+    Node* spec_node,
+    Node* functions_node,
+    Node* properties_node) {
+
+    CheckNodeRule(spec_node, NodeRule::SPEC);
+    CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
+    CheckNodeRule(properties_node, NodeRule::PROPERTIES);
+
+    // Iterates through all function declarations in the spec
+    // reading only the function headers and definitions.
+    for (int i = 0; i < functions_node->child_count(); i++) {
+        Node* function_node = functions_node->child(i);
+
+        WalkSpecFunctionChildren(spec_node, function_node, true);
+    }
+
+    // Iterate through all properties in the SPEC's PROPERTIES node.
+    for (int i = 0; i < properties_node->child_count(); i++) {
+        Node* property_node = properties_node->child(i);
+
+        WalkSpecPropertyChildren(spec_node, property_node, true);
+    }
+}
+
 // Walks the children of the the FUNCTION_PARAMS node.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkSpecFunctionDeclarationParametersChildren(
@@ -216,7 +238,6 @@ void AstWalker<ReturnType>::WalkSpecFunctionDeclarationParametersChildren(
 }
 
 // Walks the children of the PROPERTIES node child of the SPEC node.
-// TODO: complete this.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node) {
     CheckNodeRule(spec_node, NodeRule::SPEC);
@@ -225,61 +246,84 @@ void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* pr
     // Iterate through all properties in the SPEC's PROPERTIES node.
     for (int i = 0; i < properties_node->child_count(); i++) {
         Node* property_node = properties_node->child(i);
-        
-        // Get all mandatory child nodes.
-        Node* type_node = property_node->child(0);
-        Node* name_node = property_node->child(1);
-        Node* get_property_function_node = property_node->child(2);
-        Node* set_property_function_node = property_node->child(3);
-        Node* get_access_modifier_node = get_property_function_node->child(0);
-        Node* set_access_modifier_node = set_property_function_node->child(0);
 
-        // Check mandatory child node types.
-        CheckNodeRule(type_node, NodeRule::TYPE);
-        CheckNodeRule(name_node, NodeRule::NAME);
-        CheckNodeRule(get_property_function_node, NodeRule::PROPERTY_FUNCTION);
-        CheckNodeRule(set_property_function_node, NodeRule::PROPERTY_FUNCTION);
-        CheckNodeRule(get_access_modifier_node, NodeRule::ACCESS_MODIFIER);
-        CheckNodeRule(set_access_modifier_node, NodeRule::ACCESS_MODIFIER);
+        WalkSpecPropertyChildren(spec_node, property_node, false);
+    }
+}
 
-        // Check the types of the optional child nodes.
-        // The null check is because we don't want to throw if these
-        // nodes were not provided.
-        Node* get_block_node = NULL;
-        Node* set_block_node = NULL;
-        if (get_property_function_node->child_count() >= 2) {
-            get_block_node = get_property_function_node->child(1);
-            CheckNodeRule(get_block_node, NodeRule::BLOCK);
-        }
-        if (get_property_function_node->child_count() >= 2) {
-            set_block_node = set_property_function_node->child(1);
-            CheckNodeRule(set_block_node, NodeRule::BLOCK);
-        }
+// Walks the children of a single PROPERTY node that represents a SPEC property.
+// This is a two step process: step one, prescan is true, indicating that we are
+// doing an initial run through of the properties, just defining them based upon
+// their signatures. Step two, prescan is false and we walk the property function
+// bodies too. This multistep process allows us to declare symbols for all properties
+// before type checking the bodies, imbuing the properties with awareness of one
+// another regardless of their order in the AST.
+// TODO: complete this.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkSpecPropertyChildren(
+    Node* spec_node,
+    Node* property_node,
+    bool prescan) {
 
-        // Dispatch to subclass function.
-        WalkSpecPropertyDeclaration(
-            spec_node,
-            type_node,
-            name_node,
-            get_access_modifier_node,
-            set_access_modifier_node);
+    // Get all mandatory child nodes.
+    Node* type_node = property_node->child(0);
+    Node* name_node = property_node->child(1);
+    Node* get_property_function_node = property_node->child(2);
+    Node* set_property_function_node = property_node->child(3);
+    Node* get_access_modifier_node = get_property_function_node->child(0);
+    Node* set_access_modifier_node = set_property_function_node->child(0);
 
-        // Walk property function blocks.
-        if (get_block_node != NULL) {
-            WalkBlockChildren(spec_node, NULL, property_node,
-                PropertyFunction::GET, get_block_node, NULL);
-        }
-        if (set_block_node != NULL) {
-            WalkBlockChildren(spec_node, NULL, property_node,
-                PropertyFunction::SET, set_block_node, NULL);
-        }
+    // Check mandatory child node types.
+    CheckNodeRule(type_node, NodeRule::TYPE);
+    CheckNodeRule(name_node, NodeRule::NAME);
+    CheckNodeRule(get_property_function_node, NodeRule::PROPERTY_FUNCTION);
+    CheckNodeRule(set_property_function_node, NodeRule::PROPERTY_FUNCTION);
+    CheckNodeRule(get_access_modifier_node, NodeRule::ACCESS_MODIFIER);
+    CheckNodeRule(set_access_modifier_node, NodeRule::ACCESS_MODIFIER);
+
+    // Check the types of the optional child nodes.
+    // The null check is because we don't want to throw if these
+    // nodes were not provided.
+    Node* get_block_node = NULL;
+    Node* set_block_node = NULL;
+    if (get_property_function_node->child_count() >= 2) {
+        get_block_node = get_property_function_node->child(1);
+        CheckNodeRule(get_block_node, NodeRule::BLOCK);
+    }
+    if (set_property_function_node->child_count() >= 2) {
+        set_block_node = set_property_function_node->child(1);
+        CheckNodeRule(set_block_node, NodeRule::BLOCK);
+    }
+
+    // Dispatch to subclass function.
+    WalkSpecPropertyDeclaration(
+        spec_node,
+        type_node,
+        name_node,
+        get_access_modifier_node,
+        set_access_modifier_node,
+        prescan);
+
+    // This is a prescan, stop after the property declaration.
+    if (prescan) {
+        return;
+    }
+
+    // Walk property function blocks.
+    if (get_block_node != NULL) {
+        WalkBlockChildren(spec_node, NULL, property_node,
+            PropertyFunction::GET, get_block_node, NULL);
+    }
+    if (set_block_node != NULL) {
+        WalkBlockChildren(spec_node, NULL, property_node,
+            PropertyFunction::SET, set_block_node, NULL);
     }
 }
 
 // Walks the Children of the BLOCK AST nodes.
 // property_function_node can be either a property or a function node.
 // TODO: Complete this.
-template<typename ReturnType>
+template <typename ReturnType>
 void AstWalker<ReturnType>::WalkBlockChildren(
     Node* spec_node, 
     Node* function_node,
@@ -709,7 +753,7 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
 template <typename ReturnType>
 void AstWalker<ReturnType>::CheckNodeRule(Node* node, NodeRule rule) {
     if (node->rule() != rule) {
-        throw IllegalStateException();
+       throw IllegalStateException();
     }
 }
 
