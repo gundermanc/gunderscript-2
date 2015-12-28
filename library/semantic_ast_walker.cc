@@ -48,6 +48,23 @@ static const std::string MangleLocalVariableSymbolName(Node* name_node) {
     return name_buf.str();
 }
 
+// Gets the symbol name 
+static const std::string ManglePropertyFunctionSymbolName(
+    Node* spec_node,
+    Node* name_node,
+    PropertyFunction function) {
+
+    Node* spec_name_node = spec_node->child(1);
+
+    // Format the getter symbol name {class}<-{function}
+    std::ostringstream name_buf;
+    name_buf << *spec_name_node->string_value();
+    name_buf << (function == PropertyFunction::SET ? "->" : "<-");
+    name_buf << *name_node->string_value();
+
+    return name_buf.str();
+}
+
 // Walks the MODULE node in the abstract syntax tree.
 // Since there is no type information in this node, we can
 // safely do nothing.
@@ -150,11 +167,9 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
 
     Node* spec_name_node = spec_node->child(1);
 
-    // Format the getter symbol name {class}<-{function}
-    std::ostringstream name_buf;
-    name_buf << *spec_name_node->string_value();
-    name_buf << "<-";
-    name_buf << *name_node->string_value();
+    // Determine the getter function symbol name.
+    std::string get_function_symbol_name
+        = ManglePropertyFunctionSymbolName(spec_node, name_node, PropertyFunction::GET);
 
     // Create the symbol table symbol for the getter.
     Symbol get_function_symbol(
@@ -165,13 +180,11 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         *name_node->string_value());
 
     // Define the getter symbol.
-    this->symbol_table_.Put(name_buf.str(), get_function_symbol);
+    this->symbol_table_.Put(get_function_symbol_name, get_function_symbol);
 
-    // Format the setter symbol name {class}->{function}
-    name_buf.clear();
-    name_buf << *spec_name_node->string_value();
-    name_buf << "->";
-    name_buf << *name_node->string_value();
+    // Determine the setter function symbol name.
+    std::string set_function_symbol_name
+        = ManglePropertyFunctionSymbolName(spec_node, name_node, PropertyFunction::SET);
 
     // Create the symbol table symbol for the getter.
     Symbol set_function_symbol(
@@ -182,7 +195,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         *name_node->string_value());
 
     // Define the setter symbol.
-    this->symbol_table_.Put(name_buf.str(), set_function_symbol);
+    this->symbol_table_.Put(set_function_symbol_name, set_function_symbol);
 }
 
 // Walks a function call and checks to make sure that the types
@@ -255,23 +268,48 @@ LexerSymbol SemanticAstWalker::WalkReturn(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     LexerSymbol expression_result,
     std::vector<LexerSymbol>* arguments_result) {
 
-    // Determine the symbol name of the function.
-    Node* function_name_node = function_node->child(3);
-    std::string function_symbol_name = MangleFunctionSymbolName(
-        spec_node, function_name_node, *arguments_result);
+    Node* name_node = NULL;
+    std::string symbol_name;
+
+    // Load the symbol for the respective function or property.
+    switch (property_function) {
+    case PropertyFunction::NONE: 
+        // Determine the symbol name of the function.
+        name_node = function_node->child(3);
+        symbol_name = MangleFunctionSymbolName(
+            spec_node, name_node, *arguments_result);
+        break;
+    case PropertyFunction::GET:
+        // Determine the symbol name of the GETTER property function.
+        name_node = property_node->child(1);
+        symbol_name = ManglePropertyFunctionSymbolName(
+            spec_node,
+            name_node,
+            property_function);
+        break;
+    case PropertyFunction::SET:
+        // Property setter function cannot return value.
+        throw SemanticAstWalkerTypeMismatchException(*this);
+    default:
+        // Unhandled switch case.
+        throw new IllegalStateException();
+    }
 
     // Lookup the function symbol. Shouldn't be able to throw since the
     // caller of this method is the function containing the statement.
-    const Symbol& function_symbol = this->symbol_table_.Get(function_symbol_name);
+    const Symbol& symbol = this->symbol_table_.Get(symbol_name);
 
     // Check to make sure that the type of the function symbol matches the type
     // of the return statement expression.
-    if (function_symbol.type() != expression_result) {
+    if (symbol.type() != expression_result) {
         throw SemanticAstWalkerTypeMismatchException(*this);
     }
+
+    return symbol.type();
 }
 
 // Checks to see if the given module name is valid. If it is not, throws
@@ -584,6 +622,7 @@ void SemanticAstWalker::WalkBlockChildren(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* block,
     std::vector<LexerSymbol>* arguments_result) {
 
@@ -595,6 +634,7 @@ void SemanticAstWalker::WalkBlockChildren(
         spec_node,
         function_node,
         property_node,
+        property_function,
         block,
         arguments_result);
 

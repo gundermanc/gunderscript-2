@@ -12,6 +12,16 @@
 namespace gunderscript {
 namespace library {
 
+// Indicates which property function a statement or expression exists in.
+// NONE indicates that we're being called by a function.
+// GET is PROPERTY->child(0)
+// SET is PROPERTY->child(1)
+enum class PropertyFunction {
+    NONE,
+    GET,
+    SET
+};
+
 // Class for walking through the Abstract Syntax Tree Structure.
 template<typename ReturnType>
 class AstWalker {
@@ -61,6 +71,7 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         ReturnType expression_result,
         std::vector<LexerSymbol>* arguments_result) = 0;
     virtual ReturnType WalkAdd(
@@ -188,6 +199,7 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* block,
         std::vector<ReturnType>* arguments_result);
 
@@ -218,6 +230,7 @@ private:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* return_node,
         std::vector<ReturnType>* arguments_result);
     ReturnType WalkExpressionChildren(

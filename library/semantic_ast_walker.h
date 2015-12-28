@@ -58,6 +58,7 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         LexerSymbol expression_result,
         std::vector<LexerSymbol>* arguments_result);
     LexerSymbol WalkAdd(
@@ -181,6 +182,7 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* property_node,
+        PropertyFunction property_function,
         Node* block,
         std::vector<LexerSymbol>* arguments_result);
      

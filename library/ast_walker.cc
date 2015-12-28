@@ -146,7 +146,13 @@ void AstWalker<ReturnType>::WalkSpecFunctionChildren(Node* spec_node, Node* func
         arguments_result);
 
     // Walk the BLOCK node and its children in the block.
-    WalkBlockChildren(spec_node, function_node, NULL, block_node, &arguments_result);
+    WalkBlockChildren(
+        spec_node,
+        function_node,
+        NULL,
+        PropertyFunction::NONE,
+        block_node,
+        &arguments_result);
 }
 
 // Walks the children of the the FUNCTION_PARAMS node.
@@ -213,15 +219,15 @@ void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* pr
         // Check the types of the optional child nodes.
         // The null check is because we don't want to throw if these
         // nodes were not provided.
+        Node* get_block_node = NULL;
+        Node* set_block_node = NULL;
         if (get_property_function_node->child_count() >= 2) {
-            Node* get_block_node = get_property_function_node->child(1);
+            get_block_node = get_property_function_node->child(1);
             CheckNodeRule(get_block_node, NodeRule::BLOCK);
-            WalkBlockChildren(spec_node, NULL, property_node, get_block_node, NULL);
         }
         if (get_property_function_node->child_count() >= 2) {
-            Node* set_block_node = set_property_function_node->child(1);
+            set_block_node = set_property_function_node->child(1);
             CheckNodeRule(set_block_node, NodeRule::BLOCK);
-            WalkBlockChildren(spec_node, NULL, property_node, set_block_node, NULL);
         }
 
         // Dispatch to subclass function.
@@ -231,6 +237,12 @@ void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* pr
             name_node,
             get_access_modifier_node,
             set_access_modifier_node);
+
+        // Walk property function blocks.
+        WalkBlockChildren(spec_node, NULL, property_node,
+            PropertyFunction::GET, get_block_node, NULL);
+        WalkBlockChildren(spec_node, NULL, property_node,
+            PropertyFunction::SET, set_block_node, NULL);
     }
 }
 
@@ -242,6 +254,7 @@ void AstWalker<ReturnType>::WalkBlockChildren(
     Node* spec_node, 
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* block_node,
     std::vector<ReturnType>* arguments_result) {
 
@@ -264,6 +277,7 @@ void AstWalker<ReturnType>::WalkBlockChildren(
                 spec_node,
                 function_node, 
                 property_node,
+                property_function,
                 statement_node,
                 arguments_result);
             break;
@@ -272,6 +286,7 @@ void AstWalker<ReturnType>::WalkBlockChildren(
                 spec_node,
                 function_node,
                 property_node,
+                property_function,
                 statement_node,
                 arguments_result);
             break;
@@ -367,6 +382,7 @@ void AstWalker<ReturnType>::WalkReturnChildren(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
+    PropertyFunction property_function,
     Node* return_node,
     std::vector<ReturnType>* arguments_result) {
 
@@ -397,6 +413,7 @@ void AstWalker<ReturnType>::WalkReturnChildren(
         spec_node,
         function_node,
         property_node,
+        property_function,
         expression_result,
         arguments_result);
 }
