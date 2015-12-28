@@ -34,12 +34,14 @@ protected:
         Node* type_node,
         Node* name_node,
         Node* block_node,
-        std::vector<LexerSymbol>& arguments_result);
+        std::vector<LexerSymbol>& arguments_result,
+        bool prescan);
     LexerSymbol WalkSpecFunctionDeclarationParameter(
         Node* spec_node,
         Node* function_node,
         Node* type_node,
-        Node* name_node);
+        Node* name_node,
+        bool prescan);
     void WalkSpecPropertyDeclaration(
         Node* spec_node,
         Node* type_node,
@@ -184,7 +186,8 @@ protected:
 
     void WalkSpecFunctionChildren(
         Node* spec_node,
-        Node* function_node);
+        Node* function_node,
+        bool prescan);
     void WalkBlockChildren(
         Node* spec_node,
         Node* function_node,

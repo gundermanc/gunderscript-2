@@ -47,12 +47,14 @@ protected:
         Node* type_node,
         Node* name_node,
         Node* block_node,
-        std::vector<ReturnType>& argument_result) = 0;
+        std::vector<ReturnType>& argument_result,
+        bool prescan) = 0;
     virtual ReturnType WalkSpecFunctionDeclarationParameter(
         Node* spec_node,
         Node* function_node,
         Node* type_node,
-        Node* name_node) = 0;
+        Node* name_node,
+        bool prescan) = 0;
     virtual void WalkSpecPropertyDeclaration(
         Node* spec_node,
         Node* type_node,
@@ -201,7 +203,8 @@ protected:
 
     virtual void WalkSpecFunctionChildren(
         Node* spec_node,
-        Node* function_node);
+        Node* function_node,
+        bool prescan);
     virtual void WalkBlockChildren(
         Node* spec_node,
         Node* function_node,
@@ -222,7 +225,8 @@ private:
         Node* spec_node,
         Node* function_node,
         Node* params_node,
-        std::vector<ReturnType>& argument_result);
+        std::vector<ReturnType>& argument_result,
+        bool prescan);
     void WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node);
     void WalkFunctionCallChildren(
         Node* spec_node,

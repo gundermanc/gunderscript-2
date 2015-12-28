@@ -112,7 +112,8 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
     Node* type_node,
     Node* name_node,
     Node* block_node,
-    std::vector<LexerSymbol>& arguments_result) {
+    std::vector<LexerSymbol>& arguments_result,
+    bool prescan) {
 
     Node* spec_name_node = spec_node->child(1);
 
@@ -123,9 +124,15 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
         *spec_name_node->string_value(),
         *name_node->string_value());
 
-    this->symbol_table_.PutBottom(
-        MangleFunctionSymbolName(spec_node, name_node, arguments_result),
-        function_symbol);
+    // Only define the symbol during the prescan portion of the walking process.
+    // The prescan allows for us to iterate and define symbols for all functions
+    // before we type check the function body so functions can reference one another
+    // regardless of the order in which they are declared.
+    if (prescan) {
+        this->symbol_table_.PutBottom(
+            MangleFunctionSymbolName(spec_node, name_node, arguments_result),
+            function_symbol);
+    }
 }
 
 // Walks a single parameter in a spec function declaration.
@@ -134,23 +141,30 @@ LexerSymbol SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* spec_node,
     Node* function_node,
     Node* type_node,
-    Node* name_node) {
+    Node* name_node,
+    bool prescan) {
 
     Node* spec_name_node = spec_node->child(1);
 
-    // Create a new symbol for the variable.
-    // Extraneous values are arbitrary.
-    Symbol variable_symbol(
-        LexerSymbol::CONCEALED,
-        false,
-        type_node->symbol_value(),
-        *spec_name_node->string_value(),
-        *name_node->string_value());
+    // The first iteration of all functions is a pre-scan which looks at only
+    // the function symbols. We leverage this prescan in the type checker to
+    // predefine all function symbols so that functions may reference each
+    // other regardless of order.
+    if (prescan) {
+        // Create a new symbol for the variable.
+        // Extraneous values are arbitrary.
+        Symbol variable_symbol(
+            LexerSymbol::CONCEALED,
+            false,
+            type_node->symbol_value(),
+            *spec_name_node->string_value(),
+            *name_node->string_value());
 
-    // Insert the symbol into the table.
-    this->symbol_table_.Put(
-        MangleLocalVariableSymbolName(name_node),
-        variable_symbol);
+        // Insert the symbol into the table.
+        this->symbol_table_.Put(
+            MangleLocalVariableSymbolName(name_node),
+            variable_symbol);
+    }
 
     // Return the type.
     return type_node->symbol_value();
@@ -609,13 +623,14 @@ void SemanticAstWalker::CheckAccessModifier(
 // scope of function arguments.
 void SemanticAstWalker::WalkSpecFunctionChildren(
     Node* spec_node,
-    Node* function_node) {
+    Node* function_node,
+    bool prescan) {
 
     // Push new scope.
     this->symbol_table_.Push();
 
     // Walk the Node via parent class.
-    AstWalker::WalkSpecFunctionChildren(spec_node, function_node);
+    AstWalker::WalkSpecFunctionChildren(spec_node, function_node, prescan);
 
     // Pop the scope.
     this->symbol_table_.Pop();

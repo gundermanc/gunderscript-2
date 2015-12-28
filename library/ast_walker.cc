@@ -69,7 +69,7 @@ void AstWalker<ReturnType>::WalkModuleSpecsChildren(Node* specs_node) {
     }
 }
 
-// Walks a SPEC node and it's children recursively defining a 
+// Walks a SPEC node and its children recursively defining a 
 // spec.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkSpec(Node* spec_node) {
@@ -97,17 +97,34 @@ void AstWalker<ReturnType>::WalkSpecFunctionsChildren(Node* spec_node, Node* fun
     CheckNodeRule(spec_node, NodeRule::SPEC);
     CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
 
-    // Iterates through all function declarations in the spec.
+    // Iterates through all function declarations in the spec
+    // reading only the function headers and definitions.
     for (int i = 0; i < functions_node->child_count(); i++) {
         Node* function_node = functions_node->child(i);
 
-        WalkSpecFunctionChildren(spec_node, function_node);
+        WalkSpecFunctionChildren(spec_node, function_node, true);
+    }
+
+    // Iterates through all function declarations in the spec,
+    // this time looking only at the function implentation.
+    for (int i = 0; i < functions_node->child_count(); i++) {
+        Node* function_node = functions_node->child(i);
+
+        WalkSpecFunctionChildren(spec_node, function_node, false);
     }
 }
 
 // Walks the children of a FUNCTION node.
+// This function is a two step process: step one has prescan set to true
+// indicating that we wish to only read the function header and declaration.
+// Step two has prescan set to true, indicating that this time we will look
+// at just the implementation. Breaking this process into two steps allows
+// for us to call functions out of the order that they appear in the AST.
 template <typename ReturnType>
-void AstWalker<ReturnType>::WalkSpecFunctionChildren(Node* spec_node, Node* function_node) {
+void AstWalker<ReturnType>::WalkSpecFunctionChildren(
+    Node* spec_node,
+    Node* function_node, 
+    bool prescan) {
     CheckNodeRule(spec_node, NodeRule::SPEC);
     CheckNodeRule(function_node, NodeRule::FUNCTION);
 
@@ -133,7 +150,8 @@ void AstWalker<ReturnType>::WalkSpecFunctionChildren(Node* spec_node, Node* func
         spec_node,
         function_node,
         function_params_node,
-        arguments_result);
+        arguments_result,
+        prescan);
 
     // Dispatch to subclass.
     WalkSpecFunctionDeclaration(
@@ -143,7 +161,13 @@ void AstWalker<ReturnType>::WalkSpecFunctionChildren(Node* spec_node, Node* func
         type_node,
         name_node,
         block_node,
-        arguments_result);
+        arguments_result,
+        prescan);
+
+    // This is the prescan iteration, return without iterating the function body.
+    if (prescan) {
+        return;
+    }
 
     // Walk the BLOCK node and its children in the block.
     WalkBlockChildren(
@@ -161,7 +185,8 @@ void AstWalker<ReturnType>::WalkSpecFunctionDeclarationParametersChildren(
     Node* spec_node,
     Node* function_node, 
     Node* function_params_node,
-    std::vector<ReturnType>& argument_result) {
+    std::vector<ReturnType>& argument_result,
+    bool prescan) {
 
     CheckNodeRule(spec_node, NodeRule::SPEC);
     CheckNodeRule(function_node, NodeRule::FUNCTION);
@@ -185,7 +210,8 @@ void AstWalker<ReturnType>::WalkSpecFunctionDeclarationParametersChildren(
                 spec_node,
                 function_node, 
                 type_node,
-                name_node));
+                name_node,
+                prescan));
     }
 }
 
