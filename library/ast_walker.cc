@@ -691,6 +691,16 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
     }
 
     switch (atomic_node->rule()) {
+    case NodeRule::LOGNOT:
+        return WalkLogNot(
+            spec_node,
+            atomic_node->child(0),
+            WalkAtomicExpressionChildren(
+                spec_node,
+                function_node,
+                property_node,
+                property_function,
+                atomic_node->child(0)));
     case NodeRule::BOOL:
         return WalkBool(
             spec_node,

@@ -100,6 +100,10 @@ protected:
         Node* right_node,
         LexerSymbol left_result,
         LexerSymbol right_result);
+    LexerSymbol WalkLogNot(
+        Node* spec_node,
+        Node* child_node,
+        LexerSymbol child_result);
     LexerSymbol WalkLogOr(
         Node* spec_node,
         Node* left_node,

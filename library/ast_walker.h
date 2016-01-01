@@ -119,6 +119,10 @@ protected:
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
+    virtual ReturnType WalkLogNot(
+        Node* spec_node,
+        Node* child_node,
+        ReturnType child_result) = 0;
     virtual ReturnType WalkGreater(
         Node* spec_node,
         Node* left_node,

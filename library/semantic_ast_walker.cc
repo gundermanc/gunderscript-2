@@ -397,6 +397,20 @@ LexerSymbol SemanticAstWalker::WalkMod(
     return CalculateNumericResultantType(left_result, right_result);
 }
 
+// Walks the LOGNOT node and calculates it's return type.
+LexerSymbol SemanticAstWalker::WalkLogNot(
+    Node* spec_node,
+    Node* child_node,
+    LexerSymbol child_result) {
+
+    // Check for boolean type. NOT works only with booleans.
+    if (child_result != LexerSymbol::BOOL) {
+        throw SemanticAstWalkerTypeMismatchException(*this);
+    }
+
+    return child_result;
+}
+
 // Walks the LOGAND node and calculates it's return type.
 LexerSymbol SemanticAstWalker::WalkLogAnd(
     Node* spec_node,

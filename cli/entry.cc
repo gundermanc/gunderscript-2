@@ -4,11 +4,10 @@
 #include <iostream>
 
 #include "cli.h"
-#include "lexer.h"
 
-using gunderscript::library::Lexer;
+using gunderscript::cli::ProcessArguments;
 
 // Application Entry point.
 int main(int argc, const char** argv) {
-    return CLIRESULT_INT(gunderscript::cli::ProcessArguments(argc, argv));
+    return CLIRESULT_INT(ProcessArguments(argc, argv));
 }
