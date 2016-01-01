@@ -451,10 +451,8 @@ void Parser::ParseBlockStatement(Node* node) {
 void Parser::ParseStatement(Node* node) {
     switch (CurrentToken()->type) {
     case LexerTokenType::SYMBOL:
-        if (!CurrentSymbol(LexerSymbol::LBRACE)) {
-            throw ParserUnexpectedTokenException(*this, PARSER_ERR_EXPECTED_STATEMENT);
-        }
         ParseBlockStatement(node);
+        AdvanceNext();
         break;
     case LexerTokenType::KEYWORD:
         ParseKeywordStatement(node);

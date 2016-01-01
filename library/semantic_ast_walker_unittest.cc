@@ -533,8 +533,8 @@ TEST(SemanticAstWalker, BlockStatementScoping) {
     Node* root = parser.Parse();
 
     SemanticAstWalker semantic_walker(*root);
-    semantic_walker.Walk();
-    //EXPECT_NO_THROW(semantic_walker.Walk());
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
     delete root;
 }
 
@@ -625,7 +625,7 @@ TEST(SemanticAstWalker, AddString) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(string x) {"
-        "        main(\"sfsf\" + \"sfsf\");"
+        "        X(\"sfsf\" + \"sfsf\");"
         "    }"
         "}"));
     Lexer lexer(source);
@@ -701,7 +701,7 @@ TEST(SemanticAstWalker, DivInvalidType) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
-        "        main(true \ true);"
+        "        main(true / true);"
         "    }"
         "}"));
     Lexer lexer(source);
@@ -834,7 +834,7 @@ TEST(SemanticAstWalker, Combined) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
-        "        main( ((-(-1+2) / 3)) > (0 * (4 % -5)) || !(!(3 < 2)) && (4 >= 5) && (1 <= 6));"
+        "        X( ((-(-1+2) / 3)) > (0 * (4 % -5)) || !(!(3 < 2)) && (4 >= 5) && (1 <= 6));"
         "    }"
         "}"));
     Lexer lexer(source);
@@ -843,7 +843,7 @@ TEST(SemanticAstWalker, Combined) {
     Node* root = parser.Parse();
 
     SemanticAstWalker semantic_walker(*root);
-    semantic_walker.Walk();
-    //EXPECT_NO_THROW(semantic_walker.Walk());
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
     delete root;
 }

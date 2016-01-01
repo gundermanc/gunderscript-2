@@ -695,7 +695,7 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
         return WalkLogNot(
             spec_node,
             atomic_node->child(0),
-            WalkAtomicExpressionChildren(
+            WalkBinaryOperationChildren(
                 spec_node,
                 function_node,
                 property_node,
