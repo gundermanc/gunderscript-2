@@ -386,10 +386,9 @@ TEST(SemanticAstWalker, FunctionParamTypeSymbols) {
     delete root;
 }
 
-TEST(SemanticAstWalker, FunctionParamSymbolMasking) {
-    // Function params are declared in a scope outside of the function body scope,
-    // therefore, any variables that are declared in the function can mask the function params,
-    // regardless of type.s
+TEST(SemanticAstWalker, FunctionParamSymbolTypeReassign) {
+    // Function params are declared in same scope as function variables and therefore
+    // must only be assigned to the type with which they were originally declared.
     LexerStringSource source(std::string(
         "package \"Gundersoft\";"
         "public spec Test {"
@@ -404,7 +403,7 @@ TEST(SemanticAstWalker, FunctionParamSymbolMasking) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_NO_THROW(semantic_walker.Walk());
+    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
     delete root;
 }
 
@@ -534,8 +533,8 @@ TEST(SemanticAstWalker, BlockStatementScoping) {
     Node* root = parser.Parse();
 
     SemanticAstWalker semantic_walker(*root);
-
-    EXPECT_NO_THROW(semantic_walker.Walk());
+    semantic_walker.Walk();
+    //EXPECT_NO_THROW(semantic_walker.Walk());
     delete root;
 }
 

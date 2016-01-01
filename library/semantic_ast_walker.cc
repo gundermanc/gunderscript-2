@@ -146,25 +146,19 @@ LexerSymbol SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
 
     Node* spec_name_node = spec_node->child(1);
 
-    // The first iteration of all functions is a pre-scan which looks at only
-    // the function symbols. We leverage this prescan in the type checker to
-    // predefine all function symbols so that functions may reference each
-    // other regardless of order.
-    if (prescan) {
-        // Create a new symbol for the variable.
-        // Extraneous values are arbitrary.
-        Symbol variable_symbol(
-            LexerSymbol::CONCEALED,
-            false,
-            type_node->symbol_value(),
-            *spec_name_node->string_value(),
-            *name_node->string_value());
+    // Create a new symbol for the variable.
+    // Extraneous values are arbitrary.
+    Symbol variable_symbol(
+        LexerSymbol::CONCEALED,
+        false,
+        type_node->symbol_value(),
+        *spec_name_node->string_value(),
+        *name_node->string_value());
 
-        // Insert the symbol into the table.
-        this->symbol_table_.Put(
-            MangleLocalVariableSymbolName(name_node),
-            variable_symbol);
-    }
+    // Insert the symbol into the table.
+    this->symbol_table_.Put(
+        MangleLocalVariableSymbolName(name_node),
+        variable_symbol);
 
     // Return the type.
     return type_node->symbol_value();
