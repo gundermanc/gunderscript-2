@@ -17,8 +17,8 @@ the Gunderscript 2 interpreter or Gunderscript 2 VM.
 ROADMAP:
   - Lexer : 100%
   - Parser (except for IF, FOR, WHILE, DO/WHILE and other control flow) : 100%
-  - Syntax tree walker : 0%
-  - Semantic (type checker), minus control flow : 0%
+  - Syntax tree walker : 100%
+  - Semantic (type checker), minus control flow : 100%
   - AST interpreter (non-compiled), minus control flow : 0%
   - End to end control flow support
     - IF : 0%
