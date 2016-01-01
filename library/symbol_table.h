@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "exceptions.h"
-#include "symbol.h"
 
 namespace gunderscript {
 namespace library {
@@ -58,11 +57,6 @@ public:
     SymbolTableDuplicateKeyException() :
         SymbolTableException("Cannot define symbol. Symbol already defined.") { }
 };
-
-// instantiate template so we can unit test from external module
-// TODO: ifdef DEBUG here compatible with CMAKE.
-template class SymbolTable<std::string>;
-template class SymbolTable<Symbol>;
 
 } // namespace library
 } // namespace gunderscript

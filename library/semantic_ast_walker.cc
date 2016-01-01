@@ -263,7 +263,7 @@ LexerSymbol SemanticAstWalker::WalkAssign(
 
         return operations_result;
     }
-    catch (const SymbolTableDuplicateKeyException& ex) {
+    catch (const SymbolTableDuplicateKeyException&) {
         // Value already exists in the current level of the symbol table
         // so look up the existing value and its type and make sure that the new type
         // matches the existing type.
@@ -715,7 +715,7 @@ LexerSymbol SemanticAstWalker::CalculateNumericResultantType(LexerSymbol left, L
     }
 
     // Do other checks.
-    CalculateResultantType(left, right);
+    return CalculateResultantType(left, right);
 }
 
 // Calculates the type of a binary operator expression from the types of its

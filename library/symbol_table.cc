@@ -3,10 +3,15 @@
 
 #include <utility>
 
+#include "symbol.h"
 #include "symbol_table.h"
 
 namespace gunderscript {
 namespace library {
+
+// Instantiate template so we can unit test and link from external modules.
+template class SymbolTable<std::string>;
+template class SymbolTable<Symbol>;
 
 // Default Constructor, creates empty SymbolTable with
 // automatic minimum depth of 1.

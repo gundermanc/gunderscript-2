@@ -10,6 +10,7 @@
 #include "ast_walker.h"
 #include "lexer.h"
 #include "node.h"
+#include "symbol.h"
 #include "symbol_table.h"
 
 namespace gunderscript {

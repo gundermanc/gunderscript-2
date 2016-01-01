@@ -279,10 +279,6 @@ private:
     void CheckNodeRule(Node* node, NodeRule rule);
 };
 
-// Instantiate template with LexerSymbol so we can unit test from external module
-// TODO: ifdef DEBUG here compatible with CMAKE.
-template class AstWalker<LexerSymbol>;
-
 } // namespace library
 } // namespace gunderscript
 

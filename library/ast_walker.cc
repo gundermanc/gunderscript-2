@@ -6,6 +6,9 @@
 namespace gunderscript {
 namespace library {
 
+// Instantiate template with LexerSymbol so we can link from external module.
+template class AstWalker<LexerSymbol>;
+
 // Walks through all expected children of the MODULE
 // AST node (the root of the AST). Expected children of this
 // node are walked recursively. Unexpected children cause an
@@ -422,7 +425,6 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
 
     CheckNodeRule(spec_node, NodeRule::SPEC);
     CheckNodeRule(assign_node, NodeRule::ASSIGN);
-
     
     Node* symbol_node = assign_node->child(0);
     CheckNodeRule(symbol_node, NodeRule::SYMBOL);

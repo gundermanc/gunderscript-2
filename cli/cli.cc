@@ -102,7 +102,7 @@ static CliResult TypeCheckFiles(int file_count, const char** file_names) {
             SemanticAstWalker walker(*ast_root);
             walker.Walk();
         }
-        catch (Exception) {
+        catch (const Exception&) {
             delete ast_root;
             throw;
         }
