@@ -20,7 +20,7 @@ Node* Parser::Parse() {
     try {
         return ParseModule();
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete module_node_;
         throw;
     }
@@ -155,6 +155,8 @@ void Parser::ParseSpecDefinition(Node* node) {
         throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
     }
 
+    spec_node->AddChild(new Node(NodeRule::ACCESS_MODIFIER, CurrentToken()->symbol));
+
     // Check for "spec" keyword in declaration.
     if (!AdvanceKeyword(LexerSymbol::SPEC)) {
         throw ParserMalformedSpecException(*this, PARSER_ERR_MALFORMED_SPEC);
@@ -256,10 +258,15 @@ void Parser::ParsePropertyBody(Node* node) {
     node->AddChild(getter_node);
     node->AddChild(setter_node);
 
-    // There can be at most 2 body functions (get/set), parse twice.
+    // There must be exactly 2 body functions (get/set), parse twice.
     // Functions return if there is no body function.
     ParsePropertyBodyFunction(getter_node, setter_node);
     ParsePropertyBodyFunction(getter_node, setter_node);
+
+    // Properties MUST define both members.
+    if (getter_node->child_count() == 0 || setter_node->child_count() == 0) {
+        throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
+    }
 }
 
 // Parses a GET or SET function in a property body (see C# properties for info).
@@ -444,10 +451,8 @@ void Parser::ParseBlockStatement(Node* node) {
 void Parser::ParseStatement(Node* node) {
     switch (CurrentToken()->type) {
     case LexerTokenType::SYMBOL:
-        if (!CurrentSymbol(LexerSymbol::LBRACE)) {
-            throw ParserUnexpectedTokenException(*this, PARSER_ERR_EXPECTED_STATEMENT);
-        }
         ParseBlockStatement(node);
+        AdvanceNext();
         break;
     case LexerTokenType::KEYWORD:
         ParseKeywordStatement(node);
@@ -623,7 +628,7 @@ Node* Parser::ParseAssignExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseOrExpressionA());
         parent_node = ParseAssignExpressionB(operation_node);
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete operation_node;
         throw;
     }
@@ -662,7 +667,7 @@ Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
         operation_node->AddChild(left_operand_node);
         operation_node->AddChild(ParseAndExpressionA());
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete operation_node;
         throw;
     }
@@ -670,7 +675,7 @@ Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
     try {
         parent_node = ParseOrExpressionB(operation_node);
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete parent_node;
         throw;
     }
@@ -710,7 +715,7 @@ Node* Parser::ParseAndExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseComparisonExpressionA());
         parent_node = ParseAndExpressionB(operation_node);
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete operation_node;
         throw;
     }
@@ -765,7 +770,7 @@ Node* Parser::ParseComparisonExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParsePrimaryExpressionA());
         parent_node = ParseComparisonExpressionB(operation_node);
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete operation_node;
         throw;
     }
@@ -808,7 +813,7 @@ Node* Parser::ParsePrimaryExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseSecondaryExpressionA());
         parent_node = ParsePrimaryExpressionB(operation_node);
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete operation_node;
         throw;
     }
@@ -854,7 +859,7 @@ Node* Parser::ParseSecondaryExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseTertiaryExpressionA());
         parent_node = ParseSecondaryExpressionB(operation_node);
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete operation_node;
         throw;
     }
@@ -894,7 +899,7 @@ Node* Parser::ParseTertiaryExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseInvertExpression());
         parent_node = ParseTertiaryExpressionB(operation_node);
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete operation_node;
         throw;
     }
@@ -914,7 +919,7 @@ Node* Parser::ParseInvertExpression() {
     case LexerSymbol::SUB:
         // Add NEGATE node if there is a '-'.
         invert_node = new Node(NodeRule::SUB);
-        invert_node->AddChild(new Node(NodeRule::CHAR, 0l));
+        invert_node->AddChild(new Node(NodeRule::ANY_TYPE, 0l));
         break;
 
     case LexerSymbol::LOGNOT:
@@ -925,11 +930,14 @@ Node* Parser::ParseInvertExpression() {
         return ParseAtomicExpression();
     }
 
+    // If we got this far without returning it means that we found either a '-' number
+    // or '!' boolean, so Advance to the next symbol and recurse into this function again
+    // instead of ParseAtomicExpression() in case there is another '-' or '!'.
     try {
         AdvanceNext();
-        invert_node->AddChild(ParseAtomicExpression());
+        invert_node->AddChild(ParseInvertExpression());
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete invert_node;
         throw;
     }
@@ -1010,7 +1018,7 @@ Node* Parser::ParseMemberNameExpression() {
     try {
         AdvanceNext();
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete name_node;
         throw;
     }
@@ -1084,7 +1092,7 @@ Node* Parser::ParseVariableExpression() {
     try {
         AdvanceNext();
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete variable_node;
         throw;
     }
@@ -1161,7 +1169,7 @@ Node* Parser::ParseStringConstant() {
     try {
         AdvanceNext();
     }
-    catch (const ParserException& ex) {
+    catch (const ParserException&) {
         delete string_node;
         throw;
     }

@@ -459,6 +459,7 @@ TEST_KEYWORD(BREAK, "break", LexerTokenType::KEYWORD, LexerSymbol::BREAK);
 TEST_KEYWORD(CONTINUE, "continue", LexerTokenType::KEYWORD, LexerSymbol::CONTINUE);
 TEST_KEYWORD(DEPENDS, "depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
 TEST_KEYWORD(NATIVE, "native", LexerTokenType::KEYWORD, LexerSymbol::NATIVE);
+TEST_KEYWORD(TNULL, "null", LexerTokenType::KEYWORD, LexerSymbol::TNULL);
 
 TEST_KEYWORD(INT, "int", LexerTokenType::TYPE, LexerSymbol::INT);
 TEST_KEYWORD(FLOAT, "float", LexerTokenType::TYPE, LexerSymbol::FLOAT);

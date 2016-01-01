@@ -1,5 +1,5 @@
 // Gunderscript 2 Symbol Table Unit Test
-// (C) 2014 Christian Gunderman
+// (C) 2014-2015 Christian Gunderman
 
 #include <string>
 
@@ -8,13 +8,16 @@
 #include "symbol_table.h"
 
 using gunderscript::library::SymbolTable;
+using gunderscript::library::SymbolTableBottomOfStackException;
+using gunderscript::library::SymbolTableDuplicateKeyException;
+using gunderscript::library::SymbolTableUndefinedSymbolException;
 
 // Checks to make sure that all values are at correct defaults
 // upon initialization.
 TEST(SymbolTable, DefaultConditions) {
     SymbolTable<std::string> table;
 
-    ASSERT_FALSE(table.Pop());
+    EXPECT_THROW(table.Pop(), SymbolTableBottomOfStackException);
     ASSERT_EQ(1, table.depth());
 }
 
@@ -23,23 +26,23 @@ TEST(SymbolTable, DefaultConditions) {
 TEST(SymbolTable, SingleLevelPutGet) {
     SymbolTable<std::string> table;
 
-    ASSERT_EQ(NULL, table.Get("Item1"));
-    ASSERT_EQ(NULL, table.GetTopOnly("Item1"));
+    ASSERT_THROW(table.Get("Item1"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.GetTopOnly("Item1"), SymbolTableUndefinedSymbolException);
     ASSERT_EQ(1, table.depth());
 
-    ASSERT_TRUE(table.Put("Item1", "value1"));
+    table.Put("Item1", "value1");
 
-    ASSERT_STREQ("value1", table.Get("Item1")->c_str());
-    ASSERT_STREQ("value1", table.GetTopOnly("Item1")->c_str());
-    ASSERT_EQ(NULL, table.Get("Item2"));
-    ASSERT_EQ(NULL, table.GetTopOnly("Item2"));
+    ASSERT_STREQ("value1", table.Get("Item1").c_str());
+    ASSERT_STREQ("value1", table.GetTopOnly("Item1").c_str());
+    ASSERT_THROW(table.Get("Item2"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.GetTopOnly("Item2"), SymbolTableUndefinedSymbolException);
     ASSERT_EQ(1, table.depth());
 
-    ASSERT_TRUE(table.Put("Item2", "value2"));
-    ASSERT_STREQ("value1", table.Get("Item1")->c_str());
-    ASSERT_STREQ("value1", table.GetTopOnly("Item1")->c_str());
-    ASSERT_STREQ("value2", table.Get("Item2")->c_str());
-    ASSERT_STREQ("value2", table.GetTopOnly("Item2")->c_str());
+    table.Put("Item2", "value2");
+    ASSERT_STREQ("value1", table.Get("Item1").c_str());
+    ASSERT_STREQ("value1", table.GetTopOnly("Item1").c_str());
+    ASSERT_STREQ("value2", table.Get("Item2").c_str());
+    ASSERT_STREQ("value2", table.GetTopOnly("Item2").c_str());
     ASSERT_EQ(1, table.depth());
 }
 
@@ -48,13 +51,13 @@ TEST(SymbolTable, SingleLevelPutGet) {
 TEST(SymbolTable, SingleLevelPutDuplicate) {
     SymbolTable<std::string> table;
 
-    ASSERT_EQ(NULL, table.Get("Item1"));
+    ASSERT_THROW(table.Get("Item1"), SymbolTableUndefinedSymbolException);
 
-    ASSERT_TRUE(table.Put("Item1", "value1"));
-    ASSERT_STREQ("value1", table.Get("Item1")->c_str());
+    table.Put("Item1", "value1");
+    ASSERT_STREQ("value1", table.Get("Item1").c_str());
 
-    ASSERT_FALSE(table.Put("Item1", "value2"));
-    ASSERT_STREQ("value1", table.Get("Item1")->c_str());
+    EXPECT_THROW(table.Put("Item1", "value2"), SymbolTableDuplicateKeyException);
+    ASSERT_STREQ("value1", table.Get("Item1").c_str());
 }
 
 // Checks to make sure values put in lower levels in the SymbolTable
@@ -62,49 +65,89 @@ TEST(SymbolTable, SingleLevelPutDuplicate) {
 TEST(SymbolTable, MultiLevelPutGet) {
     SymbolTable<std::string> table;
 
-    ASSERT_EQ(NULL, table.Get("Item1"));
-    ASSERT_EQ(NULL, table.GetTopOnly("Item1"));
-    ASSERT_EQ(NULL, table.Get("Item2"));
-    ASSERT_EQ(NULL, table.GetTopOnly("Item2"));
-    ASSERT_EQ(NULL, table.Get("Item3"));
-    ASSERT_EQ(NULL, table.GetTopOnly("Item3"));
+    ASSERT_THROW(table.Get("Item1"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.GetTopOnly("Item1"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.Get("Item2"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.GetTopOnly("Item2"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.Get("Item3"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.GetTopOnly("Item3"), SymbolTableUndefinedSymbolException);
 
     // Put Item1 and Item2, leaving Item3 undefined.
-    ASSERT_TRUE(table.Put("Item1", "value1"));
-    ASSERT_TRUE(table.Put("Item2", "value2"));
+    table.Put("Item1", "value1");
+    table.Put("Item2", "value2");
 
     // Add a level to the SymbolTable.
     table.Push();
 
     // Make sure the values haven't changed, except for GetTopOnly
     // since they are no longer stored in top.
-    ASSERT_STREQ("value1", table.Get("Item1")->c_str());
-    ASSERT_EQ(NULL, table.GetTopOnly("Item1"));
-    ASSERT_STREQ("value2", table.Get("Item2")->c_str());
-    ASSERT_EQ(NULL, table.GetTopOnly("Item2"));
-    ASSERT_EQ(NULL, table.Get("Item3"));
-    ASSERT_EQ(NULL, table.GetTopOnly("Item3"));
+    ASSERT_STREQ("value1", table.Get("Item1").c_str());
+    ASSERT_THROW(table.GetTopOnly("Item1"), SymbolTableUndefinedSymbolException);
+    ASSERT_STREQ("value2", table.Get("Item2").c_str());
+    ASSERT_THROW(table.GetTopOnly("Item2"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.Get("Item3"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.GetTopOnly("Item3"), SymbolTableUndefinedSymbolException);
 
     // Set new value for Item1 and add Item3 in new level.
-    ASSERT_TRUE(table.Put("Item1", "value3"));
-    ASSERT_TRUE(table.Put("Item3", "value4"));
+    table.Put("Item1", "value3");
+    table.Put("Item3", "value4");
 
     // Make sure only Item1 values have changed.
-    ASSERT_STREQ("value3", table.Get("Item1")->c_str());
-    ASSERT_STREQ("value3", table.GetTopOnly("Item1")->c_str());
-    ASSERT_STREQ("value2", table.Get("Item2")->c_str());
-    ASSERT_EQ(NULL, table.GetTopOnly("Item2"));
-    ASSERT_STREQ("value4", table.Get("Item3")->c_str());
-    ASSERT_STREQ("value4", table.GetTopOnly("Item3")->c_str());
+    ASSERT_STREQ("value3", table.Get("Item1").c_str());
+    ASSERT_STREQ("value3", table.GetTopOnly("Item1").c_str());
+    ASSERT_STREQ("value2", table.Get("Item2").c_str());
+    ASSERT_THROW(table.GetTopOnly("Item2"), SymbolTableUndefinedSymbolException);
+    ASSERT_STREQ("value4", table.Get("Item3").c_str());
+    ASSERT_STREQ("value4", table.GetTopOnly("Item3").c_str());
 
     // Remove second level.
-    ASSERT_TRUE(table.Pop());
+    table.Pop();
 
     // Check for values restored to where they were before.
-    ASSERT_STREQ("value1", table.Get("Item1")->c_str());
-    ASSERT_STREQ("value1", table.GetTopOnly("Item1")->c_str());
-    ASSERT_STREQ("value2", table.Get("Item2")->c_str());
-    ASSERT_STREQ("value2", table.GetTopOnly("Item2")->c_str());
-    ASSERT_EQ(NULL, table.Get("Item3"));
-    ASSERT_EQ(NULL, table.GetTopOnly("Item3"));
+    ASSERT_STREQ("value1", table.Get("Item1").c_str());
+    ASSERT_STREQ("value1", table.GetTopOnly("Item1").c_str());
+    ASSERT_STREQ("value2", table.Get("Item2").c_str());
+    ASSERT_STREQ("value2", table.GetTopOnly("Item2").c_str());
+    ASSERT_THROW(table.Get("Item3"), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.GetTopOnly("Item3"), SymbolTableUndefinedSymbolException);
+}
+
+// Checks to make sure we can put an item in the bottom most level
+// of symbol table with PutBottom.
+TEST(SymbolTable, PutBottom) {
+    SymbolTable<std::string> table;
+
+    // Item 1.
+    table.Put("Item1", "Value1");
+
+    // Push second table and item 2.
+    table.Push();
+    table.Put("Item2", "Value2");
+
+    // Push third table and item 3.
+    table.Push();
+    table.Put("Item3", "Value3");
+    table.PutBottom("Item4", "Value4");
+
+    // Check all items are in.
+    ASSERT_STREQ("Value1", table.Get("Item1").c_str());
+    ASSERT_STREQ("Value2", table.Get("Item2").c_str());
+    ASSERT_STREQ("Value3", table.Get("Item3").c_str());
+    ASSERT_STREQ("Value4", table.Get("Item4").c_str());
+
+    // Pop table 3 and validate.
+    table.Pop();
+    ASSERT_STREQ("Value1", table.Get("Item1").c_str());
+    ASSERT_STREQ("Value2", table.Get("Item2").c_str());
+    ASSERT_THROW(table.Get("Item3").c_str(), SymbolTableUndefinedSymbolException);
+    ASSERT_STREQ("Value4", table.Get("Item4").c_str());
+
+    // Pop table 2 and validate.
+    table.Pop();
+    ASSERT_STREQ("Value1", table.Get("Item1").c_str());
+    ASSERT_THROW(table.Get("Item2").c_str(), SymbolTableUndefinedSymbolException);
+    ASSERT_THROW(table.Get("Item3").c_str(), SymbolTableUndefinedSymbolException);
+    ASSERT_STREQ("Value4", table.Get("Item4").c_str());
+
+    ASSERT_THROW(table.Pop(), SymbolTableBottomOfStackException);
 }

@@ -15,7 +15,7 @@ static const std::string kNodeRuleString[] = {
     "RETURN", "EXPRESSION", "MEMBER", "CALL", "CALL_PARAMETERS", "SYMBOL",
     "LOGOR", "LOGAND", "LOGNOT", "EQUALS", "NOT_EQUALS", "LESS", "LESS_EQUALS",
     "GREATER", "GREATER_EQUALS", "ADD", "SUB", "MUL", "DIV", "MOD", "BOOL", "INT",
-    "FLOAT", "CHAR", "STRING"
+    "FLOAT", "CHAR", "STRING", "ANY_TYPE"
 };
 
 // Gets a string representation of a NodeRule.
@@ -85,12 +85,12 @@ void Node::AddChild(Node* child) {
 }
 
 // Gets a child from this node by its index (added order).
-Node* Node::GetChild(int child) {
+Node* Node::child(int child) const {
     if (this->child_count() > child) {
         return this->children_[child];
     }
 
-    return NULL;
+    throw IllegalStateException();
 }
 
 } // namespace library

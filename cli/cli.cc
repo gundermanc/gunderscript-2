@@ -12,6 +12,7 @@
 #include "lexer.h"
 #include "node.h"
 #include "parser.h"
+#include "semantic_ast_walker.h"
 
 using gunderscript::library::DebugPrintLexerToken;
 using gunderscript::library::Exception;
@@ -20,6 +21,7 @@ using gunderscript::library::LexerFileSource;
 using gunderscript::library::LexerToken;
 using gunderscript::library::Node;
 using gunderscript::library::Parser;
+using gunderscript::library::SemanticAstWalker;
 
 namespace gunderscript {
 namespace cli {
@@ -86,6 +88,32 @@ static CliResult ParseFiles(int file_count, const char** file_names) {
     });
 }
 
+// Lexes, parses, and type checks a file and prints the serialized AST
+// nodes to the command line in the debug format.
+static CliResult TypeCheckFiles(int file_count, const char** file_names) {
+    return FileOperation(file_count, file_names, [](const char* file_name) {
+        LexerFileSource input(file_name);
+        Lexer lexer(input);
+        Parser parser(lexer);
+
+        Node* ast_root = parser.Parse();
+
+        try {
+            SemanticAstWalker walker(*ast_root);
+            walker.Walk();
+        }
+        catch (const Exception&) {
+            delete ast_root;
+            throw;
+        }
+
+        DebugPrintNode(ast_root);
+
+        // Tree is dynamically allocated and MUST be deleted.
+        delete ast_root;
+    });
+}
+
 // Prints Gunderscript Application Description to stdout.
 void PrintDescription() {
     std::cout << "Gunderscript 2 CLI Application" << std::endl;
@@ -94,6 +122,7 @@ void PrintDescription() {
     std::cout << "Parameters:" << std::endl;
     std::cout << "  -l : Feed code through lexer stage only and tokenize output." << std::endl;
     std::cout << "  -p : Feed code through lexer and parser stages only and emit serialized AST." << std::endl;
+    std::cout << "  -t : Feed code through lexer and parser and typechecker and emit AST." << std::endl;
 }
 
 // Handles command line arguments and performs appropriate program action.
@@ -122,6 +151,10 @@ CliResult ProcessArguments(int argc, const char** argv) {
         case 'P':
             result = ParseFiles(argc - (i + 1), argv + (i + 1));
             break;
+        case 't':
+        case 'T':
+            result = TypeCheckFiles(argc - (i + 1), argv + (i + 1));
+            break;
         default:
             // Screw you Dijstra! I'll use a goto here if I damn well please.
             // I agree that goto is OFTEN bad, but I disagree with blanket
@@ -130,7 +163,7 @@ CliResult ProcessArguments(int argc, const char** argv) {
         }
     }
 
-    // We're done here, if invlaid args, let the user know.
+    // We're done here, if invalid args, let the user know.
     // Other errors are expected to have already printed.
 eval_cli_result:
     if (result == CliResult::INVALID_ARG) {
