@@ -560,7 +560,7 @@ TEST(SemanticAstWalker, PropertyReturnCorrectly) {
 }
 
 TEST(SemanticAstWalker, PropertyReturnFromSet) {
-    // Check that returning from a setter does not throw.
+    // Check that returning from a setter does throw.
     LexerStringSource source(std::string(
         "package \"Gundersoft\";"
         "public spec Test {"
