@@ -387,8 +387,8 @@ TEST(SemanticAstWalker, FunctionParamTypeSymbols) {
 }
 
 TEST(SemanticAstWalker, FunctionParamSymbolTypeReassign) {
-    // Function params are declared in same scope as function variables and therefore
-    // must only be assigned to the type with which they were originally declared.
+    // Function params are declared in different scope than function variables and therefore
+    // can be masked via reassignment. Masked variables take different types.
     LexerStringSource source(std::string(
         "package \"Gundersoft\";"
         "public spec Test {"
@@ -403,7 +403,7 @@ TEST(SemanticAstWalker, FunctionParamSymbolTypeReassign) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_NO_THROW(semantic_walker.Walk());
     delete root;
 }
 

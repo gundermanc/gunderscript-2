@@ -248,24 +248,10 @@ LexerSymbol SemanticAstWalker::WalkAssign(
 
     std::string symbol_name = MangleLocalVariableSymbolName(name_node);
 
-    // Lookup the variable to check to see if it is already defined.
-    // Gunderscript is strongly typed and once a variable is defined, it CANNOT change
-    // type.
+    // Try to add the variable symbol to the top level of the symbol table
+    // (most recent scope). If the value exists in a lower scope it will
+    // be masked by this new definition until the newer scope is popped.
     try {
-        const Symbol& variable_symbol = this->symbol_table_.Get(symbol_name);
-
-        // Check to make sure that type of new assignment matches original declared type.
-        if (variable_symbol.type() != operations_result) {
-            throw SemanticAstWalkerTypeMismatchException(*this);
-        }
-
-        return variable_symbol.type();
-    }
-    catch (const SymbolTableUndefinedSymbolException& ex) {
-        // The variable isn't defined yet, so it can be assigned to whatever
-        // type we want.
-        // We'll assign it to the resolved type of the value we're assigning
-        // and fill in any remaining symbol fields with arbitrary values.
         this->symbol_table_.Put(
             symbol_name,
             Symbol(
@@ -276,6 +262,20 @@ LexerSymbol SemanticAstWalker::WalkAssign(
                 *name_node->string_value()));
 
         return operations_result;
+    }
+    catch (const SymbolTableDuplicateKeyException& ex) {
+        // Value already exists in the current level of the symbol table
+        // so look up the existing value and its type and make sure that the new type
+        // matches the existing type.
+
+        const Symbol& variable_symbol = this->symbol_table_.Get(symbol_name);
+
+        // Check to make sure that type of new assignment matches original declared type.
+        if (variable_symbol.type() != operations_result) {
+            throw SemanticAstWalkerTypeMismatchException(*this);
+        }
+
+        return variable_symbol.type();
     }
 }
 
