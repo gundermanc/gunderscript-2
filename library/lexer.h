@@ -7,35 +7,11 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "exceptions.h"
+#include "gunderscript/exceptions.h"
+#include "gunderscript/compiler_source.h"
 
 namespace gunderscript {
 namespace library {
-
-// Provides source of input to lexer.
-// has_next: returns false if no more input.
-// NextChar: returns -1 if no more input.
-// PeekNextChar: returns -1 if no more inpu.
-class LexerSourceInterface {
-public:
-    virtual ~LexerSourceInterface() { };
-    virtual bool has_next() = 0;
-    virtual int NextChar() = 0;
-    virtual int PeekNextChar() = 0;
-};
-
-// Implements LexerSourceInterface and provides front
-// end for strings.
-class LexerStringSource : public LexerSourceInterface {
-public:
-    LexerStringSource(std::string& input) { this->input_ = input; }
-    bool has_next() { return this->index < this->input_.length(); }
-    int NextChar();
-    int PeekNextChar();
-private:
-    std::string input_;
-    size_t index = 0;
-};
 
 // POTENTIAL BUG BUG BUG: Whenever you update this enum be sure to update
 // kLexerTokenTypeString array in implementation file or things will break!
@@ -93,7 +69,7 @@ typedef struct {
 // Lexer Class definition and Public/Private interfaces.
 class Lexer {
 public:
-    Lexer(LexerSourceInterface& source);
+    Lexer(CompilerSourceInterface& source);
     ~Lexer();
     int current_column_number() const { return this->current_column_number_; }
     int current_line_number() const { return this->current_line_number_; }
@@ -103,10 +79,10 @@ public:
     const LexerToken* current_token() const;
     const LexerToken* next_token() const;
     bool has_next() const { return this->next_token() != NULL; }
-    LexerSourceInterface* source() const { return source_; }
+    CompilerSourceInterface* source() const { return source_; }
 
 private:
-    LexerSourceInterface* source_;
+    CompilerSourceInterface* source_;
     bool first_load_;
     int current_column_number_;
     int current_line_number_;

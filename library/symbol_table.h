@@ -4,11 +4,11 @@
 #ifndef GUNDERSCRIPT_SYMBOL_TABLE__H__
 #define GUNDERSCRIPT_SYMBOL_TABLE__H__
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-#include "exceptions.h"
+#include "gunderscript/exceptions.h"
 
 namespace gunderscript {
 namespace library {

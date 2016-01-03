@@ -102,32 +102,10 @@ const std::string LexerSymbolString(LexerSymbol symbol) {
     return kLexerSymbolString[(int)symbol];
 }
 
-// Gets the current character from an instance of LexerStringSource
-// and advances the iterator to the next char.
-// Returns: The next char, or -1 if no characters remain.
-int LexerStringSource::NextChar() {
-    if (!this->has_next()) {
-        return -1;
-    }
-
-    return this->input_[this->index++];
-}
-
-// Looks at the current character in the series without moving the
-// iterator.
-// Returns: The current character, or -1 if no characters remain.
-int LexerStringSource::PeekNextChar() {
-    if (!this->has_next()) {
-        return -1;
-    }
-
-    return this->input_[this->index];
-}
-
 // Constructs a Lexer instance from a LexerSource.
 // input: the text data to lex.
 // Throws: A LexerException or its subclasses.
-Lexer::Lexer(LexerSourceInterface& source) {
+Lexer::Lexer(CompilerSourceInterface& source) {
     this->source_ = &source;
     this->first_load_ = true;
     this->current_column_number_ = 0;

@@ -4,7 +4,7 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
-
+/*
 #include "cli.h"
 #include "debug.h"
 #include "exceptions.h"
@@ -175,3 +175,4 @@ eval_cli_result:
 
 } // namespace cli
 } // namespace gunderscript
+*/

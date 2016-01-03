@@ -4,7 +4,8 @@
 #ifndef GUNDERSCRIPT_PARSER__H__
 #define GUNDERSCRIPT_PARSER__H__
 
-#include "exceptions.h"
+#include "gunderscript/exceptions.h"
+
 #include "lexer.h"
 #include "node.h"
 

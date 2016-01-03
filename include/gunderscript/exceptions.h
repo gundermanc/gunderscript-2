@@ -8,7 +8,6 @@
 #include <string>
 
 namespace gunderscript {
-namespace library {
 
 // Gunderscript Exceptions Parent Class
 // Each module's exceptions descend from this class.
@@ -37,7 +36,6 @@ public:
     IllegalStateException(const std::string& message) : Exception(message) { }
 };
 
-} // namespace library
 } // namespace gunderscript
 
 #endif // GUNDERSCRIPT_EXCEPTIONS__H__

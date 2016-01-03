@@ -3,6 +3,6 @@
 # (C) 2015 Christian Gunderman
 #
 
-include_directories(../library)
+include_directories(../include)
 add_executable (gunderscript_cli cli.cc entry.cc)
 target_link_libraries(gunderscript_cli libgunderscript)
