@@ -19,7 +19,7 @@ const std::regex module_name_pattern = std::regex("^([A-Z]|[a-z])+(\\.([A-Z]|[a-
 static const std::string MangleFunctionSymbolName(
     Node* spec_node, 
     Node* name_node,
-    std::vector<LexerSymbol>& arguments_result) {
+    std::vector<Type>& arguments_result) {
 
     Node* spec_name_node = spec_node->child(1);
 
@@ -32,7 +32,7 @@ static const std::string MangleFunctionSymbolName(
     // Append arguments to the symbol name.
     for (size_t i = 0; i < arguments_result.size(); i++) {
         name_buf << "$";
-        name_buf << LexerSymbolString(arguments_result[i]);
+        name_buf << arguments_result[i].symbol_name();
     }
 
     return name_buf.str();
@@ -63,6 +63,26 @@ static const std::string ManglePropertyFunctionSymbolName(
     name_buf << *name_node->string_value();
 
     return name_buf.str();
+}
+
+// Constructor, populates symbol table with Types.
+SemanticAstWalker::SemanticAstWalker(Node& node) : AstWalker(node), symbol_table_() {
+
+    // Add all default types to the Symbol table.
+    for (unsigned int i = 0; i < TYPES.size(); i++) {
+        const Type& current_type = TYPES[i];
+
+        // Create a symbol for the Type.
+        // Extraneous fields are left empty or filled with defaults.
+        Symbol type_symbol(
+            LexerSymbol::PUBLIC,
+            false,
+            current_type,
+            current_type.symbol_name(),
+            std::string());
+
+        this->symbol_table_.PutBottom(current_type.symbol_name(), type_symbol);
+    }
 }
 
 // Walks the MODULE node in the abstract syntax tree.
@@ -96,7 +116,7 @@ void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* na
     Symbol spec_symbol(
         access_modifier_node->symbol_value(),
         false,
-        LexerSymbol::CONCEALED,
+        NONE,
         std::string(),
         *name_node->string_value());
 
@@ -112,7 +132,7 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
     Node* type_node,
     Node* name_node,
     Node* block_node,
-    std::vector<LexerSymbol>& arguments_result,
+    std::vector<Type>& arguments_result,
     bool prescan) {
 
     Node* spec_name_node = spec_node->child(1);
@@ -120,7 +140,7 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
     Symbol function_symbol(
         access_modifier_node->symbol_value(),
         native_node->bool_value(),
-        type_node->symbol_value(),
+        ResolveTypeNode(type_node),
         *spec_name_node->string_value(),
         *name_node->string_value());
 
@@ -137,7 +157,7 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
 
 // Walks a single parameter in a spec function declaration.
 // Returns it to the Function Declaration walker.
-LexerSymbol SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
+Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* spec_node,
     Node* function_node,
     Node* type_node,
@@ -151,7 +171,7 @@ LexerSymbol SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     Symbol variable_symbol(
         LexerSymbol::CONCEALED,
         false,
-        type_node->symbol_value(),
+        ResolveTypeNode(type_node),
         *spec_name_node->string_value(),
         *name_node->string_value());
 
@@ -161,7 +181,7 @@ LexerSymbol SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
         variable_symbol);
 
     // Return the type.
-    return type_node->symbol_value();
+    return ResolveTypeNode(type_node);
 }
 
 // Walks a single property in a spec property declaration.
@@ -192,7 +212,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
     Symbol get_function_symbol(
         get_access_modifier_node->symbol_value(),
         false,
-        type_node->symbol_value(),
+        ResolveTypeNode(type_node),
         *spec_name_node->string_value(),
         *name_node->string_value());
 
@@ -207,7 +227,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
     Symbol set_function_symbol(
         set_access_modifier_node->symbol_value(),
         false,
-        type_node->symbol_value(),
+        ResolveTypeNode(type_node),
         *spec_name_node->string_value(),
         *name_node->string_value());
 
@@ -217,10 +237,10 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
 
 // Walks a function call and checks to make sure that the types
 // of the function matches the context.
-LexerSymbol SemanticAstWalker::WalkFunctionCall(
+Type SemanticAstWalker::WalkFunctionCall(
     Node* spec_node,
     Node* name_node,
-    std::vector<LexerSymbol>& arguments_result) {
+    std::vector<Type>& arguments_result) {
 
     Node* spec_name_node = spec_node->child(1);
 
@@ -241,10 +261,10 @@ LexerSymbol SemanticAstWalker::WalkFunctionCall(
 
 // Walks an assignment statement or expression and checks to make sure
 // that the types match the context in which it was used.
-LexerSymbol SemanticAstWalker::WalkAssign(
+Type SemanticAstWalker::WalkAssign(
     Node* spec_node,
     Node* name_node,
-    LexerSymbol operations_result) {
+    Type operations_result) {
 
     std::string symbol_name = MangleLocalVariableSymbolName(name_node);
 
@@ -281,13 +301,13 @@ LexerSymbol SemanticAstWalker::WalkAssign(
 
 // Walks and validates a return value type for a function or property.
 // TODO: make this work for properties.
-LexerSymbol SemanticAstWalker::WalkReturn(
+Type SemanticAstWalker::WalkReturn(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
-    LexerSymbol expression_result,
-    std::vector<LexerSymbol>* arguments_result) {
+    Type expression_result,
+    std::vector<Type>* arguments_result) {
 
     Node* name_node = NULL;
     std::string symbol_name;
@@ -338,67 +358,67 @@ void SemanticAstWalker::CheckValidModuleName(const std::string& module_name) {
 }
 
 // Walks the ADD node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkAdd(
+Type SemanticAstWalker::WalkAdd(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     return CalculateResultantType(left_result, right_result);
 }
 
 // Walks the SUB node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkSub(
+Type SemanticAstWalker::WalkSub(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     return CalculateNumericResultantType(left_result, right_result);
 }
 
 // Walks the MUL node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkMul(
+Type SemanticAstWalker::WalkMul(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     return CalculateNumericResultantType(left_result, right_result);
 }
 
 // Walks the DIV node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkDiv(
+Type SemanticAstWalker::WalkDiv(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     return CalculateNumericResultantType(left_result, right_result);
 }
 // Walks the MOD node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkMod(
+Type SemanticAstWalker::WalkMod(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     return CalculateNumericResultantType(left_result, right_result);
 }
 
 // Walks the LOGNOT node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkLogNot(
+Type SemanticAstWalker::WalkLogNot(
     Node* spec_node,
     Node* child_node,
-    LexerSymbol child_result) {
+    Type child_result) {
 
     // Check for boolean type. NOT works only with booleans.
-    if (child_result != LexerSymbol::BOOL) {
+    if (child_result != BOOL) {
         throw SemanticAstWalkerTypeMismatchException(*this);
     }
 
@@ -406,181 +426,181 @@ LexerSymbol SemanticAstWalker::WalkLogNot(
 }
 
 // Walks the LOGAND node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkLogAnd(
+Type SemanticAstWalker::WalkLogAnd(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     return CalculateBoolResultantType(left_result, right_result);
 }
 
 // Walks the LOGOR node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkLogOr(
+Type SemanticAstWalker::WalkLogOr(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     return CalculateBoolResultantType(left_result, right_result);
 }
 
 // Walks the GREATER node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkGreater(
+Type SemanticAstWalker::WalkGreater(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     // Check that comparision types are the same.
     // Function will throw if different.
     CalculateNumericResultantType(left_result, right_result);
 
     // Resultant type is a BOOL telling whether comparision is true or false.
-    return LexerSymbol::BOOL;
+    return BOOL;
 }
 
 // Walks the EQUALS node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkEquals(
+Type SemanticAstWalker::WalkEquals(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     // Check that comparision types are the same.
     // Function will throw if different.
     CalculateResultantType(left_result, right_result);
 
     // Resultant type is a BOOL telling whether comparision is true or false.
-    return LexerSymbol::BOOL;
+    return BOOL;
 }
 
 // Walks the NOT_EQUALS node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkNotEquals(
+Type SemanticAstWalker::WalkNotEquals(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     // Check that comparision types are the same.
     // Function will throw if different.
     CalculateResultantType(left_result, right_result);
 
     // Resultant type is a BOOL telling whether comparision is true or false.
-    return LexerSymbol::BOOL;
+    return BOOL;
 }
 
 // Walks the LESS node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkLess(
+Type SemanticAstWalker::WalkLess(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     // Check that comparision types are the same.
     // Function will throw if different.
     CalculateNumericResultantType(left_result, right_result);
 
     // Resultant type is a BOOL telling whether comparision is true or false.
-    return LexerSymbol::BOOL;
+    return BOOL;
 }
 
 // Walks the GREATER_EQUALS node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkGreaterEquals(
+Type SemanticAstWalker::WalkGreaterEquals(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     // Check that comparision types are the same.
     // Function will throw if different.
     CalculateNumericResultantType(left_result, right_result);
 
     // Resultant type is a BOOL telling whether comparision is true or false.
-    return LexerSymbol::BOOL;
+    return BOOL;
 }
 
 // Walks the LESS_EQUALS node and calculates it's return type.
-LexerSymbol SemanticAstWalker::WalkLessEquals(
+Type SemanticAstWalker::WalkLessEquals(
     Node* spec_node,
     Node* left_node,
     Node* right_node,
-    LexerSymbol left_result,
-    LexerSymbol right_result) {
+    Type left_result,
+    Type right_result) {
 
     // Check that comparision types are the same.
     // Function will throw if different.
     CalculateNumericResultantType(left_result, right_result);
 
     // Resultant type is a BOOL telling whether comparision is true or false.
-    return LexerSymbol::BOOL;
+    return BOOL;
 }
 
 // Walks the BOOL node and returns the type for it.
-LexerSymbol SemanticAstWalker::WalkBool(
+Type SemanticAstWalker::WalkBool(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
     Node* bool_node) {
 
-    return LexerSymbol::BOOL;
+    return BOOL;
 }
 
 // Walks the INT node and returns the type for it.
-LexerSymbol SemanticAstWalker::WalkInt(
+Type SemanticAstWalker::WalkInt(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
     Node* int_node) {
 
-    return LexerSymbol::INT;
+    return INT;
 }
 
 // Walks the FLOAT node and returns the type for it.
-LexerSymbol SemanticAstWalker::WalkFloat(
+Type SemanticAstWalker::WalkFloat(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
     Node* float_node) {
 
-    return LexerSymbol::FLOAT;
+    return FLOAT;
 }
 
 // Walks the STRING node and returns the type for it.
-LexerSymbol SemanticAstWalker::WalkString(
+Type SemanticAstWalker::WalkString(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
     Node* string_node) {
 
-    return LexerSymbol::STRING;
+    return STRING;
 }
 
 // Walks the CHAR node and returns the type for it.
-LexerSymbol SemanticAstWalker::WalkChar(
+Type SemanticAstWalker::WalkChar(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
     Node* char_node) {
 
-    return LexerSymbol::CHAR;
+    return CHAR;
 }
 
 // Walks the SYMBOL->NAME subtree that represents a variable reference
 // and returns the type for it.
-LexerSymbol SemanticAstWalker::WalkVariable(
+Type SemanticAstWalker::WalkVariable(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
@@ -594,14 +614,14 @@ LexerSymbol SemanticAstWalker::WalkVariable(
 }
 
 // Walks the ANY_TYPE node and returns the type for it.
-LexerSymbol SemanticAstWalker::WalkAnyType(
+Type SemanticAstWalker::WalkAnyType(
     Node* spec_node,
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
     Node* any_type_node) {
 
-    return LexerSymbol::ANY_TYPE;
+    return NONE;
 }
 
 // Compares the access modifier of the member and the calling function's
@@ -663,7 +683,7 @@ void SemanticAstWalker::WalkBlockChildren(
     Node* property_node,
     PropertyFunction property_function,
     Node* block,
-    std::vector<LexerSymbol>* arguments_result) {
+    std::vector<Type>* arguments_result) {
 
     // Push new scope.
     this->symbol_table_.Push();
@@ -683,7 +703,7 @@ void SemanticAstWalker::WalkBlockChildren(
 
 // Calculates the type of a binary operator expression from the types of its
 // operands.
-LexerSymbol SemanticAstWalker::CalculateResultantType(LexerSymbol left, LexerSymbol right) {
+Type SemanticAstWalker::CalculateResultantType(Type left, Type right) {
 
     // We're going to take a stickler model in Gunderscript:
     // you must explicitly typecast everything. There are absolutely no
@@ -693,10 +713,10 @@ LexerSymbol SemanticAstWalker::CalculateResultantType(LexerSymbol left, LexerSym
     }
 
     // Accept ANY_TYPE nodes as matches for any given type.
-    if (left == LexerSymbol::ANY_TYPE) {
+    if (left == NONE) {
         return right;
     }
-    if (right == LexerSymbol::ANY_TYPE) {
+    if (right == NONE) {
         return left;
     }
 
@@ -706,11 +726,11 @@ LexerSymbol SemanticAstWalker::CalculateResultantType(LexerSymbol left, LexerSym
 
 // Calculates the type of a binary operator expression from the types of its
 // operands. Operands must both be numeric.
-LexerSymbol SemanticAstWalker::CalculateNumericResultantType(LexerSymbol left, LexerSymbol right) {
+Type SemanticAstWalker::CalculateNumericResultantType(Type left, Type right) {
 
     // Disallow non-numerical operands.
-    if (left != LexerSymbol::INT && left != LexerSymbol::FLOAT &&
-        right != LexerSymbol::INT && right != LexerSymbol::FLOAT) {
+    if ((left.type_format() != TypeFormat::INT && left.type_format() != TypeFormat::FLOAT) ||
+        (right.type_format() != TypeFormat::INT && right.type_format() != TypeFormat::FLOAT)) {
         throw SemanticAstWalkerTypeMismatchException(*this);
     }
 
@@ -720,14 +740,23 @@ LexerSymbol SemanticAstWalker::CalculateNumericResultantType(LexerSymbol left, L
 
 // Calculates the type of a binary operator expression from the types of its
 // operands. Operands must both be numeric.
-LexerSymbol SemanticAstWalker::CalculateBoolResultantType(LexerSymbol left, LexerSymbol right) {
+Type SemanticAstWalker::CalculateBoolResultantType(Type left, Type right) {
 
     // Both operands must be BOOL.
-    if (left != LexerSymbol::BOOL || right != LexerSymbol::BOOL) {
+    if (left != BOOL || right != BOOL) {
         throw SemanticAstWalkerTypeMismatchException(*this);
     }
 
     return right;
+}
+
+// Looks up a type node's name in the symbol table and returns its Type
+// object.
+Type SemanticAstWalker::ResolveTypeNode(Node* type_node) {
+    // TODO: better exception here.
+    const Symbol& type_symbol = this->symbol_table_.Get(*type_node->string_value());
+
+    return type_symbol.type();
 }
 
 } // namespace library

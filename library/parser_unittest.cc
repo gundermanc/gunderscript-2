@@ -453,7 +453,7 @@ TEST(Parser, ParsePropertyAuto) {
 
         Node* x_type_node = x_node->child(0);
         EXPECT_EQ(NodeRule::TYPE, x_type_node->rule());
-        EXPECT_EQ(LexerSymbol::FLOAT, x_type_node->symbol_value());
+        EXPECT_STREQ("float", x_type_node->string_value()->c_str());
 
         Node* x_name_node = x_node->child(1);
         EXPECT_EQ(NodeRule::NAME, x_name_node->rule());
@@ -537,7 +537,7 @@ TEST(Parser, ParsePropertyWithFunctionBody) {
     Node* foo_setter_node = foo_node->child(3);
 
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
-    ASSERT_EQ(LexerSymbol::INT, foo_type_node->symbol_value());
+    ASSERT_STREQ("int", foo_type_node->string_value()->c_str());
 
     EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
     ASSERT_STREQ("Foo", foo_name_node->string_value()->c_str());
@@ -600,7 +600,7 @@ TEST(Parser, ParseFunctionEmpty) {
 
     Node* foo_type_node = foo_node->child(2);
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
-    EXPECT_EQ(LexerSymbol::INT, foo_type_node->symbol_value());
+    EXPECT_STREQ("int", foo_type_node->string_value()->c_str());
 
     Node* foo_name_node = foo_node->child(3);
     EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
@@ -645,7 +645,7 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
 
     Node* foo_type_node = foo_node->child(2);
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
-    EXPECT_EQ(LexerSymbol::STRING, foo_type_node->symbol_value());
+    EXPECT_STREQ("string", foo_type_node->string_value()->c_str());
 
     Node* foo_name_node = foo_node->child(3);
     EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
@@ -661,7 +661,7 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
 
     Node* foo_x_type_node = foo_x_node->child(0);
     EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
-    EXPECT_EQ(LexerSymbol::INT, foo_x_type_node->symbol_value());
+    EXPECT_STREQ("int", foo_x_type_node->string_value()->c_str());
 
     Node* foo_x_name_node = foo_x_node->child(1);
     EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
@@ -699,7 +699,7 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
 
     Node* foo_x_type_node = foo_x_node->child(0);
     EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
-    EXPECT_EQ(LexerSymbol::INT, foo_x_type_node->symbol_value());
+    EXPECT_STREQ("int", foo_x_type_node->string_value()->c_str());
 
     Node* foo_x_name_node = foo_x_node->child(1);
     EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
@@ -711,7 +711,7 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
 
     Node* foo_y_type_node = foo_y_node->child(0);
     EXPECT_EQ(NodeRule::TYPE, foo_y_type_node->rule());
-    EXPECT_EQ(LexerSymbol::STRING, foo_y_type_node->symbol_value());
+    EXPECT_STREQ("string", foo_y_type_node->string_value()->c_str());
 
     Node* foo_y_name_node = foo_y_node->child(1);
     EXPECT_EQ(NodeRule::NAME, foo_y_name_node->rule());

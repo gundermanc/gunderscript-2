@@ -1,6 +1,6 @@
 #
 # Gunderscript 2 Library Build File
-# (C) 2015 Christian Gunderman
+# (C) 2015-2016 Christian Gunderman
 #
 
 # Compile the Gunderscript library.

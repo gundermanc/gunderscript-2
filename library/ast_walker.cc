@@ -1,13 +1,15 @@
 // Gunderscript-2 Parse/AST Node
-// (C) 2014-2015 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
+
+#include "gunderscript/type.h"
 
 #include "ast_walker.h"
 
 namespace gunderscript {
 namespace library {
 
-// Instantiate template with LexerSymbol so we can link from external module.
-template class AstWalker<LexerSymbol>;
+// Instantiate template with Type so we can link from external module.
+template class AstWalker<Type>;
 
 // Walks through all expected children of the MODULE
 // AST node (the root of the AST). Expected children of this

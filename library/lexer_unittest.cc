@@ -1,5 +1,5 @@
 // Gunderscript 2 Lexer Unit Test
-// (C) 2014 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 
 #include "gtest/gtest.h"
 
@@ -461,11 +461,6 @@ TEST_KEYWORD(DEPENDS, "depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
 TEST_KEYWORD(NATIVE, "native", LexerTokenType::KEYWORD, LexerSymbol::NATIVE);
 TEST_KEYWORD(TNULL, "null", LexerTokenType::KEYWORD, LexerSymbol::TNULL);
 
-TEST_KEYWORD(INT, "int", LexerTokenType::TYPE, LexerSymbol::INT);
-TEST_KEYWORD(FLOAT, "float", LexerTokenType::TYPE, LexerSymbol::FLOAT);
-TEST_KEYWORD(BOOL, "bool", LexerTokenType::TYPE, LexerSymbol::BOOL);
-TEST_KEYWORD(CHAR, "char", LexerTokenType::TYPE, LexerSymbol::CHAR);
-
 TEST(Lexer, ParseIntegers) {
     std::string input = "3433+ 211";
     CompilerStringSource source(input);
@@ -569,8 +564,8 @@ TEST(Lexer, FunctionExample) {
     EXPECT_EQ(LexerSymbol::PUBLIC, lexer.current_token()->symbol);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
-    EXPECT_EQ(LexerTokenType::TYPE, lexer.current_token()->type);
-    EXPECT_EQ(LexerSymbol::INT, lexer.current_token()->symbol);
+    EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
+    EXPECT_STREQ("int", lexer.current_token()->string_const->c_str());
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
     EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
@@ -581,8 +576,8 @@ TEST(Lexer, FunctionExample) {
     EXPECT_EQ(LexerSymbol::LPAREN, lexer.current_token()->symbol);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
-    EXPECT_EQ(LexerTokenType::TYPE, lexer.current_token()->type);
-    EXPECT_EQ(LexerSymbol::STRING, lexer.current_token()->symbol);
+    EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
+    EXPECT_STREQ("string", lexer.current_token()->string_const->c_str());
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
     EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
@@ -597,8 +592,8 @@ TEST(Lexer, FunctionExample) {
     EXPECT_EQ(LexerSymbol::LBRACE, lexer.current_token()->symbol);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
-    EXPECT_EQ(LexerTokenType::TYPE, lexer.current_token()->type);
-    EXPECT_EQ(LexerSymbol::INT, lexer.current_token()->symbol);
+    EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
+    EXPECT_STREQ("int", lexer.current_token()->string_const->c_str());
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
     EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);

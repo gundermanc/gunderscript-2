@@ -26,7 +26,6 @@ void DebugPrintLexerToken(const LexerToken& token) {
     case LexerTokenType::ACCESS_MODIFIER:
     case LexerTokenType::KEYWORD:
     case LexerTokenType::SYMBOL:
-    case LexerTokenType::TYPE:
         snprintf(value, kMaxValueLen, "%s", LexerSymbolString(token.symbol).c_str());
         break;
     case LexerTokenType::NAME:

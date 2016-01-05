@@ -6,8 +6,9 @@
 
 #include <string>
 
+#include "gunderscript/type.h"
+
 #include "lexer.h"
-#include "symbol_table.h"
 
 namespace gunderscript {
 namespace library {
@@ -17,7 +18,7 @@ public:
     Symbol(
         LexerSymbol access_modifier,
         bool native,
-        LexerSymbol type,
+        const Type& type,
         const std::string& spec_name,
         const std::string& name) 
         : access_modifier_(access_modifier),
@@ -28,14 +29,14 @@ public:
 
     LexerSymbol access_modifier() const { return access_modifier_; }
     bool native() const { return native_; }
-    LexerSymbol type() const { return type_; }
+    const Type& type() const { return type_; }
     const std::string name() const { return name_; }
     const std::string spec_name() const { return spec_name_; }
 
 private:
     LexerSymbol access_modifier_;
     const bool native_;
-    const LexerSymbol type_;
+    const Type type_;
     const std::string name_;
     const std::string spec_name_;
 };

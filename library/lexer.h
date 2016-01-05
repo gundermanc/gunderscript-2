@@ -7,8 +7,8 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "gunderscript/exceptions.h"
 #include "gunderscript/compiler_source.h"
+#include "gunderscript/exceptions.h"
 
 namespace gunderscript {
 namespace library {
@@ -17,15 +17,14 @@ namespace library {
 // kLexerTokenTypeString array in implementation file or things will break!
 // LexerToken Types.
 // ACCESS_MODIFIER: contains LexerSymbol.
-// TYPE: contains LexerSymbol.
 // KEYWORD: contains LexerSymbol.
 // SYMBOL: contains LexerSymbol
-// NAME: contains string_const.
+// NAME: contains string_const and represents a variable name or type name.
 // INT: contains int_const.
 // FLOAT: contains float_const.
 // STRING: contains string_const.
 enum class LexerTokenType {
-    ACCESS_MODIFIER, TYPE, KEYWORD, SYMBOL, NAME, INT, FLOAT, STRING, CHAR
+    ACCESS_MODIFIER, KEYWORD, SYMBOL, NAME, INT, FLOAT, STRING, CHAR
 };
 
 // All of the various operators, types, access modifiers, etc.
@@ -43,10 +42,7 @@ enum class LexerSymbol {
     // Keywords:
     SPEC, IF, ELSE, DO, WHILE, TRUE, FALSE, RETURN, GET, SET, CONCEIVE,
     ERADICATE, START, READONLY, FOR, BREAK, CONTINUE, DEPENDS, PACKAGE,
-    NATIVE,
-
-    // Types:
-    CHAR, INT, FLOAT, BOOL, STRING, TNULL, 
+    NATIVE, TNULL,
 
     // TODO: remove this when we make a legit type system.
     ANY_TYPE

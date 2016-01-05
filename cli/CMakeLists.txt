@@ -1,6 +1,6 @@
 #
 # Gunderscript 2 Command Line Build File
-# (C) 2015 Christian Gunderman
+# (C) 2015-2016 Christian Gunderman
 #
 
 include_directories(../include)

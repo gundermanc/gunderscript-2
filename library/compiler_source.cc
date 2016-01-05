@@ -1,5 +1,5 @@
 // Gunderscript-2 Lexer File Source
-// (C) 2015 Christian Gunderman
+// (C) 2015-2016 Christian Gunderman
 
 #include <fstream>
 #include <iostream>

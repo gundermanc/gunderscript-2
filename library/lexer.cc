@@ -1,5 +1,5 @@
 // Gunderscript-2 Lexer
-// (C) 2014 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 
 #include "lexer.h"
 
@@ -60,7 +60,7 @@ namespace library {
 // LexerTokenType enum in header. These two MUST be identical or things will
 // break.
 static const std::string kLexerTokenTypeString[] = {
-    "ACCESS_MODIFIER", "TYPE", "KEYWORD", "SYMBOL", "NAME", "INT", "FLOAT",
+    "ACCESS_MODIFIER", "KEYWORD", "SYMBOL", "NAME", "INT", "FLOAT",
     "STRING", "CHAR"
 };
 
@@ -197,13 +197,6 @@ void Lexer::LoadKeywords() {
     DEFINE_KEYWORD("depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
     DEFINE_KEYWORD("native", LexerTokenType::KEYWORD, LexerSymbol::NATIVE);
     DEFINE_KEYWORD("null", LexerTokenType::KEYWORD, LexerSymbol::TNULL);
-
-    // Primitive Types:
-    DEFINE_KEYWORD("int", LexerTokenType::TYPE, LexerSymbol::INT);
-    DEFINE_KEYWORD("float", LexerTokenType::TYPE, LexerSymbol::FLOAT);
-    DEFINE_KEYWORD("bool", LexerTokenType::TYPE, LexerSymbol::BOOL);
-    DEFINE_KEYWORD("char", LexerTokenType::TYPE, LexerSymbol::CHAR);
-    DEFINE_KEYWORD("string", LexerTokenType::TYPE, LexerSymbol::STRING);
 }
 
 // Processes and removes comments from code.

@@ -1,5 +1,5 @@
 // Gunderscript-2 Exceptions Definitions
-// (C) 2014 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 
 #ifndef GUNDERSCRIPT_EXCEPTIONS__H__
 #define GUNDERSCRIPT_EXCEPTIONS__H__

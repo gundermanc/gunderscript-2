@@ -1,5 +1,5 @@
 // Gunderscript 2 Semantic (type) Checker for AST Unit Test
-// (C) 2015 Christian Gunderman
+// (C) 2015-2016 Christian Gunderman
 
 #include "gtest/gtest.h"
 

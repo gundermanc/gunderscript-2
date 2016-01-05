@@ -1,5 +1,5 @@
 // Gunderscript-2 Compiler Source Interface API
-// (C) 2015 Christian Gunderman
+// (C) 2016 Christian Gunderman
 
 #ifndef GUNDERSCRIPT_COMPILER_SOURCE__H__
 #define GUNDERSCRIPT_COMPILER_SOURCE__H__
