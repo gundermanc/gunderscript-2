@@ -552,14 +552,14 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         Node* left_node = binary_operation_node->child(0);
         Node* right_node = binary_operation_node->child(1);
 
-        LexerSymbol left_result = WalkBinaryOperationChildren(
+        ReturnType left_result = WalkBinaryOperationChildren(
             spec_node,
             function_node,
             property_node,
             property_function,
             left_node);
 
-        LexerSymbol right_result = WalkBinaryOperationChildren(
+        ReturnType right_result = WalkBinaryOperationChildren(
             spec_node,
             function_node,
             property_node,

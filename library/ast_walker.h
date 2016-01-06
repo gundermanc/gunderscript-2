@@ -76,7 +76,7 @@ protected:
         Node* property_node,
         PropertyFunction property_function,
         ReturnType expression_result,
-        std::vector<LexerSymbol>* arguments_result) = 0;
+        std::vector<ReturnType>* arguments_result) = 0;
     virtual ReturnType WalkAdd(
         Node* spec_node,
         Node* left_node,

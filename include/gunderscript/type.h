@@ -18,7 +18,7 @@ enum class TypeFormat {
 class Type {
 public:
     Type(const std::string& symbol_name, const TypeFormat type_format, int size = -1)
-        : symbol_name_(symbol_name_), type_format_(type_format), size_(size) { }
+        : symbol_name_(symbol_name), type_format_(type_format), size_(size) { }
     const std::string& symbol_name() const { return symbol_name_; }
     TypeFormat type_format() const { return type_format_; }
     int size() const { return size_; }
@@ -32,20 +32,20 @@ private:
 };
 
 // Default types.
-const Type NONE("none", TypeFormat::OBJECT, -1);
-const Type BOOL("bool", TypeFormat::BOOL, 8);
-const Type INT("int", TypeFormat::INT, 8);
-const Type FLOAT("float", TypeFormat::FLOAT, 8);
-const Type STRING("string", TypeFormat::OBJECT);
-const Type CHAR("char", TypeFormat::INT, 1);
+const Type TYPE_NONE("none", TypeFormat::OBJECT, -1);
+const Type TYPE_BOOL("bool", TypeFormat::BOOL, 8);
+const Type TYPE_INT("int", TypeFormat::INT, 8);
+const Type TYPE_FLOAT("float", TypeFormat::FLOAT, 8);
+const Type TYPE_STRING("string", TypeFormat::OBJECT);
+const Type TYPE_CHAR("char", TypeFormat::INT, 1);
 
 // Vector of all default types.
 const std::vector<Type> TYPES = {
-    BOOL,
-    INT,
-    FLOAT,
-    STRING,
-    CHAR
+    TYPE_BOOL,
+    TYPE_INT,
+    TYPE_FLOAT,
+    TYPE_STRING,
+    TYPE_CHAR
 };
 
 } // namespace gunderscript

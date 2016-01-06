@@ -116,7 +116,7 @@ void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* na
     Symbol spec_symbol(
         access_modifier_node->symbol_value(),
         false,
-        NONE,
+        TYPE_NONE,
         std::string(),
         *name_node->string_value());
 
@@ -418,7 +418,7 @@ Type SemanticAstWalker::WalkLogNot(
     Type child_result) {
 
     // Check for boolean type. NOT works only with booleans.
-    if (child_result != BOOL) {
+    if (child_result != TYPE_BOOL) {
         throw SemanticAstWalkerTypeMismatchException(*this);
     }
 
@@ -459,8 +459,8 @@ Type SemanticAstWalker::WalkGreater(
     // Function will throw if different.
     CalculateNumericResultantType(left_result, right_result);
 
-    // Resultant type is a BOOL telling whether comparision is true or false.
-    return BOOL;
+    // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
+    return TYPE_BOOL;
 }
 
 // Walks the EQUALS node and calculates it's return type.
@@ -475,8 +475,8 @@ Type SemanticAstWalker::WalkEquals(
     // Function will throw if different.
     CalculateResultantType(left_result, right_result);
 
-    // Resultant type is a BOOL telling whether comparision is true or false.
-    return BOOL;
+    // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
+    return TYPE_BOOL;
 }
 
 // Walks the NOT_EQUALS node and calculates it's return type.
@@ -491,8 +491,8 @@ Type SemanticAstWalker::WalkNotEquals(
     // Function will throw if different.
     CalculateResultantType(left_result, right_result);
 
-    // Resultant type is a BOOL telling whether comparision is true or false.
-    return BOOL;
+    // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
+    return TYPE_BOOL;
 }
 
 // Walks the LESS node and calculates it's return type.
@@ -507,8 +507,8 @@ Type SemanticAstWalker::WalkLess(
     // Function will throw if different.
     CalculateNumericResultantType(left_result, right_result);
 
-    // Resultant type is a BOOL telling whether comparision is true or false.
-    return BOOL;
+    // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
+    return TYPE_BOOL;
 }
 
 // Walks the GREATER_EQUALS node and calculates it's return type.
@@ -523,8 +523,8 @@ Type SemanticAstWalker::WalkGreaterEquals(
     // Function will throw if different.
     CalculateNumericResultantType(left_result, right_result);
 
-    // Resultant type is a BOOL telling whether comparision is true or false.
-    return BOOL;
+    // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
+    return TYPE_BOOL;
 }
 
 // Walks the LESS_EQUALS node and calculates it's return type.
@@ -539,11 +539,11 @@ Type SemanticAstWalker::WalkLessEquals(
     // Function will throw if different.
     CalculateNumericResultantType(left_result, right_result);
 
-    // Resultant type is a BOOL telling whether comparision is true or false.
-    return BOOL;
+    // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
+    return TYPE_BOOL;
 }
 
-// Walks the BOOL node and returns the type for it.
+// Walks the TYPE_BOOL node and returns the type for it.
 Type SemanticAstWalker::WalkBool(
     Node* spec_node,
     Node* function_node,
@@ -551,10 +551,10 @@ Type SemanticAstWalker::WalkBool(
     PropertyFunction property_function,
     Node* bool_node) {
 
-    return BOOL;
+    return TYPE_BOOL;
 }
 
-// Walks the INT node and returns the type for it.
+// Walks the TYPE_INT node and returns the type for it.
 Type SemanticAstWalker::WalkInt(
     Node* spec_node,
     Node* function_node,
@@ -562,7 +562,7 @@ Type SemanticAstWalker::WalkInt(
     PropertyFunction property_function,
     Node* int_node) {
 
-    return INT;
+    return TYPE_INT;
 }
 
 // Walks the FLOAT node and returns the type for it.
@@ -573,7 +573,7 @@ Type SemanticAstWalker::WalkFloat(
     PropertyFunction property_function,
     Node* float_node) {
 
-    return FLOAT;
+    return TYPE_FLOAT;
 }
 
 // Walks the STRING node and returns the type for it.
@@ -584,7 +584,7 @@ Type SemanticAstWalker::WalkString(
     PropertyFunction property_function,
     Node* string_node) {
 
-    return STRING;
+    return TYPE_STRING;
 }
 
 // Walks the CHAR node and returns the type for it.
@@ -595,7 +595,7 @@ Type SemanticAstWalker::WalkChar(
     PropertyFunction property_function,
     Node* char_node) {
 
-    return CHAR;
+    return TYPE_CHAR;
 }
 
 // Walks the SYMBOL->NAME subtree that represents a variable reference
@@ -621,7 +621,7 @@ Type SemanticAstWalker::WalkAnyType(
     PropertyFunction property_function,
     Node* any_type_node) {
 
-    return NONE;
+    return TYPE_NONE;
 }
 
 // Compares the access modifier of the member and the calling function's
@@ -644,7 +644,7 @@ void SemanticAstWalker::CheckAccessModifier(
         throw new NotImplementedException();
     case LexerSymbol::INTERNAL:
         // What exactly 'internal' means is currently up in the air.
-        // Internal is INTENDED to mean that it is internal to the file,
+        // Internal is TYPE_INTENDED to mean that it is internal to the file,
         // but there isn't support for multifile lex/parse/typecheck yet.
         // TODO: complete this.
         throw new NotImplementedException();
@@ -712,11 +712,11 @@ Type SemanticAstWalker::CalculateResultantType(Type left, Type right) {
         return right;
     }
 
-    // Accept ANY_TYPE nodes as matches for any given type.
-    if (left == NONE) {
+    // Accept TYPE_NONE nodes as matches for any given type.
+    if (left == TYPE_NONE) {
         return right;
     }
-    if (right == NONE) {
+    if (right == TYPE_NONE) {
         return left;
     }
 
@@ -728,22 +728,23 @@ Type SemanticAstWalker::CalculateResultantType(Type left, Type right) {
 // operands. Operands must both be numeric.
 Type SemanticAstWalker::CalculateNumericResultantType(Type left, Type right) {
 
+    // Do other checks.
+    Type resultant_type = CalculateResultantType(left, right);
+
     // Disallow non-numerical operands.
-    if ((left.type_format() != TypeFormat::INT && left.type_format() != TypeFormat::FLOAT) ||
-        (right.type_format() != TypeFormat::INT && right.type_format() != TypeFormat::FLOAT)) {
+    if (resultant_type != TYPE_INT && resultant_type != TYPE_FLOAT) {
         throw SemanticAstWalkerTypeMismatchException(*this);
     }
 
-    // Do other checks.
-    return CalculateResultantType(left, right);
+    return resultant_type;
 }
 
 // Calculates the type of a binary operator expression from the types of its
 // operands. Operands must both be numeric.
 Type SemanticAstWalker::CalculateBoolResultantType(Type left, Type right) {
 
-    // Both operands must be BOOL.
-    if (left != BOOL || right != BOOL) {
+    // Both operands must be TYPE_BOOL.
+    if (left != TYPE_BOOL || right != TYPE_BOOL) {
         throw SemanticAstWalkerTypeMismatchException(*this);
     }
 
