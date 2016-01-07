@@ -17,7 +17,7 @@ namespace library {
 class LexerFileSource : public LexerSourceInterface {
 public:
     LexerFileSource(const std::string& file_name);
-    LexerFileSource::~LexerFileSource();
+    ~LexerFileSource();
     bool has_next();
     int NextChar();
     int PeekNextChar();

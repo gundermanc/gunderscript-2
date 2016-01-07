@@ -5,7 +5,7 @@
 
 option(libgunderscript_tests "Gunderscript Tests" ON)
 
-cmake_minimum_required (VERSION 3.4.0)
+cmake_minimum_required (VERSION 3.2.2)
 project (GUNDERSCRIPT)
 
 # Force static linkage of the runtime library so that we don't depend on

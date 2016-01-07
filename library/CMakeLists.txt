@@ -15,6 +15,10 @@ add_library (
     ast_walker.cc
     semantic_ast_walker.cc)
 
+# Require C++ 11 Standard
+set_property (TARGET libgunderscript PROPERTY CXX_STANDARD 11)
+set_property (TARGET libgunderscript PROPERTY CXX_STANDARD_REQUIRED ON)
+
 # Generate tests if option enabled.
 if (libgunderscript_tests)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
@@ -26,4 +30,8 @@ if (libgunderscript_tests)
         semantic_ast_walker_unittest.cc)
     target_link_libraries(libgunderscript_tests libgunderscript)
     target_link_libraries(libgunderscript_tests gtest gtest_main)
+
+    # Require C++ 11 Standard
+    set_property (TARGET libgunderscript_tests PROPERTY CXX_STANDARD 11)
+    set_property (TARGET libgunderscript_tests PROPERTY CXX_STANDARD_REQUIRED ON)
 endif ()
