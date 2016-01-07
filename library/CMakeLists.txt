@@ -3,9 +3,9 @@
 # (C) 2015 Christian Gunderman
 #
 
-# Compile the Gunderscript library.
+# Compile the Gunderscript rary.
 add_library (
-    libgunderscript
+    gunderscript
     debug.cc
     lexer.cc
     lexer_file_source.cc
@@ -15,23 +15,15 @@ add_library (
     ast_walker.cc
     semantic_ast_walker.cc)
 
-# Require C++ 11 Standard
-set_property (TARGET libgunderscript PROPERTY CXX_STANDARD 11)
-set_property (TARGET libgunderscript PROPERTY CXX_STANDARD_REQUIRED ON)
-
 # Generate tests if option enabled.
-if (libgunderscript_tests)
+if (gunderscript_tests)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
     add_executable (
-        libgunderscript_tests
+        gunderscript_tests
         lexer_unittest.cc
         symbol_table_unittest.cc
         parser_unittest.cc
         semantic_ast_walker_unittest.cc)
-    target_link_libraries(libgunderscript_tests libgunderscript)
-    target_link_libraries(libgunderscript_tests gtest gtest_main)
-
-    # Require C++ 11 Standard
-    set_property (TARGET libgunderscript_tests PROPERTY CXX_STANDARD 11)
-    set_property (TARGET libgunderscript_tests PROPERTY CXX_STANDARD_REQUIRED ON)
+    target_link_libraries(gunderscript_tests gunderscript)
+    target_link_libraries(gunderscript_tests gtest gtest_main)
 endif ()
