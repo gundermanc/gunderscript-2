@@ -596,7 +596,7 @@ TEST(Parser, ParseFunctionEmpty) {
 
     Node* foo_native_node = foo_node->child(1);
     EXPECT_EQ(NodeRule::NATIVE, foo_native_node->rule());
-    EXPECT_EQ(false, foo_native_node->bool_value());
+    EXPECT_FALSE(foo_native_node->bool_value());
 
     Node* foo_type_node = foo_node->child(2);
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
@@ -1467,7 +1467,7 @@ TEST(Parser, ParseBooleanExpression) {
 
     Node* foo_expression_left_right_node = foo_expression_left_node->child(1);
     EXPECT_EQ(NodeRule::BOOL, foo_expression_left_right_node->rule());
-    EXPECT_EQ(false, foo_expression_left_right_node->bool_value());
+    EXPECT_FALSE(foo_expression_left_right_node->bool_value());
 
     Node* foo_expression_right_node = foo_expression_root_node->child(1);
     EXPECT_EQ(NodeRule::LOGNOT, foo_expression_right_node->rule());
@@ -1489,11 +1489,11 @@ TEST(Parser, ParseBooleanExpression) {
     Node* foo_expression_right_child_left_right_node
         = foo_expression_right_child_left_node->child(1);
     EXPECT_EQ(NodeRule::BOOL, foo_expression_right_child_left_right_node->rule());
-    ASSERT_EQ(false, foo_expression_right_child_left_right_node->bool_value());
+    ASSERT_FALSE(foo_expression_right_child_left_right_node->bool_value());
 
     Node* foo_expression_right_child_right_node = foo_expression_right_child_node->child(1);
     EXPECT_EQ(NodeRule::BOOL, foo_expression_right_child_right_node->rule());
-    ASSERT_EQ(false, foo_expression_right_child_right_node->bool_value());
+    ASSERT_FALSE(foo_expression_right_child_right_node->bool_value());
 
     delete root;
 }
