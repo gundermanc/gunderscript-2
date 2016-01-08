@@ -4,5 +4,5 @@
 #
 
 include_directories(../include)
-add_executable (gunderscript_cli cli.cc entry.cc)
+add_executable (gunderscript_cli debug.cc cli.cc entry.cc)
 target_link_libraries(gunderscript_cli libgunderscript)

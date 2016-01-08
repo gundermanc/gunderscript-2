@@ -1,37 +1,27 @@
 // Gunderscript-2 CLI Methods
-// (C) 2014-2015 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 
 #include <cstring>
 #include <iostream>
 #include <vector>
-/*
+
 #include "cli.h"
 #include "debug.h"
-#include "exceptions.h"
-#include "lexer_file_source.h"
-#include "lexer.h"
-#include "node.h"
-#include "parser.h"
-#include "semantic_ast_walker.h"
+#include "gunderscript/compiler.h"
 
-using gunderscript::library::DebugPrintLexerToken;
-using gunderscript::library::Exception;
-using gunderscript::library::Lexer;
-using gunderscript::library::LexerFileSource;
-using gunderscript::library::LexerToken;
-using gunderscript::library::Node;
-using gunderscript::library::Parser;
-using gunderscript::library::SemanticAstWalker;
+using namespace gunderscript;
 
 namespace gunderscript {
 namespace cli {
 
-// Iterates files given on the command line in the form of argv and argc
-// params and wraps them in an exception handler.
-static CliResult FileOperation(
+// Performs a debuggable compilation with access to the AST.
+static CliResult DebugCompile(
     int file_count,
     const char** file_names,
-    void(*FileOpFunc)(const char *)) {
+    CompilerStage stop_at,
+    LexerTokenFunc lexer_iteration_func,
+    ParserNodeFunc parser_walk_func,
+    ParserNodeFunc typecheck_walk_func) {
 
     // Check for input files before we go any farther.
     if (file_count == 0) {
@@ -43,8 +33,16 @@ static CliResult FileOperation(
         std::cout << "File: " << file_names[i] << "--------------------" << std::endl;
 
         try {
-            // Do lambda function provided by caller.
-            FileOpFunc(file_names[i]);
+            CompilerFileSource file_source(file_names[i]);
+            Compiler compiler;
+
+            // Run a debug compilation.
+            compiler.DebugCompilation(
+                file_source,
+                stop_at,
+                lexer_iteration_func,
+                parser_walk_func,
+                typecheck_walk_func);
         }
         catch (const Exception& ex) {
             std::cout << std::endl << ex.what() << std::endl;
@@ -60,58 +58,37 @@ static CliResult FileOperation(
 // Lexes the files from the array and prints the symbols to the console in plain text
 // debug format.
 static CliResult LexFiles(int file_count, const char** file_names) {
-
-    return FileOperation(file_count, file_names, [](const char* file_name) {
-        LexerFileSource input(file_name);
-        Lexer lexer(input);
-
-        for (const LexerToken* token = lexer.AdvanceNext(); lexer.has_next(); token = lexer.AdvanceNext()) {
-            DebugPrintLexerToken(*token);
-        }
-    });
+    return DebugCompile(
+        file_count,
+        file_names,
+        CompilerStage::LEXER,
+        [](const LexerToken& token) { DebugPrintLexerToken(token); },
+        NULL,
+        NULL);
 }
 
 // Parses the files from the array and prints the serialized abstract syntax tree
 // nodes to the command line in the debug format.
 static CliResult ParseFiles(int file_count, const char** file_names) {
-    return FileOperation(file_count, file_names, [](const char* file_name) {
-        LexerFileSource input(file_name);
-        Lexer lexer(input);
-        Parser parser(lexer);
-
-        Node* ast_root = parser.Parse();
-
-        DebugPrintNode(ast_root);
-
-        // Tree is dynamically allocated and MUST be deleted.
-        delete ast_root;
-    });
+    return DebugCompile(
+        file_count,
+        file_names,
+        CompilerStage::PARSER,
+        NULL,
+        [](const Node* root) { DebugPrintNode(root); },
+        NULL);
 }
 
 // Lexes, parses, and type checks a file and prints the serialized AST
 // nodes to the command line in the debug format.
 static CliResult TypeCheckFiles(int file_count, const char** file_names) {
-    return FileOperation(file_count, file_names, [](const char* file_name) {
-        LexerFileSource input(file_name);
-        Lexer lexer(input);
-        Parser parser(lexer);
-
-        Node* ast_root = parser.Parse();
-
-        try {
-            SemanticAstWalker walker(*ast_root);
-            walker.Walk();
-        }
-        catch (const Exception&) {
-            delete ast_root;
-            throw;
-        }
-
-        DebugPrintNode(ast_root);
-
-        // Tree is dynamically allocated and MUST be deleted.
-        delete ast_root;
-    });
+    return DebugCompile(
+        file_count,
+        file_names,
+        CompilerStage::TYPE_CHECKER,
+        NULL,
+        NULL,
+        [](const Node* root) { DebugPrintNode(root); });
 }
 
 // Prints Gunderscript Application Description to stdout.
@@ -175,4 +152,3 @@ eval_cli_result:
 
 } // namespace cli
 } // namespace gunderscript
-*/

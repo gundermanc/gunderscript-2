@@ -3,14 +3,15 @@
 
 #include "gtest/gtest.h"
 
+#include "gunderscript/node.h"
+
 #include "lexer.h"
-#include "node.h"
 #include "parser.h"
 #include "semantic_ast_walker.h"
 
 using gunderscript::CompilerStringSource;
+using gunderscript::Node;
 using gunderscript::library::Lexer;
-using gunderscript::library::Node;
 using gunderscript::library::Parser;
 using gunderscript::library::SemanticAstWalker;
 using gunderscript::library::SemanticAstWalkerInvalidPackageNameException;

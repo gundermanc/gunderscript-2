@@ -7,7 +7,6 @@
 include_directories(../include)
 add_library (
     libgunderscript
-    debug.cc
     lexer.cc
     compiler_source.cc
     symbol_table.cc

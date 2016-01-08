@@ -6,10 +6,10 @@
 #include "lexer.h"
 
 using gunderscript::CompilerStringSource;
+using gunderscript::LexerSymbol;
+using gunderscript::LexerToken;
+using gunderscript::LexerTokenType;
 using gunderscript::library::Lexer;
-using gunderscript::library::LexerToken;
-using gunderscript::library::LexerTokenType;
-using gunderscript::library::LexerSymbol;
 
 // TEST_SYMBOL Macro:
 // Defines the test template for symbol recognition.

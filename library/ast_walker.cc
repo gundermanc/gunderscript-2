@@ -1,9 +1,12 @@
 // Gunderscript-2 Parse/AST Node
 // (C) 2014-2016 Christian Gunderman
 
+#include "gunderscript/exceptions.h"
 #include "gunderscript/type.h"
 
 #include "ast_walker.h"
+
+using gunderscript::IllegalStateException;
 
 namespace gunderscript {
 namespace library {

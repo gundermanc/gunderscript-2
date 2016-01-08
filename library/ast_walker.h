@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "node.h"
+#include "gunderscript/node.h"
 
 namespace gunderscript {
 namespace library {

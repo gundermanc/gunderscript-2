@@ -1,10 +1,10 @@
 // Gunderscript-2 Parse/AST Node
-// (C) 2014-2015 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 
-#include "node.h"
+#include "gunderscript/exceptions.h"
+#include "gunderscript/node.h"
 
 namespace gunderscript {
-namespace library {
 
 // POTENTIAL BUG BUG BUG: If you update this array you must also update NodeRule
 // enum in the header to be identical. If you don't things will break!
@@ -93,5 +93,4 @@ Node* Node::child(int child) const {
     throw IllegalStateException();
 }
 
-} // namespace library
 } // namespace gunderscript

@@ -6,8 +6,9 @@
 
 #include "gunderscript/exceptions.h"
 
+#include "gunderscript/node.h"
+
 #include "lexer.h"
-#include "node.h"
 
 namespace gunderscript {
 namespace library {

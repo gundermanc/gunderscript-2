@@ -4,6 +4,53 @@
 #include "lexer.h"
 
 namespace gunderscript {
+
+// POTENTIAL BUG BUG BUG: Whenever you update this array be sure to update
+// LexerTokenType enum in header. These two MUST be identical or things will
+// break.
+static const std::string kLexerTokenTypeString[] = {
+    "ACCESS_MODIFIER", "KEYWORD", "SYMBOL", "NAME", "INT", "FLOAT",
+    "STRING", "CHAR"
+};
+
+// POTENTIAL BUG BUG BUG: Whenever you update this array be sure to update
+// LexerSymbolString enum in header. These two must be identical or things will
+// break.
+static const std::string kLexerSymbolString[] = {
+    // Symbols:
+    "SWAP", "ASSIGN", "LSHIFT", "LESSEQUALS", "LESS", "GREATEREQUALS", "RSHIFT",
+    "GREATER", "ADD", "ADDEQUALS", "SUB", "SUBEQUALS", "MUL", "MULEQUALS", "DIV",
+    "DIVEQUALS", "MOD", "MODEQUALS",
+    "LPAREN", "RPAREN", "LSQUARE", "RSQUARE", "LBRACE", "RBRACE", "DOT", "SEMICOLON", "COMMA",
+    "LOGOR", "BINOR", "LOGAND", "BINAND", "LOGNOT", "BINNOT", "EQUALS", "NOTEQUALS", "COLON",
+    "TERNARY",
+
+    // Access Modifiers:
+    "PUBLIC", "CONCEALED", "INTERNAL",
+
+    // Keywords:
+    "SPEC", "IF", "ELSE", "DO", "WHILE", "TRUE", "FALSE", "RETURN", "GET", "SET", "CONCEIVE",
+    "ERADICATE", "START", "READONLY", "FOR", "BREAK", "CONTINUE", "DEPENDS", "PACKAGE",
+    "NATIVE",
+
+    // Types:
+    "CHAR", "INT", "FLOAT", "BOOL", "STRING", "NULL", "ANY_TYPE"
+};
+
+// Gets a string representation of each token.
+// NOTE: for this method to operate correctly both the string array
+// of tokens and the enum must match 1:1 and in the same order.
+const std::string LexerTokenTypeString(LexerTokenType type) {
+    return kLexerTokenTypeString[(int)type];
+}
+
+// Gets a string representation of each lexer symbol.
+// NOTE: for this method to operate correctly both the string array
+// of symbols and the enum must match 1:1 and in the same order.
+const std::string LexerSymbolString(LexerSymbol symbol) {
+    return kLexerSymbolString[(int)symbol];
+}
+
 namespace library {
 
 // Get next character from input and advance to next.
@@ -55,52 +102,6 @@ namespace library {
 // lexing.
 #define DEFINE_KEYWORD(k, t, s)                               \
     this->keywords_map_.insert(std::make_pair(k, std::make_pair(t, s)));
-
-// POTENTIAL BUG BUG BUG: Whenever you update this array be sure to update
-// LexerTokenType enum in header. These two MUST be identical or things will
-// break.
-static const std::string kLexerTokenTypeString[] = {
-    "ACCESS_MODIFIER", "KEYWORD", "SYMBOL", "NAME", "INT", "FLOAT",
-    "STRING", "CHAR"
-};
-
-// POTENTIAL BUG BUG BUG: Whenever you update this array be sure to update
-// LexerSymbolString enum in header. These two must be identical or things will
-// break.
-static const std::string kLexerSymbolString[] = {
-    // Symbols:
-    "SWAP", "ASSIGN", "LSHIFT", "LESSEQUALS", "LESS", "GREATEREQUALS", "RSHIFT",
-    "GREATER", "ADD", "ADDEQUALS", "SUB", "SUBEQUALS", "MUL", "MULEQUALS", "DIV",
-    "DIVEQUALS", "MOD", "MODEQUALS",
-    "LPAREN", "RPAREN", "LSQUARE", "RSQUARE", "LBRACE", "RBRACE", "DOT", "SEMICOLON", "COMMA",
-    "LOGOR", "BINOR", "LOGAND", "BINAND", "LOGNOT", "BINNOT", "EQUALS", "NOTEQUALS", "COLON",
-    "TERNARY",
-
-    // Access Modifiers:
-    "PUBLIC", "CONCEALED", "INTERNAL",
-
-    // Keywords:
-    "SPEC", "IF", "ELSE", "DO", "WHILE", "TRUE", "FALSE", "RETURN", "GET", "SET", "CONCEIVE",
-    "ERADICATE", "START", "READONLY", "FOR", "BREAK", "CONTINUE", "DEPENDS", "PACKAGE",
-    "NATIVE",
-
-    // Types:
-    "CHAR", "INT", "FLOAT", "BOOL", "STRING", "NULL", "ANY_TYPE"
-};
-
-// Gets a string representation of each token.
-// NOTE: for this method to operate correctly both the string array
-// of tokens and the enum must match 1:1 and in the same order.
-const std::string LexerTokenTypeString(LexerTokenType type) {
-    return kLexerTokenTypeString[(int)type];
-}
-
-// Gets a string representation of each lexer symbol.
-// NOTE: for this method to operate correctly both the string array
-// of symbols and the enum must match 1:1 and in the same order.
-const std::string LexerSymbolString(LexerSymbol symbol) {
-    return kLexerSymbolString[(int)symbol];
-}
 
 // Constructs a Lexer instance from a LexerSource.
 // input: the text data to lex.
