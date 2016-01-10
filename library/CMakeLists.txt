@@ -3,10 +3,10 @@
 # (C) 2015-2016 Christian Gunderman
 #
 
-# Compile the Gunderscript library.
+# Compile the Gunderscript Library.
 include_directories(../include)
 add_library (
-    libgunderscript
+    gunderscript
     lexer.cc
     compiler_source.cc
     symbol_table.cc
@@ -17,14 +17,14 @@ add_library (
     compiler.cc)
 
 # Generate tests if option enabled.
-if (libgunderscript_tests)
+if (gunderscript_tests)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
     add_executable (
-        libgunderscript_tests
+        gunderscript_tests
         lexer_unittest.cc
         symbol_table_unittest.cc
         parser_unittest.cc
         semantic_ast_walker_unittest.cc)
-    target_link_libraries(libgunderscript_tests libgunderscript)
-    target_link_libraries(libgunderscript_tests gtest gtest_main)
+    target_link_libraries(gunderscript_tests gunderscript)
+    target_link_libraries(gunderscript_tests gtest gtest_main)
 endif ()

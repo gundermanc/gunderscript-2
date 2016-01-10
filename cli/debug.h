@@ -1,5 +1,5 @@
 // Gunderscript-2 Debug Print Functions
-// (C) 2015 Christian Gunderman
+// (C) 2015-2016 Christian Gunderman
 
 #ifndef GUNDERSCRIPT_DEBUG__H__
 #define GUNDERSCRIPT_DEBUG__H__

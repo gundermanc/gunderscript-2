@@ -26,7 +26,8 @@ using gunderscript::library::SymbolTableUndefinedSymbolException;
 // are there for the purpose of debug assertions.
 
 TEST(SemanticAstWalker, ModuleNameTrailingPeriodThrows) {
-    CompilerStringSource source(std::string("package \"Gundersoft.\";"));
+    std::string input("package \"Gundersoft.\";");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -40,7 +41,9 @@ TEST(SemanticAstWalker, ModuleNameTrailingPeriodThrows) {
 }
 
 TEST(SemanticAstWalker, ModuleNameEmptyThrows) {
-    CompilerStringSource source(std::string("package \"\";"));
+    std::string input = std::string("package \"\";");
+    CompilerStringSource source(input);
+
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -54,7 +57,8 @@ TEST(SemanticAstWalker, ModuleNameEmptyThrows) {
 }
 
 TEST(SemanticAstWalker, ModuleNameOnlyPeriodThrows) {
-    CompilerStringSource source(std::string("package \".\";"));
+    std::string input("package \".\";");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -68,7 +72,8 @@ TEST(SemanticAstWalker, ModuleNameOnlyPeriodThrows) {
 }
 
 TEST(SemanticAstWalker, ModuleNameStartsWithPeriodThrows) {
-    CompilerStringSource source(std::string("package \".Hello\";"));
+    std::string input("package \".Hello\";");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -82,9 +87,10 @@ TEST(SemanticAstWalker, ModuleNameStartsWithPeriodThrows) {
 }
 
 TEST(SemanticAstWalker, ModuleDependsNameTrailingPeriodThrows) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
-        "depends \"Gundersoft.\";"));
+        "depends \"Gundersoft.\";");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -98,9 +104,10 @@ TEST(SemanticAstWalker, ModuleDependsNameTrailingPeriodThrows) {
 }
 
 TEST(SemanticAstWalker, ModuleDependsNameEmptyThrows) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
-        "depends \"\";"));
+        "depends \"\";");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -114,9 +121,10 @@ TEST(SemanticAstWalker, ModuleDependsNameEmptyThrows) {
 }
 
 TEST(SemanticAstWalker, ModuleDependsNameOnlyPeriodThrows) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
-        "depends \".\";"));
+        "depends \".\";");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -130,9 +138,10 @@ TEST(SemanticAstWalker, ModuleDependsNameOnlyPeriodThrows) {
 }
 
 TEST(SemanticAstWalker, ModuleDependsNameStartsWithPeriodThrows) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
-        "depends \".Foo\";"));
+        "depends \".Foo\";");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -146,10 +155,11 @@ TEST(SemanticAstWalker, ModuleDependsNameStartsWithPeriodThrows) {
 }
 
 TEST(SemanticAstWalker, SpecDuplicateDefinition) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test { } "
-        "public spec Test { }"));
+        "public spec Test { }");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -162,12 +172,13 @@ TEST(SemanticAstWalker, SpecDuplicateDefinition) {
 }
 
 TEST(SemanticAstWalker, FunctionDuplicateDefinition) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int main(int x, string y) { }"
         "    public int main(int x, string y) { }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -180,12 +191,13 @@ TEST(SemanticAstWalker, FunctionDuplicateDefinition) {
 }
 
 TEST(SemanticAstWalker, AutoPropertyDuplicateDefinition) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    int Y { concealed get; concealed set; }"
         "    int Y { public get; public set; }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -198,12 +210,13 @@ TEST(SemanticAstWalker, AutoPropertyDuplicateDefinition) {
 }
 
 TEST(SemanticAstWalker, PropertyWithBodyDuplicateDefinition) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    int Y { concealed get { } concealed set { } }"
         "    int Y { public get { } public set { } }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -218,11 +231,12 @@ TEST(SemanticAstWalker, PropertyWithBodyDuplicateDefinition) {
 TEST(SemanticAstWalker, MixedAutoAndExpandedProperties) {
     // Case 1:
     {
-        CompilerStringSource source(std::string(
+        std::string input(
             "package \"Gundersoft\";"
             "public spec Test {"
             "    int Y { concealed get { } concealed set; }"
-            "}"));
+            "}");
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -236,11 +250,12 @@ TEST(SemanticAstWalker, MixedAutoAndExpandedProperties) {
 
     // Case 2:
     {
-        CompilerStringSource source(std::string(
+        std::string input(
             "package \"Gundersoft\";"
             "public spec Test {"
             "    int Y { concealed get; concealed set { } }"
-            "}"));
+            "}");
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -254,11 +269,12 @@ TEST(SemanticAstWalker, MixedAutoAndExpandedProperties) {
 }
 
 TEST(SemanticAstWalker, FunctionCallWithInvalidParameter) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int main(string x) { main(3); }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -272,11 +288,12 @@ TEST(SemanticAstWalker, FunctionCallWithInvalidParameter) {
 
 TEST(SemanticAstWalker, FunctionCallNeedingTypecastedParameter) {
     // Gunderscript does not allow autoboxing from int to float.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int main(float x) { main(3); }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -289,12 +306,13 @@ TEST(SemanticAstWalker, FunctionCallNeedingTypecastedParameter) {
 }
 
 TEST(SemanticAstWalker, FunctionOverloads) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int main(int x) { }"
         "    public int main() { }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -309,12 +327,13 @@ TEST(SemanticAstWalker, FunctionOverloads) {
 TEST(SemanticAstWalker, DuplicateFunctions) {
     // Case 1: same params and different return type.
     {
-        CompilerStringSource source(std::string(
+        std::string input(
             "package \"Gundersoft\";"
             "public spec Test {"
             "    public int main(int x) { }"
             "    public float main(int x) { }"
-            "}"));
+            "}");
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -328,12 +347,13 @@ TEST(SemanticAstWalker, DuplicateFunctions) {
 
     // Case 2: different same params AND return type.
     {
-        CompilerStringSource source(std::string(
+        std::string input(
             "package \"Gundersoft\";"
             "public spec Test {"
             "    public int main(int x) { }"
             "    public int main(int x) { }"
-            "}"));
+            "}");
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -348,14 +368,15 @@ TEST(SemanticAstWalker, DuplicateFunctions) {
 
 TEST(SemanticAstWalker, FunctionAndPropertyAndVariableShareName) {
     // Check to make sure there are no collisions between symbols of different types.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X() {"
         "        X <- 3;"
         "    }"
         "    int X { public get; public set; }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -369,13 +390,14 @@ TEST(SemanticAstWalker, FunctionAndPropertyAndVariableShareName) {
 
 TEST(SemanticAstWalker, FunctionParamTypeSymbols) {
     // Check to make sure that the Function Param symbols are being defined and are usable.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(int X, int Y) {"
         "        X <- X + Y;"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -390,13 +412,14 @@ TEST(SemanticAstWalker, FunctionParamTypeSymbols) {
 TEST(SemanticAstWalker, FunctionParamSymbolTypeReassign) {
     // Function params are declared in different scope than function variables and therefore
     // can be masked via reassignment. Masked variables take different types.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(int X, int Y) {"
         "        X <- 3.0;"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -410,14 +433,15 @@ TEST(SemanticAstWalker, FunctionParamSymbolTypeReassign) {
 
 TEST(SemanticAstWalker, AttemptCrossTypeOperations) {
     // Cannot evaluate operations across types without explicit typecast.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(int X, int Y) {"
         "        X <- 3.0;"
         "        Y <- X + 1;"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -431,7 +455,7 @@ TEST(SemanticAstWalker, AttemptCrossTypeOperations) {
 
 TEST(SemanticAstWalker, AttemptTypeReassignment) {
     // Once a variable is declared, its type is final and cannot be changed until it goes out of scope.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(int X, int Y) {"
@@ -439,7 +463,8 @@ TEST(SemanticAstWalker, AttemptTypeReassignment) {
         "        Y <- X;"
         "        Y <- 1;"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -454,7 +479,7 @@ TEST(SemanticAstWalker, AttemptTypeReassignment) {
 TEST(SemanticAstWalker, FunctionsOutOfOrder) {
     // Check to make sure that functions can call one another out of order.
     // This tests the prescan.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X() {"
@@ -465,7 +490,8 @@ TEST(SemanticAstWalker, FunctionsOutOfOrder) {
         "        Y();"
         "        X();"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -479,13 +505,14 @@ TEST(SemanticAstWalker, FunctionsOutOfOrder) {
 
 TEST(SemanticAstWalker, FunctionCorrectReturnStatement) {
     // Check for no exception when function returns correctly.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X() {"
         "        return 3 + 4;"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -499,13 +526,14 @@ TEST(SemanticAstWalker, FunctionCorrectReturnStatement) {
 
 TEST(SemanticAstWalker, FunctionIncorrectReturnStatement) {
     // Check for exception when function returns incorrect type.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X() {"
         "        return true;"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -519,7 +547,7 @@ TEST(SemanticAstWalker, FunctionIncorrectReturnStatement) {
 
 TEST(SemanticAstWalker, BlockStatementScoping) {
     // Check that variables are scoped by block without being replaced.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X() { "
@@ -527,7 +555,8 @@ TEST(SemanticAstWalker, BlockStatementScoping) {
         "        { X <- true; } "
         "        X <- 2;"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -541,14 +570,15 @@ TEST(SemanticAstWalker, BlockStatementScoping) {
 
 TEST(SemanticAstWalker, PropertyReturnCorrectly) {
     // Check that returning correctly from a property does not throw.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    int X {"
         "        public get { return 0; }"
         "        public set { }"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -562,14 +592,15 @@ TEST(SemanticAstWalker, PropertyReturnCorrectly) {
 
 TEST(SemanticAstWalker, PropertyReturnFromSet) {
     // Check that returning from a setter does throw.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    int X {"
         "        public get { return 0; }"
         "        public set { return 0; }"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -583,14 +614,15 @@ TEST(SemanticAstWalker, PropertyReturnFromSet) {
 
 TEST(SemanticAstWalker, PropertyReturnInvalidType) {
     // Check that we throw if we try to return invalid type from a property.
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    int X {"
         "        public get { return true; }"
         "        public set { }"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -603,13 +635,14 @@ TEST(SemanticAstWalker, PropertyReturnInvalidType) {
 }
 
 TEST(SemanticAstWalker, AddInvalidType) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(int x) {"
         "        main(3 + 3.0);"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -622,13 +655,14 @@ TEST(SemanticAstWalker, AddInvalidType) {
 }
 
 TEST(SemanticAstWalker, AddString) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(string x) {"
         "        X(\"sfsf\" + \"sfsf\");"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -641,13 +675,14 @@ TEST(SemanticAstWalker, AddString) {
 }
 
 TEST(SemanticAstWalker, SubtractString) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(string x) {"
         "        main(\"sfsf\" - \"sfsf\");"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -660,13 +695,14 @@ TEST(SemanticAstWalker, SubtractString) {
 }
 
 TEST(SemanticAstWalker, ModString) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(string x) {"
         "        main(\"sfsf\" % \"sfsf\");"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -679,13 +715,14 @@ TEST(SemanticAstWalker, ModString) {
 }
 
 TEST(SemanticAstWalker, MulInvalidType) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
         "        main(true * true);"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -698,13 +735,14 @@ TEST(SemanticAstWalker, MulInvalidType) {
 }
 
 TEST(SemanticAstWalker, DivInvalidType) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
         "        main(true / true);"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -717,13 +755,14 @@ TEST(SemanticAstWalker, DivInvalidType) {
 }
 
 TEST(SemanticAstWalker, AndInvalidType) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
         "        main(3 && 3);"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -736,13 +775,14 @@ TEST(SemanticAstWalker, AndInvalidType) {
 }
 
 TEST(SemanticAstWalker, OrInvalidType) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
         "        main(3.0 || 3.0);"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -755,13 +795,14 @@ TEST(SemanticAstWalker, OrInvalidType) {
 }
 
 TEST(SemanticAstWalker, GreaterInvalidType) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
         "        main(true > false);"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -774,13 +815,14 @@ TEST(SemanticAstWalker, GreaterInvalidType) {
 }
 
 TEST(SemanticAstWalker, LessInvalidType) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
         "        main(true < false);"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -793,13 +835,14 @@ TEST(SemanticAstWalker, LessInvalidType) {
 }
 
 TEST(SemanticAstWalker, GreaterEqualsInvalidType) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(string x) {"
         "        main(\"h\" >= \"d\");"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -812,13 +855,14 @@ TEST(SemanticAstWalker, GreaterEqualsInvalidType) {
 }
 
 TEST(SemanticAstWalker, LessEqualsInvalidType) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(string x) {"
         "        main(\"h\" <= \"d\");"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -831,13 +875,14 @@ TEST(SemanticAstWalker, LessEqualsInvalidType) {
 }
 
 TEST(SemanticAstWalker, Combined) {
-    CompilerStringSource source(std::string(
+    std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
         "        X( ((-(-1+2) / 3)) > (0 * (4 % -5)) || !(!(3 < 2)) && (4 >= 5) && (1 <= 6));"
         "    }"
-        "}"));
+        "}");
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
