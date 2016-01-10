@@ -1,5 +1,5 @@
 // Gunderscript-2 Lexer
-// (C) 2014 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 
 #ifndef GUNDERSCRIPT_LEXER__H__
 #define GUNDERSCRIPT_LEXER__H__
@@ -7,93 +7,16 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "exceptions.h"
+#include "gunderscript/compiler.h"
+#include "gunderscript/exceptions.h"
 
 namespace gunderscript {
 namespace library {
 
-// Provides source of input to lexer.
-// has_next: returns false if no more input.
-// NextChar: returns -1 if no more input.
-// PeekNextChar: returns -1 if no more inpu.
-class LexerSourceInterface {
-public:
-    virtual ~LexerSourceInterface() { };
-    virtual bool has_next() = 0;
-    virtual int NextChar() = 0;
-    virtual int PeekNextChar() = 0;
-};
-
-// Implements LexerSourceInterface and provides front
-// end for strings.
-class LexerStringSource : public LexerSourceInterface {
-public:
-    LexerStringSource(std::string& input) { this->input_ = input; }
-    bool has_next() { return this->index < this->input_.length(); }
-    int NextChar();
-    int PeekNextChar();
-private:
-    std::string input_;
-    size_t index = 0;
-};
-
-// POTENTIAL BUG BUG BUG: Whenever you update this enum be sure to update
-// kLexerTokenTypeString array in implementation file or things will break!
-// LexerToken Types.
-// ACCESS_MODIFIER: contains LexerSymbol.
-// TYPE: contains LexerSymbol.
-// KEYWORD: contains LexerSymbol.
-// SYMBOL: contains LexerSymbol
-// NAME: contains string_const.
-// INT: contains int_const.
-// FLOAT: contains float_const.
-// STRING: contains string_const.
-enum class LexerTokenType {
-    ACCESS_MODIFIER, TYPE, KEYWORD, SYMBOL, NAME, INT, FLOAT, STRING, CHAR
-};
-
-// All of the various operators, types, access modifiers, etc.
-enum class LexerSymbol {
-    // Symbols:
-    SWAP, ASSIGN, LSHIFT, LESSEQUALS, LESS, GREATEREQUALS, RSHIFT, GREATER, ADD,
-    ADDEQUALS, SUB, SUBEQUALS, MUL, MULEQUALS, DIV, DIVEQUALS, MOD, MODEQUALS,
-    LPAREN, RPAREN, LSQUARE, RSQUARE, LBRACE, RBRACE, DOT, SEMICOLON, COMMA,
-    LOGOR, BINOR, LOGAND, BINAND, LOGNOT, BINNOT, EQUALS, NOTEQUALS, COLON,
-    TERNARY,
-
-    // Access Modifiers:
-    PUBLIC, CONCEALED, INTERNAL,
-
-    // Keywords:
-    SPEC, IF, ELSE, DO, WHILE, TRUE, FALSE, RETURN, GET, SET, CONCEIVE,
-    ERADICATE, START, READONLY, FOR, BREAK, CONTINUE, DEPENDS, PACKAGE,
-    NATIVE,
-
-    // Types:
-    CHAR, INT, FLOAT, BOOL, STRING, TNULL, 
-
-    // TODO: remove this when we make a legit type system.
-    ANY_TYPE
-};
-
-// LexerToken.
-// type: Tells the content of the token and its semantics.
-// symbol/string_const/int_const/float_const: the data.
-typedef struct {
-    LexerTokenType type;
-    union {
-        LexerSymbol symbol;
-        const std::string* string_const;
-        long int_const;
-        double float_const;
-        char char_const;
-    };
-} LexerToken;
-
 // Lexer Class definition and Public/Private interfaces.
 class Lexer {
 public:
-    Lexer(LexerSourceInterface& source);
+    Lexer(CompilerSourceInterface& source);
     ~Lexer();
     int current_column_number() const { return this->current_column_number_; }
     int current_line_number() const { return this->current_line_number_; }
@@ -103,10 +26,10 @@ public:
     const LexerToken* current_token() const;
     const LexerToken* next_token() const;
     bool has_next() const { return this->next_token() != NULL; }
-    LexerSourceInterface* source() const { return source_; }
+    CompilerSourceInterface* source() const { return source_; }
 
 private:
-    LexerSourceInterface* source_;
+    CompilerSourceInterface* source_;
     bool first_load_;
     int current_column_number_;
     int current_line_number_;
@@ -209,12 +132,6 @@ public:
             ", column " + std::to_string(lexer.current_column_number()) +
             ".") { }
 };
-
-// Maps a lexer token enum value to its string representation.
-const std::string LexerTokenTypeString(LexerTokenType type);
-
-// Maps a lexer symbol enum value to its string representation.
-const std::string LexerSymbolString(LexerSymbol symbol);
 
 } // namespace library
 } // namespace gunderscript

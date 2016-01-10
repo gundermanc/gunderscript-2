@@ -7,10 +7,9 @@
 #include <string>
 #include <vector>
 
-#include "lexer.h"
+#include "lexer_resources.h"
 
 namespace gunderscript {
-namespace library {
 
 // Abstract syntax tree entities that a node may represent in the syntax tree.
 enum class NodeRule {
@@ -105,7 +104,6 @@ private:
     NodeRule rule_;
 };
 
-} // namespace library
 } // namespace gunderscript
 
 #endif // GUNDERSCRIPT_NODE__H__

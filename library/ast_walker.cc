@@ -1,13 +1,18 @@
 // Gunderscript-2 Parse/AST Node
-// (C) 2014-2015 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
+
+#include "gunderscript/exceptions.h"
+#include "gunderscript/type.h"
 
 #include "ast_walker.h"
+
+using gunderscript::IllegalStateException;
 
 namespace gunderscript {
 namespace library {
 
-// Instantiate template with LexerSymbol so we can link from external module.
-template class AstWalker<LexerSymbol>;
+// Instantiate template with Type so we can link from external module.
+template class AstWalker<Type>;
 
 // Walks through all expected children of the MODULE
 // AST node (the root of the AST). Expected children of this
@@ -550,14 +555,14 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         Node* left_node = binary_operation_node->child(0);
         Node* right_node = binary_operation_node->child(1);
 
-        LexerSymbol left_result = WalkBinaryOperationChildren(
+        ReturnType left_result = WalkBinaryOperationChildren(
             spec_node,
             function_node,
             property_node,
             property_function,
             left_node);
 
-        LexerSymbol right_result = WalkBinaryOperationChildren(
+        ReturnType right_result = WalkBinaryOperationChildren(
             spec_node,
             function_node,
             property_node,

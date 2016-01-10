@@ -1,5 +1,5 @@
 // Gunderscript-2 Parser
-// (C) 2014-2015 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 
 #include "parser.h"
 
@@ -202,7 +202,7 @@ void Parser::ParseSpecBody(Node* node) {
         case LexerTokenType::ACCESS_MODIFIER:
             ParseFunction(functions_node);
             break;
-        case LexerTokenType::TYPE:
+        case LexerTokenType::NAME:
             ParseProperty(properties_node);
             break;
         default:
@@ -221,11 +221,11 @@ void Parser::ParseProperty(Node* node) {
     node->AddChild(property_node);
 
     // Make sure first token is a TYPE.
-    if (CurrentToken()->type != LexerTokenType::TYPE) {
+    if (CurrentToken()->type != LexerTokenType::NAME) {
         throw ParserMalformedPropertyException(*this, PARSER_ERR_MALFORMED_PROPERTY);
     }
 
-    property_node->AddChild(new Node(NodeRule::TYPE, CurrentToken()->symbol));
+    property_node->AddChild(new Node(NodeRule::TYPE, CurrentToken()->string_const));
 
     // Make sure second token is a NAME.
     if (AdvanceNext()->type != LexerTokenType::NAME) {
@@ -341,11 +341,11 @@ void Parser::ParseFunction(Node* node) {
     function_node->AddChild(new Node(NodeRule::NATIVE, native_function));
 
     // Check for TYPE for return type.
-    if (CurrentToken()->type != LexerTokenType::TYPE) {
+    if (CurrentToken()->type != LexerTokenType::NAME) {
         throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
     }
 
-    function_node->AddChild(new Node(NodeRule::TYPE, CurrentToken()->symbol));
+    function_node->AddChild(new Node(NodeRule::TYPE, CurrentToken()->string_const));
 
     // Check for NAME symbol type for function name.
     if (AdvanceNext()->type != LexerTokenType::NAME) {
@@ -406,11 +406,11 @@ void Parser::ParseFunctionParameter(Node* node) {
     node->AddChild(parameter_node);
 
     // Check for a parameter TYPE.
-    if (CurrentToken()->type != LexerTokenType::TYPE) {
+    if (CurrentToken()->type != LexerTokenType::NAME) {
         throw ParserMalformedFunctionException(*this, PARSER_ERR_MALFORMED_FUNCTION);
     }
 
-    parameter_node->AddChild(new Node(NodeRule::TYPE, CurrentToken()->symbol));
+    parameter_node->AddChild(new Node(NodeRule::TYPE, CurrentToken()->string_const));
 
     // Check for a parameter NAME.
     if (AdvanceNext()->type != LexerTokenType::NAME) {
@@ -1211,12 +1211,12 @@ bool Parser::NextSymbol(LexerSymbol symbol) {
 }
 
 bool Parser::AdvanceType(LexerSymbol type) {
-    return AdvanceNext()->type == LexerTokenType::TYPE &&
+    return AdvanceNext()->type == LexerTokenType::NAME &&
         CurrentToken()->symbol == type;
 }
 
 bool Parser::CurrentType(LexerSymbol type) {
-    return CurrentToken()->type == LexerTokenType::TYPE &&
+    return CurrentToken()->type == LexerTokenType::NAME &&
         CurrentToken()->symbol == type;
 }
 

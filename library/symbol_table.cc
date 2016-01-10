@@ -92,7 +92,7 @@ const ValueType& SymbolTable<ValueType>::Get(const std::string& key) const {
         try {
             return this->map_vector_[i].at(key);
         }
-        catch (const std::out_of_range ex) {
+        catch (const std::out_of_range&) {
             // do nothing
         }
     }
@@ -110,7 +110,7 @@ const ValueType& SymbolTable<ValueType>::GetTopOnly(const std::string& key) cons
     try {
         return this->map_vector_.back().at(key);
     }
-    catch (const std::out_of_range ex) {
+    catch (const std::out_of_range&) {
         throw SymbolTableUndefinedSymbolException();
     }
 }

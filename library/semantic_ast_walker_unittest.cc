@@ -1,16 +1,17 @@
 // Gunderscript 2 Semantic (type) Checker for AST Unit Test
-// (C) 2015 Christian Gunderman
+// (C) 2015-2016 Christian Gunderman
 
 #include "gtest/gtest.h"
 
+#include "gunderscript/node.h"
+
 #include "lexer.h"
-#include "node.h"
 #include "parser.h"
 #include "semantic_ast_walker.h"
 
-using gunderscript::library::LexerStringSource;
+using gunderscript::CompilerStringSource;
+using gunderscript::Node;
 using gunderscript::library::Lexer;
-using gunderscript::library::Node;
 using gunderscript::library::Parser;
 using gunderscript::library::SemanticAstWalker;
 using gunderscript::library::SemanticAstWalkerInvalidPackageNameException;
@@ -26,7 +27,7 @@ using gunderscript::library::SymbolTableUndefinedSymbolException;
 
 TEST(SemanticAstWalker, ModuleNameTrailingPeriodThrows) {
     std::string input("package \"Gundersoft.\";");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -41,7 +42,8 @@ TEST(SemanticAstWalker, ModuleNameTrailingPeriodThrows) {
 
 TEST(SemanticAstWalker, ModuleNameEmptyThrows) {
     std::string input = std::string("package \"\";");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
+
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -56,7 +58,7 @@ TEST(SemanticAstWalker, ModuleNameEmptyThrows) {
 
 TEST(SemanticAstWalker, ModuleNameOnlyPeriodThrows) {
     std::string input("package \".\";");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -71,7 +73,7 @@ TEST(SemanticAstWalker, ModuleNameOnlyPeriodThrows) {
 
 TEST(SemanticAstWalker, ModuleNameStartsWithPeriodThrows) {
     std::string input("package \".Hello\";");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -88,7 +90,7 @@ TEST(SemanticAstWalker, ModuleDependsNameTrailingPeriodThrows) {
     std::string input(
         "package \"Gundersoft\";"
         "depends \"Gundersoft.\";");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -105,7 +107,7 @@ TEST(SemanticAstWalker, ModuleDependsNameEmptyThrows) {
     std::string input(
         "package \"Gundersoft\";"
         "depends \"\";");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -122,7 +124,7 @@ TEST(SemanticAstWalker, ModuleDependsNameOnlyPeriodThrows) {
     std::string input(
         "package \"Gundersoft\";"
         "depends \".\";");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -139,7 +141,7 @@ TEST(SemanticAstWalker, ModuleDependsNameStartsWithPeriodThrows) {
     std::string input(
         "package \"Gundersoft\";"
         "depends \".Foo\";");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -157,7 +159,7 @@ TEST(SemanticAstWalker, SpecDuplicateDefinition) {
         "package \"Gundersoft\";"
         "public spec Test { } "
         "public spec Test { }");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -176,7 +178,7 @@ TEST(SemanticAstWalker, FunctionDuplicateDefinition) {
         "    public int main(int x, string y) { }"
         "    public int main(int x, string y) { }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -195,7 +197,7 @@ TEST(SemanticAstWalker, AutoPropertyDuplicateDefinition) {
         "    int Y { concealed get; concealed set; }"
         "    int Y { public get; public set; }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -214,7 +216,7 @@ TEST(SemanticAstWalker, PropertyWithBodyDuplicateDefinition) {
         "    int Y { concealed get { } concealed set { } }"
         "    int Y { public get { } public set { } }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -234,7 +236,7 @@ TEST(SemanticAstWalker, MixedAutoAndExpandedProperties) {
             "public spec Test {"
             "    int Y { concealed get { } concealed set; }"
             "}");
-	LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -253,7 +255,7 @@ TEST(SemanticAstWalker, MixedAutoAndExpandedProperties) {
             "public spec Test {"
             "    int Y { concealed get; concealed set { } }"
             "}");
-	LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -272,7 +274,7 @@ TEST(SemanticAstWalker, FunctionCallWithInvalidParameter) {
         "public spec Test {"
         "    public int main(string x) { main(3); }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -291,7 +293,7 @@ TEST(SemanticAstWalker, FunctionCallNeedingTypecastedParameter) {
         "public spec Test {"
         "    public int main(float x) { main(3); }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -310,7 +312,7 @@ TEST(SemanticAstWalker, FunctionOverloads) {
         "    public int main(int x) { }"
         "    public int main() { }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -331,7 +333,7 @@ TEST(SemanticAstWalker, DuplicateFunctions) {
             "    public int main(int x) { }"
             "    public float main(int x) { }"
             "}");
-	LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -351,7 +353,7 @@ TEST(SemanticAstWalker, DuplicateFunctions) {
             "    public int main(int x) { }"
             "    public int main(int x) { }"
             "}");
-	LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -374,7 +376,7 @@ TEST(SemanticAstWalker, FunctionAndPropertyAndVariableShareName) {
         "    }"
         "    int X { public get; public set; }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -395,7 +397,7 @@ TEST(SemanticAstWalker, FunctionParamTypeSymbols) {
         "        X <- X + Y;"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -417,7 +419,7 @@ TEST(SemanticAstWalker, FunctionParamSymbolTypeReassign) {
         "        X <- 3.0;"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -439,7 +441,7 @@ TEST(SemanticAstWalker, AttemptCrossTypeOperations) {
         "        Y <- X + 1;"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -462,7 +464,7 @@ TEST(SemanticAstWalker, AttemptTypeReassignment) {
         "        Y <- 1;"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -489,7 +491,7 @@ TEST(SemanticAstWalker, FunctionsOutOfOrder) {
         "        X();"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -510,7 +512,7 @@ TEST(SemanticAstWalker, FunctionCorrectReturnStatement) {
         "        return 3 + 4;"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -531,7 +533,7 @@ TEST(SemanticAstWalker, FunctionIncorrectReturnStatement) {
         "        return true;"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -554,7 +556,7 @@ TEST(SemanticAstWalker, BlockStatementScoping) {
         "        X <- 2;"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -576,7 +578,7 @@ TEST(SemanticAstWalker, PropertyReturnCorrectly) {
         "        public set { }"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -598,7 +600,7 @@ TEST(SemanticAstWalker, PropertyReturnFromSet) {
         "        public set { return 0; }"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -620,7 +622,7 @@ TEST(SemanticAstWalker, PropertyReturnInvalidType) {
         "        public set { }"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -640,7 +642,7 @@ TEST(SemanticAstWalker, AddInvalidType) {
         "        main(3 + 3.0);"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -660,7 +662,7 @@ TEST(SemanticAstWalker, AddString) {
         "        X(\"sfsf\" + \"sfsf\");"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -680,7 +682,7 @@ TEST(SemanticAstWalker, SubtractString) {
         "        main(\"sfsf\" - \"sfsf\");"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -700,7 +702,7 @@ TEST(SemanticAstWalker, ModString) {
         "        main(\"sfsf\" % \"sfsf\");"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -720,7 +722,7 @@ TEST(SemanticAstWalker, MulInvalidType) {
         "        main(true * true);"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -740,7 +742,7 @@ TEST(SemanticAstWalker, DivInvalidType) {
         "        main(true / true);"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -760,7 +762,7 @@ TEST(SemanticAstWalker, AndInvalidType) {
         "        main(3 && 3);"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -780,7 +782,7 @@ TEST(SemanticAstWalker, OrInvalidType) {
         "        main(3.0 || 3.0);"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -800,7 +802,7 @@ TEST(SemanticAstWalker, GreaterInvalidType) {
         "        main(true > false);"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -820,7 +822,7 @@ TEST(SemanticAstWalker, LessInvalidType) {
         "        main(true < false);"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -840,7 +842,7 @@ TEST(SemanticAstWalker, GreaterEqualsInvalidType) {
         "        main(\"h\" >= \"d\");"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -860,7 +862,7 @@ TEST(SemanticAstWalker, LessEqualsInvalidType) {
         "        main(\"h\" <= \"d\");"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -880,7 +882,7 @@ TEST(SemanticAstWalker, Combined) {
         "        X( ((-(-1+2) / 3)) > (0 * (4 % -5)) || !(!(3 < 2)) && (4 >= 5) && (1 <= 6));"
         "    }"
         "}");
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 

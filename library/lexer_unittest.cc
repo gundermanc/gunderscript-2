@@ -1,15 +1,15 @@
 // Gunderscript 2 Lexer Unit Test
-// (C) 2014 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 
 #include "gtest/gtest.h"
 
 #include "lexer.h"
 
+using gunderscript::CompilerStringSource;
+using gunderscript::LexerSymbol;
+using gunderscript::LexerToken;
+using gunderscript::LexerTokenType;
 using gunderscript::library::Lexer;
-using gunderscript::library::LexerToken;
-using gunderscript::library::LexerTokenType;
-using gunderscript::library::LexerSymbol;
-using gunderscript::library::LexerStringSource;
 
 // TEST_SYMBOL Macro:
 // Defines the test template for symbol recognition.
@@ -19,7 +19,7 @@ using gunderscript::library::LexerStringSource;
 #define TEST_SYMBOL(n, s, l)                        \
   TEST(Lexer, SymbolRecognition_ ## n ) {           \
     std::string input = s ;                         \
-    LexerStringSource source(input);                \
+    CompilerStringSource source(input);                \
     Lexer lexer(source);                            \
     const LexerToken* token = lexer.AdvanceNext();  \
     EXPECT_FALSE(token == NULL);                    \
@@ -35,7 +35,7 @@ using gunderscript::library::LexerStringSource;
 #define TEST_KEYWORD(n, k, t, s)                   \
   TEST(Lexer, KeywordRecognition_ ## n ) {         \
     std::string input = k ;                        \
-    LexerStringSource source(input);               \
+    CompilerStringSource source(input);               \
     Lexer lexer(source);                           \
     const LexerToken* token = lexer.AdvanceNext(); \
     EXPECT_FALSE(token == NULL);                   \
@@ -43,11 +43,11 @@ using gunderscript::library::LexerStringSource;
     ASSERT_EQ(token->symbol, s);                   \
   }
 
-// Checks the LexerStringSource class to make sure that
+// Checks the CompilerStringSource class to make sure that
 // it parses strings correctly.
-TEST(Lexer, LexerStringSource) {
+TEST(Lexer, CompilerStringSource) {
     std::string input = "abc";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_TRUE(source.has_next());
     ASSERT_EQ('a', source.PeekNextChar());
@@ -67,7 +67,7 @@ TEST(Lexer, LexerStringSource) {
 // Checks to make sure whitespace is recognized and removed.
 TEST(Lexer, LexerWhitespace) {
     std::string input = " \n \t  = \n\t  ! \r";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     const LexerToken* token = lexer.AdvanceNext();
@@ -122,7 +122,7 @@ TEST_SYMBOL(TERNARY, "?", LexerSymbol::TERNARY);
 // also sort of checks whitespace handling.
 TEST(Lexer, SequentialSymbols) {
     std::string input = "  ! < > \n <- \t <->   <= << > >= >> /";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     Lexer lexer(source);
 
@@ -173,7 +173,7 @@ TEST(Lexer, SequentialSymbols) {
 
 TEST(Lexer, SingleLineCommentCharOnly) {
     std::string input = "//";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     Lexer lexer(source);
 
@@ -182,7 +182,7 @@ TEST(Lexer, SingleLineCommentCharOnly) {
 
 TEST(Lexer, TrailingSingleLineComment) {
     std::string input = " \t  ! < > // < > !";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
@@ -202,7 +202,7 @@ TEST(Lexer, TrailingSingleLineComment) {
 
 TEST(Lexer, SingleLineCommentWithNewline) {
     std::string input = " // ! \n // <";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     Lexer lexer(source);
 
@@ -211,7 +211,7 @@ TEST(Lexer, SingleLineCommentWithNewline) {
 
 TEST(Lexer, EmptyMultilineComment) {
     std::string input = "/**/";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     Lexer lexer(source);
 
@@ -220,7 +220,7 @@ TEST(Lexer, EmptyMultilineComment) {
 
 TEST(Lexer, MultilineCommentExtraStars) {
     std::string input = "/*****/";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     Lexer lexer(source);
 
@@ -229,7 +229,7 @@ TEST(Lexer, MultilineCommentExtraStars) {
 
 TEST(Lexer, MultilineCommentSingleStar) {
     std::string input = "/*/";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_THROW(Lexer lexer(source),
         gunderscript::library::LexerCommentException);
@@ -237,7 +237,7 @@ TEST(Lexer, MultilineCommentSingleStar) {
 
 TEST(Lexer, MultilineCommentUnterminated) {
     std::string input = "/*  < > ! <->";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_THROW(Lexer lexer(source),
         gunderscript::library::LexerCommentException);
@@ -245,7 +245,7 @@ TEST(Lexer, MultilineCommentUnterminated) {
 
 TEST(Lexer, MultilineCommentPrePostTokens) {
     std::string input = " <-> /* < > */ >> >";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
@@ -266,7 +266,7 @@ TEST(Lexer, MultilineCommentPrePostTokens) {
 
 TEST(Lexer, MultilineCommentWithSecondStart) {
     std::string input = " <-> /* /* < > */ >> >";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
@@ -286,7 +286,7 @@ TEST(Lexer, MultilineCommentWithSecondStart) {
 
 TEST(Lexer, MultilineCommentWithNewline) {
     std::string input = "\n <- /* /n/n * / */ +=";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
@@ -302,7 +302,7 @@ TEST(Lexer, MultilineCommentWithNewline) {
 
 TEST(Lexer, LineNumbersWhitespace) {
     std::string input = "!    = \n  %=\n\n&";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     // Initial conditions: no current token, only a next token.
@@ -332,7 +332,7 @@ TEST(Lexer, LineNumbersWhitespace) {
 
 TEST(Lexer, LineNumberComment) {
     std::string input = " % /* \n // & \n */   (\n&";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     // Initial conditions: no current token, only a next token.
@@ -362,7 +362,7 @@ TEST(Lexer, LineNumberComment) {
 
 TEST(Lexer, LexRegularString) {
     std::string input = " \"Hello\" +";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     lexer.AdvanceNext();
@@ -378,7 +378,7 @@ TEST(Lexer, LexRegularString) {
 
 TEST(Lexer, LexUnterminatedString) {
     std::string input = " \"String is unterminated ";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_THROW(Lexer lexer(source),
         gunderscript::library::LexerStringException);
@@ -386,7 +386,7 @@ TEST(Lexer, LexUnterminatedString) {
 
 TEST(Lexer, LexNewlineInString) {
     std::string input = " \" New line here -> \n <- OOPS\" ";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_THROW(Lexer lexer(source),
         gunderscript::library::LexerStringException);
@@ -394,7 +394,7 @@ TEST(Lexer, LexNewlineInString) {
 
 TEST(Lexer, LexEscapedString) {
     std::string input = "\"  \\'  \\\"  \\?  \\\\  \\b  \\n  \\t  \\r  \\v  \\f  \"";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     lexer.AdvanceNext();
@@ -408,7 +408,7 @@ TEST(Lexer, LexEscapedString) {
 
 TEST(Lexer, LexInvalidEscapedString) {
     std::string input = " \"   \\q    \" ";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_THROW(Lexer lexer(source),
         gunderscript::library::LexerEscapeException);
@@ -416,7 +416,7 @@ TEST(Lexer, LexInvalidEscapedString) {
 
 TEST(Lexer, ParseNameKeyword) {
     std::string input = "hello    for  package";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
@@ -461,14 +461,9 @@ TEST_KEYWORD(DEPENDS, "depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
 TEST_KEYWORD(NATIVE, "native", LexerTokenType::KEYWORD, LexerSymbol::NATIVE);
 TEST_KEYWORD(TNULL, "null", LexerTokenType::KEYWORD, LexerSymbol::TNULL);
 
-TEST_KEYWORD(INT, "int", LexerTokenType::TYPE, LexerSymbol::INT);
-TEST_KEYWORD(FLOAT, "float", LexerTokenType::TYPE, LexerSymbol::FLOAT);
-TEST_KEYWORD(BOOL, "bool", LexerTokenType::TYPE, LexerSymbol::BOOL);
-TEST_KEYWORD(CHAR, "char", LexerTokenType::TYPE, LexerSymbol::CHAR);
-
 TEST(Lexer, ParseIntegers) {
     std::string input = "3433+ 211";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
@@ -488,7 +483,7 @@ TEST(Lexer, ParseIntegers) {
 
 TEST(Lexer, ParseIntegerOutOfRange) {
     std::string input = "9999999999999999999999999999999999999999999999999999999";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_THROW(Lexer lexer(source),
         gunderscript::library::LexerNumberException);
@@ -496,7 +491,7 @@ TEST(Lexer, ParseIntegerOutOfRange) {
 
 TEST(Lexer, ParseFloats) {
     std::string input = "123.456 / 43.2";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
@@ -516,7 +511,7 @@ TEST(Lexer, ParseFloats) {
 
 TEST(Lexer, ParseFloatsWithMultipleDecimals) {
     std::string input = "34.43.3";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_THROW(Lexer lexer(source),
         gunderscript::library::LexerNumberException);
@@ -524,7 +519,7 @@ TEST(Lexer, ParseFloatsWithMultipleDecimals) {
 
 TEST(Lexer, ParseChar) {
     std::string input = "  'c' '\"' ";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     Lexer lexer(source);
 
@@ -541,7 +536,7 @@ TEST(Lexer, ParseChar) {
 
 TEST(Lexer, ParseUnterminatedChar) {
     std::string input = " 'c  ";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_THROW(Lexer lexer(source),
         gunderscript::library::LexerCharacterException);
@@ -549,7 +544,7 @@ TEST(Lexer, ParseUnterminatedChar) {
 
 TEST(Lexer, ParseMultiCharChar) {
     std::string input = " 'cd'  ";
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
 
     ASSERT_THROW(Lexer lexer(source),
         gunderscript::library::LexerCharacterException);
@@ -561,7 +556,7 @@ TEST(Lexer, FunctionExample) {
         "  int x <- 3 * 2.56 + 5;"
         "}";
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
@@ -569,8 +564,8 @@ TEST(Lexer, FunctionExample) {
     EXPECT_EQ(LexerSymbol::PUBLIC, lexer.current_token()->symbol);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
-    EXPECT_EQ(LexerTokenType::TYPE, lexer.current_token()->type);
-    EXPECT_EQ(LexerSymbol::INT, lexer.current_token()->symbol);
+    EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
+    EXPECT_STREQ("int", lexer.current_token()->string_const->c_str());
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
     EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
@@ -581,8 +576,8 @@ TEST(Lexer, FunctionExample) {
     EXPECT_EQ(LexerSymbol::LPAREN, lexer.current_token()->symbol);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
-    EXPECT_EQ(LexerTokenType::TYPE, lexer.current_token()->type);
-    EXPECT_EQ(LexerSymbol::STRING, lexer.current_token()->symbol);
+    EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
+    EXPECT_STREQ("string", lexer.current_token()->string_const->c_str());
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
     EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
@@ -597,8 +592,8 @@ TEST(Lexer, FunctionExample) {
     EXPECT_EQ(LexerSymbol::LBRACE, lexer.current_token()->symbol);
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
-    EXPECT_EQ(LexerTokenType::TYPE, lexer.current_token()->type);
-    EXPECT_EQ(LexerSymbol::INT, lexer.current_token()->symbol);
+    EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);
+    EXPECT_STREQ("int", lexer.current_token()->string_const->c_str());
 
     ASSERT_FALSE(lexer.AdvanceNext() == NULL);
     EXPECT_EQ(LexerTokenType::NAME, lexer.current_token()->type);

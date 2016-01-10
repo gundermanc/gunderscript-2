@@ -12,7 +12,7 @@ namespace library {
 TEST(Parser, Empty) {
     std::string input("");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -23,7 +23,7 @@ TEST(Parser, PackageOnly) {
     // Default success case with package only.
     std::string input("package \"FooPackage\";");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -52,7 +52,7 @@ TEST(Parser, MalformedPackage) {
     {
         std::string input("packa");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -63,7 +63,7 @@ TEST(Parser, MalformedPackage) {
     {
         std::string input("package 34");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -74,7 +74,7 @@ TEST(Parser, MalformedPackage) {
     {
         std::string input("package \"package_name\" depends \"foo\";");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -89,7 +89,7 @@ TEST(Parser, MalformedDepends) {
     {
         std::string input("package \"food\"; depends");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -100,7 +100,7 @@ TEST(Parser, MalformedDepends) {
     {
         std::string input("package \"food\"; depends 34;");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -111,7 +111,7 @@ TEST(Parser, MalformedDepends) {
     {
         std::string input("package \"Foo\"; depends \"Foo2Package\"");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -124,7 +124,7 @@ TEST(Parser, PackageDependsOnly) {
     // Case 1: partial depends.
     std::string input("package \"Foo\"; depends \"Foo2\"; depends \"Foo3\";");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -163,7 +163,7 @@ TEST(Parser, MalformedSpec) {
     {
         std::string input("package \"FooPackage\"; spec MySpec { }");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -175,7 +175,7 @@ TEST(Parser, MalformedSpec) {
     {
         std::string input("package \"FooPackage\"; concealed MySpec { }");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -186,7 +186,7 @@ TEST(Parser, MalformedSpec) {
     {
         std::string input("package \"FooPackage\"; concealed spec \"MySpec\" { }");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -197,7 +197,7 @@ TEST(Parser, MalformedSpec) {
     {
         std::string input("package \"FooPackage\"; concealed spec \"MySpec\"  }");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -208,7 +208,7 @@ TEST(Parser, MalformedSpec) {
     {
         std::string input("package \"FooPackage\"; concealed spec \"MySpec\" { ");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -222,7 +222,7 @@ TEST(Parser, EmptySpec) {
         "public spec MySpec { }"
         "concealed spec Foo { }");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -298,7 +298,7 @@ TEST(Parser, ParseMalformedProperty) {
             "  concealed float X { public get; concealed set; }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -312,7 +312,7 @@ TEST(Parser, ParseMalformedProperty) {
             "  float 34 { public get; concealed set; }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -326,7 +326,7 @@ TEST(Parser, ParseMalformedProperty) {
             "  float X  public get; concealed set; }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -341,7 +341,7 @@ TEST(Parser, ParseMalformedProperty) {
             "  float Y { }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -355,7 +355,7 @@ TEST(Parser, ParseMalformedProperty) {
             "  float X { get; concealed set; }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -369,7 +369,7 @@ TEST(Parser, ParseMalformedProperty) {
             "  float X { public set; concealed set; }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -383,7 +383,7 @@ TEST(Parser, ParseMalformedProperty) {
             "  float X { public get { }; concealed set; }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -398,7 +398,7 @@ TEST(Parser, ParseMalformedProperty) {
             "  float X { public get; }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -415,7 +415,7 @@ TEST(Parser, ParsePropertyEmpty) {
         "  string Y { }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -431,7 +431,7 @@ TEST(Parser, ParsePropertyAuto) {
             "  float X { public get; concealed set; }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -453,7 +453,7 @@ TEST(Parser, ParsePropertyAuto) {
 
         Node* x_type_node = x_node->child(0);
         EXPECT_EQ(NodeRule::TYPE, x_type_node->rule());
-        EXPECT_EQ(LexerSymbol::FLOAT, x_type_node->symbol_value());
+        EXPECT_STREQ("float", x_type_node->string_value()->c_str());
 
         Node* x_name_node = x_node->child(1);
         EXPECT_EQ(NodeRule::NAME, x_name_node->rule());
@@ -485,7 +485,7 @@ TEST(Parser, ParsePropertyAuto) {
             "  float X { concealed set; internal get; }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -519,7 +519,7 @@ TEST(Parser, ParsePropertyWithFunctionBody) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -537,7 +537,7 @@ TEST(Parser, ParsePropertyWithFunctionBody) {
     Node* foo_setter_node = foo_node->child(3);
 
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
-    ASSERT_EQ(LexerSymbol::INT, foo_type_node->symbol_value());
+    ASSERT_STREQ("int", foo_type_node->string_value()->c_str());
 
     EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
     ASSERT_STREQ("Foo", foo_name_node->string_value()->c_str());
@@ -578,7 +578,7 @@ TEST(Parser, ParseFunctionEmpty) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -600,7 +600,7 @@ TEST(Parser, ParseFunctionEmpty) {
 
     Node* foo_type_node = foo_node->child(2);
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
-    EXPECT_EQ(LexerSymbol::INT, foo_type_node->symbol_value());
+    EXPECT_STREQ("int", foo_type_node->string_value()->c_str());
 
     Node* foo_name_node = foo_node->child(3);
     EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
@@ -623,7 +623,7 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
         "  concealed native string Foo2(int x);"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -645,7 +645,7 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
 
     Node* foo_type_node = foo_node->child(2);
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
-    EXPECT_EQ(LexerSymbol::STRING, foo_type_node->symbol_value());
+    EXPECT_STREQ("string", foo_type_node->string_value()->c_str());
 
     Node* foo_name_node = foo_node->child(3);
     EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
@@ -661,7 +661,7 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
 
     Node* foo_x_type_node = foo_x_node->child(0);
     EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
-    EXPECT_EQ(LexerSymbol::INT, foo_x_type_node->symbol_value());
+    EXPECT_STREQ("int", foo_x_type_node->string_value()->c_str());
 
     Node* foo_x_name_node = foo_x_node->child(1);
     EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
@@ -677,7 +677,7 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
         "  concealed native string Foo2(int x, string y);"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -699,7 +699,7 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
 
     Node* foo_x_type_node = foo_x_node->child(0);
     EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
-    EXPECT_EQ(LexerSymbol::INT, foo_x_type_node->symbol_value());
+    EXPECT_STREQ("int", foo_x_type_node->string_value()->c_str());
 
     Node* foo_x_name_node = foo_x_node->child(1);
     EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
@@ -711,7 +711,7 @@ TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
 
     Node* foo_y_type_node = foo_y_node->child(0);
     EXPECT_EQ(NodeRule::TYPE, foo_y_type_node->rule());
-    EXPECT_EQ(LexerSymbol::STRING, foo_y_type_node->symbol_value());
+    EXPECT_STREQ("string", foo_y_type_node->string_value()->c_str());
 
     Node* foo_y_name_node = foo_y_node->child(1);
     EXPECT_EQ(NodeRule::NAME, foo_y_name_node->rule());
@@ -733,7 +733,7 @@ TEST(Parser, ParseMultipleFunctions) {
         "  string FooStringProperty { public get; public set; }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -750,7 +750,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  native string Foo2(int x, string y);"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -765,7 +765,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  native public string Foo(int x, string y);"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -780,7 +780,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  public native string 45(int x, string y);"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -794,7 +794,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  public native string Foo(int x,);"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -808,7 +808,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  public native string Foo(public int x);"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -822,7 +822,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  public native string Foo(int x int y);"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -836,7 +836,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  public native string Foo int x);"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -850,7 +850,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  public native string Foo(int x ;"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -864,7 +864,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  public native string Foo(int x)"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -878,7 +878,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  public native string Foo(int x)"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -892,7 +892,7 @@ TEST(Parser, ParseMalformedFunctions) {
             "  public native string Foo(int x) }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -909,7 +909,7 @@ TEST(Parser, ParseEmptyReturn) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -938,7 +938,7 @@ TEST(Parser, ParseReturnWithExpression) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -978,7 +978,7 @@ TEST(Parser, ParseMalformedReturn) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -994,7 +994,7 @@ TEST(Parser, ParseMalformedReturn) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1011,7 +1011,7 @@ TEST(Parser, ParseArithmeticExpression) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1099,7 +1099,7 @@ TEST(Parser, ParseDoubleNegative) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1155,7 +1155,7 @@ TEST(Parser, ParseDoubleNot) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1208,7 +1208,7 @@ TEST(Parser, ParseDoubleNegativeNoParens) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1271,7 +1271,7 @@ TEST(Parser, ParseDoubleNotNoParens) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1319,7 +1319,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1335,7 +1335,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1351,7 +1351,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1367,7 +1367,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1383,7 +1383,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1399,7 +1399,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1415,7 +1415,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1432,7 +1432,7 @@ TEST(Parser, ParseBooleanExpression) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1507,7 +1507,7 @@ TEST(Parser, ParseStringExpression) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1560,7 +1560,7 @@ TEST(Parser, ParseVariableExpression) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1609,7 +1609,7 @@ TEST(Parser, ParseFunctionExpressionWithoutArgs) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1662,7 +1662,7 @@ TEST(Parser, ParseFunctionExpressionWithArgs) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1747,7 +1747,7 @@ TEST(Parser, ParseMemberExpression) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1847,7 +1847,7 @@ TEST(Parser, ParseMalformedMemberExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1863,7 +1863,7 @@ TEST(Parser, ParseMalformedMemberExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -1881,7 +1881,7 @@ TEST(Parser, ParseExpressionMemberExpression) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1896,7 +1896,7 @@ TEST(Parser, ParseAssignStatement) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1953,7 +1953,7 @@ TEST(Parser, ParseCallStatement) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -1997,7 +1997,7 @@ TEST(Parser, ParseComparisonExpression) {
         "  }"
         "}");
 
-    LexerStringSource source(input);
+    CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
 
@@ -2092,7 +2092,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -2108,7 +2108,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -2124,7 +2124,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -2140,7 +2140,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -2156,7 +2156,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -2172,7 +2172,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -2188,7 +2188,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
@@ -2205,7 +2205,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
             "  }"
             "}");
 
-        LexerStringSource source(input);
+        CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 

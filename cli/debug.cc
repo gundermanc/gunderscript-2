@@ -6,7 +6,6 @@
 #include "debug.h"
 
 namespace gunderscript {
-namespace library {
 
 // Prints the debug representation of the given token to the console.
 void DebugPrintLexerToken(const LexerToken& token) {
@@ -26,7 +25,6 @@ void DebugPrintLexerToken(const LexerToken& token) {
     case LexerTokenType::ACCESS_MODIFIER:
     case LexerTokenType::KEYWORD:
     case LexerTokenType::SYMBOL:
-    case LexerTokenType::TYPE:
         snprintf(value, kMaxValueLen, "%s", LexerSymbolString(token.symbol).c_str());
         break;
     case LexerTokenType::NAME:
@@ -44,18 +42,8 @@ void DebugPrintLexerToken(const LexerToken& token) {
 
 // Prints the debug representation of an abstract syntax tree node
 // to the console along with all of its children.
-void DebugPrintNode(Node* node) {
-    DebugPrintNode(node, NULL);
-}
-
-// Prints the debug representation of an abstract syntax tree node
-// to the console along with all of its children.
 // The target_node is marked with an arrow.
-void DebugPrintNode(Node* node, Node* target_node) {
-
-    if (node == target_node) {
-        printf("--> ");
-    }
+void DebugPrintNode(const Node* node) {
 
     if (node == NULL) {
         printf("** NULL NODE **");
@@ -109,9 +97,8 @@ void DebugPrintNode(Node* node, Node* target_node) {
 
     // Print child nodes.
     for (int i = 0; i < node->child_count(); i++) {
-        DebugPrintNode(node->child(i), target_node);
+        DebugPrintNode(node->child(i));
     }
 }
 
-} // namespace library
 } // namspace gunderscript

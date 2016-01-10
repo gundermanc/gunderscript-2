@@ -1,5 +1,5 @@
 // Gunderscript-2 Exceptions Definitions
-// (C) 2014 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 
 #ifndef GUNDERSCRIPT_EXCEPTIONS__H__
 #define GUNDERSCRIPT_EXCEPTIONS__H__
@@ -8,7 +8,6 @@
 #include <string>
 
 namespace gunderscript {
-namespace library {
 
 // Gunderscript Exceptions Parent Class
 // Each module's exceptions descend from this class.
@@ -37,7 +36,6 @@ public:
     IllegalStateException(const std::string& message) : Exception(message) { }
 };
 
-} // namespace library
 } // namespace gunderscript
 
 #endif // GUNDERSCRIPT_EXCEPTIONS__H__
