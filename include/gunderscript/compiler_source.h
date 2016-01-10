@@ -38,7 +38,7 @@ private:
 class CompilerFileSource : public CompilerSourceInterface {
 public:
     CompilerFileSource(const std::string& file_name);
-    CompilerFileSource::~CompilerFileSource();
+    ~CompilerFileSource();
     bool has_next();
     int NextChar();
     int PeekNextChar();
