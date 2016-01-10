@@ -8,12 +8,12 @@
 #include <vector>
 
 #include "gunderscript/node.h"
-#include "gunderscript/type.h"
 
 #include "ast_walker.h"
 #include "lexer.h"
 #include "symbol.h"
 #include "symbol_table.h"
+#include "type.h"
 
 namespace gunderscript {
 namespace library {

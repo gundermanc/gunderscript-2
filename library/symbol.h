@@ -6,9 +6,8 @@
 
 #include <string>
 
-#include "gunderscript/type.h"
-
 #include "lexer.h"
+#include "type.h"
 
 namespace gunderscript {
 namespace library {

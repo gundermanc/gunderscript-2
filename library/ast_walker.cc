@@ -2,7 +2,7 @@
 // (C) 2014-2016 Christian Gunderman
 
 #include "gunderscript/exceptions.h"
-#include "gunderscript/type.h"
+#include "type.h"
 
 #include "ast_walker.h"
 
