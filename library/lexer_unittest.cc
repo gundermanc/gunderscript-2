@@ -2,13 +2,13 @@
 // (C) 2014-2016 Christian Gunderman
 
 #include "gtest/gtest.h"
+#include "testing_macros.h"
+
+#include "gunderscript/exceptions.h"
 
 #include "lexer.h"
 
-using gunderscript::CompilerStringSource;
-using gunderscript::LexerSymbol;
-using gunderscript::LexerToken;
-using gunderscript::LexerTokenType;
+using namespace gunderscript;
 using gunderscript::library::Lexer;
 
 // TEST_SYMBOL Macro:
@@ -231,16 +231,15 @@ TEST(Lexer, MultilineCommentSingleStar) {
     std::string input = "/*/";
     CompilerStringSource source(input);
 
-    ASSERT_THROW(Lexer lexer(source),
-        gunderscript::library::LexerCommentException);
+    EXPECT_STATUS(Lexer lexer(source), STATUS_LEXER_UNTERMINATED_COMMENT);
 }
 
 TEST(Lexer, MultilineCommentUnterminated) {
     std::string input = "/*  < > ! <->";
     CompilerStringSource source(input);
 
-    ASSERT_THROW(Lexer lexer(source),
-        gunderscript::library::LexerCommentException);
+    EXPECT_STATUS(Lexer lexer(source),
+        STATUS_LEXER_UNTERMINATED_COMMENT);
 }
 
 TEST(Lexer, MultilineCommentPrePostTokens) {
@@ -380,16 +379,16 @@ TEST(Lexer, LexUnterminatedString) {
     std::string input = " \"String is unterminated ";
     CompilerStringSource source(input);
 
-    ASSERT_THROW(Lexer lexer(source),
-        gunderscript::library::LexerStringException);
+    EXPECT_STATUS(Lexer lexer(source),
+        STATUS_LEXER_UNTERMINATED_STRING);
 }
 
 TEST(Lexer, LexNewlineInString) {
     std::string input = " \" New line here -> \n <- OOPS\" ";
     CompilerStringSource source(input);
 
-    ASSERT_THROW(Lexer lexer(source),
-        gunderscript::library::LexerStringException);
+    EXPECT_STATUS(Lexer lexer(source),
+        STATUS_LEXER_NEWLINE_IN_STRING);
 }
 
 TEST(Lexer, LexEscapedString) {
@@ -410,8 +409,8 @@ TEST(Lexer, LexInvalidEscapedString) {
     std::string input = " \"   \\q    \" ";
     CompilerStringSource source(input);
 
-    ASSERT_THROW(Lexer lexer(source),
-        gunderscript::library::LexerEscapeException);
+    EXPECT_STATUS(Lexer lexer(source),
+        STATUS_LEXER_INVALID_ESCAPE);
 }
 
 TEST(Lexer, ParseNameKeyword) {
@@ -485,8 +484,8 @@ TEST(Lexer, ParseIntegerOutOfRange) {
     std::string input = "9999999999999999999999999999999999999999999999999999999";
     CompilerStringSource source(input);
 
-    ASSERT_THROW(Lexer lexer(source),
-        gunderscript::library::LexerNumberException);
+    EXPECT_STATUS(Lexer lexer(source),
+        STATUS_LEXER_MALFORMED_NUMBER);
 }
 
 TEST(Lexer, ParseFloats) {
@@ -513,8 +512,8 @@ TEST(Lexer, ParseFloatsWithMultipleDecimals) {
     std::string input = "34.43.3";
     CompilerStringSource source(input);
 
-    ASSERT_THROW(Lexer lexer(source),
-        gunderscript::library::LexerNumberException);
+    EXPECT_STATUS(Lexer lexer(source),
+        STATUS_LEXER_MALFORMED_NUMBER);
 }
 
 TEST(Lexer, ParseChar) {
@@ -538,16 +537,16 @@ TEST(Lexer, ParseUnterminatedChar) {
     std::string input = " 'c  ";
     CompilerStringSource source(input);
 
-    ASSERT_THROW(Lexer lexer(source),
-        gunderscript::library::LexerCharacterException);
+    EXPECT_STATUS(Lexer lexer(source),
+        STATUS_LEXER_MALFORMED_CHAR);
 }
 
 TEST(Lexer, ParseMultiCharChar) {
     std::string input = " 'cd'  ";
     CompilerStringSource source(input);
 
-    ASSERT_THROW(Lexer lexer(source),
-        gunderscript::library::LexerCharacterException);
+    EXPECT_STATUS(Lexer lexer(source),
+        STATUS_LEXER_MALFORMED_CHAR);
 }
 
 TEST(Lexer, FunctionExample) {

@@ -9,5 +9,5 @@ using gunderscript::cli::ProcessArguments;
 
 // Application Entry point.
 int main(int argc, const char** argv) {
-   // return CLIRESULT_INT(ProcessArguments(argc, argv));
+    return CLIRESULT_INT(ProcessArguments(argc, argv));
 }
