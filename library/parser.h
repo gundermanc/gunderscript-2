@@ -19,7 +19,6 @@ class Parser {
 public:
     Parser(Lexer& lexer) : lexer_(lexer) { }
     Node* Parse();
-    Lexer* lexer() const { return &lexer_; }
 
 private:
     Lexer& lexer_;

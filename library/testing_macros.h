@@ -11,7 +11,7 @@
 using namespace gunderscript;
 
 // Pretty basic macro for checking that the exception thrown by stmt
-// has the expected exception.
+// has the expected status.
 #define EXPECT_STATUS(stmt, exception_status)                   \
 try {                                                           \
     stmt;                                                       \
