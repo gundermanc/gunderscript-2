@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "gunderscript\compiler_source.h"
+#include "gunderscript/compiler_source.h"
 
 using std::fstream;
 using std::ios_base;
