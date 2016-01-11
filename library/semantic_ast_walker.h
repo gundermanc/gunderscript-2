@@ -207,14 +207,31 @@ protected:
 private:
     SymbolTable<Symbol> symbol_table_;
 
-    void CheckValidModuleName(const std::string& module_name);
+    void CheckValidModuleName(const std::string& module_name, int line, int column);
     void CheckAccessModifier(
         const std::string& caller_class,
         const std::string& callee_class,
-        LexerSymbol callee_access_modifier);
-    Type CalculateResultantType(Type left, Type right);
-    Type CalculateNumericResultantType(Type left, Type right);
-    Type CalculateBoolResultantType(Type left, Type right);
+        LexerSymbol callee_access_modifier,
+        int line,
+        int column);
+    Type CalculateResultantType(
+        Type left,
+        Type right,
+        int line,
+        int column,
+        ExceptionStatus type_mismatch_error);
+    Type CalculateNumericResultantType(
+        Type left, 
+        Type right,
+        int line,
+        int column,
+        ExceptionStatus type_mismatch_error);
+    Type CalculateBoolResultantType(
+        Type left,
+        Type right,
+        int line,
+        int column,
+        ExceptionStatus type_mismatch_error);
     Type ResolveTypeNode(Node* type_node);
 };
 

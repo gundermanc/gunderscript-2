@@ -54,6 +54,7 @@ private:
 const ExceptionStatus STATUS_SUCCESS = ExceptionStatus(0, "Success");
 const ExceptionStatus STATUS_ILLEGAL_STATE = ExceptionStatus(-1, "Feature not implemented or bug detected in Gunderscript");
 
+// Lexer Exceptions 100-199:
 const ExceptionStatus STATUS_LEXER_UNTERMINATED_COMMENT = ExceptionStatus(100, "Unterminated comment");
 const ExceptionStatus STATUS_LEXER_INVALID_ESCAPE = ExceptionStatus(101, "Invalid escape sequence");
 const ExceptionStatus STATUS_LEXER_UNTERMINATED_STRING = ExceptionStatus(102, "Unterminated string");
@@ -62,6 +63,7 @@ const ExceptionStatus STATUS_LEXER_MALFORMED_CHAR = ExceptionStatus(104, "Malfor
 const ExceptionStatus STATUS_LEXER_NO_MATCH = ExceptionStatus(105, "No matching lexer rule");
 const ExceptionStatus STATUS_LEXER_NEWLINE_IN_STRING = ExceptionStatus(106, "New line character in string constant");
 
+// Parser Exceptions 200-299:
 const ExceptionStatus STATUS_PARSER_MISSING_PACKAGE= ExceptionStatus(200, "Expected a package declaration at top of file");
 const ExceptionStatus STATUS_PARSER_INVALID_PACKAGE = ExceptionStatus(201, "Invalid package name at top of file");
 const ExceptionStatus STATUS_PARSER_MALFORMED_DEPENDS = ExceptionStatus(202, "Malformed depends statement");
@@ -128,6 +130,50 @@ const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTIONCALL_MISSING_COMMA
     = ExceptionStatus(233, "Missing comma delimiter in function call parameters");
 const ExceptionStatus STATUS_PARSER_EOF
     = ExceptionStatus(234, "Reached end of file while parsing");
+
+// Semantic Walker Exceptions 300-399:
+const ExceptionStatus STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN
+    = ExceptionStatus(300, "Invalid type in assignment, expression evaluates to different type than variable");
+const ExceptionStatus STATUS_SEMANTIC_RETURN_FROM_PROPERTY_SET
+    = ExceptionStatus(301, "Set Property mutator does not return a value but has a return statement");
+const ExceptionStatus STATUS_SEMANTIC_RETURN_TYPE_MISMATCH
+    = ExceptionStatus(302, "Return statement expression type does not match function or property type");
+const ExceptionStatus STATUS_SEMANTIC_INVALID_PACKAGE
+    = ExceptionStatus(303, "Invalid package name at top of file");
+const ExceptionStatus STATUS_SEMANTIC_NONBOOL_IN_LOGNOT
+    = ExceptionStatus(304, "Non-boolean type in '!' expression");
+const ExceptionStatus STATUS_SEMANTIC_NOT_ACCESSIBLE
+    = ExceptionStatus(305, "The referenced class member has an access modifier that makes it not visible to this code");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_ADD
+    = ExceptionStatus(306, "Non-matching types in '+' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_SUB
+    = ExceptionStatus(307, "Non-matching types in '-' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_MUL
+    = ExceptionStatus(307, "Non-matching types in '*' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_DIV
+    = ExceptionStatus(308 , "Non-matching types in '/' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_MOD
+    = ExceptionStatus(309, "Non-matching types in '%' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LOGOR
+    = ExceptionStatus(310, "Non-matching types in '||' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LOGAND
+    = ExceptionStatus(311, "Non-matching types in '&&' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_GREATER
+    = ExceptionStatus(312, "Non-matching types in '>' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS
+    = ExceptionStatus(313, "Non-matching types in '<' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_GREATER_EQUALS
+    = ExceptionStatus(314, "Non-matching types in '>=' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS_EQUALS
+    = ExceptionStatus(315, "Non-matching types in '<=' expression");
+const ExceptionStatus STATUS_SEMANTIC_NONNUMERIC_OPERANDS
+    = ExceptionStatus(316, "Non-numeric operands used with numeric operator");
+const ExceptionStatus STATUS_SEMANTIC_NONBOOL_OPERANDS
+    = ExceptionStatus(316, "Non-boolean operands used with numeric operator");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_EQUALS
+    = ExceptionStatus(317, "Non-matching types in '=' expression");
+const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_NOT_EQUALS
+    = ExceptionStatus(318, "Non-matching types in '!=' expression");
 
 // Gunderscript Exceptions Parent Class
 // Each module's exceptions descend from this class.

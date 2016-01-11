@@ -98,7 +98,10 @@ void SemanticAstWalker::WalkModule(Node* module_node) {
 // The only verification performed at the moment is simple naive name
 // pattern matching.
 void SemanticAstWalker::WalkModuleName(Node* name_node) {
-    CheckValidModuleName(*name_node->string_value());
+    CheckValidModuleName(
+        *name_node->string_value(),
+        name_node->line(),
+        name_node->column());
 }
 
 // Checks that the given dependency module name is valid.
@@ -106,7 +109,10 @@ void SemanticAstWalker::WalkModuleName(Node* name_node) {
 // TODO: calculate dependency graph and lex/parse/typecheck the
 // dependency first.
 void SemanticAstWalker::WalkModuleDependsName(Node* name_node) {
-    CheckValidModuleName(*name_node->string_value());
+    CheckValidModuleName(
+        *name_node->string_value(),
+        name_node->line(),
+        name_node->column());
 }
 
 // Attempts to declare a new spec in the given scope. Throws if spec
@@ -254,7 +260,9 @@ Type SemanticAstWalker::WalkFunctionCall(
     CheckAccessModifier(
         *spec_name_node->string_value(),
         symbol.spec_name(),
-        symbol.access_modifier());
+        symbol.access_modifier(),
+        name_node->line(),
+        name_node->column());
 
     return symbol.type();
 }
@@ -292,7 +300,10 @@ Type SemanticAstWalker::WalkAssign(
 
         // Check to make sure that type of new assignment matches original declared type.
         if (variable_symbol.type() != operations_result) {
-            throw SemanticAstWalkerTypeMismatchException(*this);
+            THROW_EXCEPTION(
+                name_node->line(),
+                name_node->column(),
+                STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN);
         }
 
         return variable_symbol.type();
@@ -330,10 +341,16 @@ Type SemanticAstWalker::WalkReturn(
         break;
     case PropertyFunction::SET:
         // Property setter function cannot return value.
-        throw SemanticAstWalkerTypeMismatchException(*this);
+        THROW_EXCEPTION(
+            property_node->line(),
+            property_node->column(),
+            STATUS_SEMANTIC_RETURN_FROM_PROPERTY_SET);
     default:
         // Unhandled switch case.
-        throw new IllegalStateException();
+        THROW_EXCEPTION(
+            property_node->line(),
+            property_node->column(),
+            STATUS_ILLEGAL_STATE);
     }
 
     // Lookup the function symbol. Shouldn't be able to throw since the
@@ -343,7 +360,10 @@ Type SemanticAstWalker::WalkReturn(
     // Check to make sure that the type of the function symbol matches the type
     // of the return statement expression.
     if (symbol.type() != expression_result) {
-        throw SemanticAstWalkerTypeMismatchException(*this);
+        THROW_EXCEPTION(
+            property_node->line(),
+            property_node->column(),
+            STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
     }
 
     return symbol.type();
@@ -351,9 +371,12 @@ Type SemanticAstWalker::WalkReturn(
 
 // Checks to see if the given module name is valid. If it is not, throws
 // an exception.
-void SemanticAstWalker::CheckValidModuleName(const std::string& module_name) {
+void SemanticAstWalker::CheckValidModuleName(const std::string& module_name, int line, int column) {
     if (!std::regex_match(module_name, module_name_pattern)) {
-        throw SemanticAstWalkerInvalidPackageNameException(*this);
+        THROW_EXCEPTION(
+            line,
+            column,
+            STATUS_SEMANTIC_INVALID_PACKAGE);
     }
 }
 
@@ -365,7 +388,14 @@ Type SemanticAstWalker::WalkAdd(
     Type left_result,
     Type right_result) {
 
-    return CalculateResultantType(left_result, right_result);
+    // TODO: allow only string and numbers.
+
+    return CalculateResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        right_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_ADD);
 }
 
 // Walks the SUB node and calculates it's return type.
@@ -376,7 +406,12 @@ Type SemanticAstWalker::WalkSub(
     Type left_result,
     Type right_result) {
 
-    return CalculateNumericResultantType(left_result, right_result);
+    return CalculateNumericResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_SUB);
 }
 
 // Walks the MUL node and calculates it's return type.
@@ -387,7 +422,12 @@ Type SemanticAstWalker::WalkMul(
     Type left_result,
     Type right_result) {
 
-    return CalculateNumericResultantType(left_result, right_result);
+    return CalculateNumericResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_MUL);
 }
 
 // Walks the DIV node and calculates it's return type.
@@ -398,7 +438,12 @@ Type SemanticAstWalker::WalkDiv(
     Type left_result,
     Type right_result) {
 
-    return CalculateNumericResultantType(left_result, right_result);
+    return CalculateNumericResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_DIV);
 }
 // Walks the MOD node and calculates it's return type.
 Type SemanticAstWalker::WalkMod(
@@ -408,7 +453,12 @@ Type SemanticAstWalker::WalkMod(
     Type left_result,
     Type right_result) {
 
-    return CalculateNumericResultantType(left_result, right_result);
+    return CalculateNumericResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_MOD);
 }
 
 // Walks the LOGNOT node and calculates it's return type.
@@ -419,7 +469,10 @@ Type SemanticAstWalker::WalkLogNot(
 
     // Check for boolean type. NOT works only with booleans.
     if (child_result != TYPE_BOOL) {
-        throw SemanticAstWalkerTypeMismatchException(*this);
+        THROW_EXCEPTION(
+            child_node->line(),
+            child_node->column(),
+            STATUS_SEMANTIC_NONBOOL_IN_LOGNOT);
     }
 
     return child_result;
@@ -433,7 +486,12 @@ Type SemanticAstWalker::WalkLogAnd(
     Type left_result,
     Type right_result) {
 
-    return CalculateBoolResultantType(left_result, right_result);
+    return CalculateBoolResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LOGAND);
 }
 
 // Walks the LOGOR node and calculates it's return type.
@@ -444,7 +502,12 @@ Type SemanticAstWalker::WalkLogOr(
     Type left_result,
     Type right_result) {
 
-    return CalculateBoolResultantType(left_result, right_result);
+    return CalculateBoolResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LOGOR);
 }
 
 // Walks the GREATER node and calculates it's return type.
@@ -457,7 +520,12 @@ Type SemanticAstWalker::WalkGreater(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    CalculateNumericResultantType(left_result, right_result);
+    return CalculateNumericResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_GREATER);
 
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
@@ -473,7 +541,12 @@ Type SemanticAstWalker::WalkEquals(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    CalculateResultantType(left_result, right_result);
+    return CalculateResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_EQUALS);
 
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
@@ -489,7 +562,12 @@ Type SemanticAstWalker::WalkNotEquals(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    CalculateResultantType(left_result, right_result);
+    return CalculateResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_NOT_EQUALS);
 
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
@@ -505,7 +583,12 @@ Type SemanticAstWalker::WalkLess(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    CalculateNumericResultantType(left_result, right_result);
+    return CalculateNumericResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS);
 
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
@@ -521,7 +604,12 @@ Type SemanticAstWalker::WalkGreaterEquals(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    CalculateNumericResultantType(left_result, right_result);
+    return CalculateNumericResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_GREATER_EQUALS);
 
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
@@ -537,7 +625,12 @@ Type SemanticAstWalker::WalkLessEquals(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    CalculateNumericResultantType(left_result, right_result);
+    return CalculateNumericResultantType(
+        left_result,
+        right_result,
+        left_node->line(),
+        left_node->column(),
+        STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS_EQUALS);
 
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
@@ -629,28 +722,42 @@ Type SemanticAstWalker::WalkAnyType(
 void SemanticAstWalker::CheckAccessModifier(
     const std::string& caller_class,
     const std::string& callee_class,
-    LexerSymbol callee_access_modifier) {
+    LexerSymbol callee_access_modifier,
+    int line,
+    int column) {
 
     switch (callee_access_modifier) {
     case LexerSymbol::PUBLIC:
         return;
     case LexerSymbol::CONCEALED:
         if (caller_class != callee_class) {
-            throw SemanticAstWalkerNotAccessibleException(*this);
+            THROW_EXCEPTION(
+                line,
+                column,
+                STATUS_SEMANTIC_NOT_ACCESSIBLE);
         }
     case LexerSymbol::PACKAGE:
         // What exactly a 'package' will be is currently up in the air.
         // TODO: complete this.
-        throw new NotImplementedException();
+        THROW_EXCEPTION(
+            line,
+            column,
+            STATUS_ILLEGAL_STATE);
     case LexerSymbol::INTERNAL:
         // What exactly 'internal' means is currently up in the air.
         // Internal is TYPE_INTENDED to mean that it is internal to the file,
         // but there isn't support for multifile lex/parse/typecheck yet.
         // TODO: complete this.
-        throw new NotImplementedException();
+        THROW_EXCEPTION(
+            line,
+            column,
+            STATUS_ILLEGAL_STATE);
     default:
         // Throw If someone adds a new access modifier that we don't know of.
-        throw IllegalStateException();
+        THROW_EXCEPTION(
+            line,
+            column,
+            STATUS_ILLEGAL_STATE);
     }
 }
 
@@ -703,7 +810,12 @@ void SemanticAstWalker::WalkBlockChildren(
 
 // Calculates the type of a binary operator expression from the types of its
 // operands.
-Type SemanticAstWalker::CalculateResultantType(Type left, Type right) {
+Type SemanticAstWalker::CalculateResultantType(
+    Type left, 
+    Type right, 
+    int line, 
+    int column,
+    ExceptionStatus type_mismatch_error) {
 
     // We're going to take a stickler model in Gunderscript:
     // you must explicitly typecast everything. There are absolutely no
@@ -721,19 +833,31 @@ Type SemanticAstWalker::CalculateResultantType(Type left, Type right) {
     }
 
     // Types don't match. Might require a typecast. (e.g.: float to int).
-    throw SemanticAstWalkerTypeMismatchException(*this);
+    THROW_EXCEPTION(
+        line,
+        column,
+        type_mismatch_error);
 }
 
 // Calculates the type of a binary operator expression from the types of its
 // operands. Operands must both be numeric.
-Type SemanticAstWalker::CalculateNumericResultantType(Type left, Type right) {
+Type SemanticAstWalker::CalculateNumericResultantType(
+    Type left,
+    Type right,
+    int line,
+    int column,
+    ExceptionStatus type_mismatch_error) {
 
     // Do other checks.
-    Type resultant_type = CalculateResultantType(left, right);
+    Type resultant_type = CalculateResultantType(
+        left, right, line, column, type_mismatch_error);
 
     // Disallow non-numerical operands.
     if (resultant_type != TYPE_INT && resultant_type != TYPE_FLOAT) {
-        throw SemanticAstWalkerTypeMismatchException(*this);
+        THROW_EXCEPTION(
+            line,
+            column,
+            STATUS_SEMANTIC_NONNUMERIC_OPERANDS);
     }
 
     return resultant_type;
@@ -741,11 +865,19 @@ Type SemanticAstWalker::CalculateNumericResultantType(Type left, Type right) {
 
 // Calculates the type of a binary operator expression from the types of its
 // operands. Operands must both be numeric.
-Type SemanticAstWalker::CalculateBoolResultantType(Type left, Type right) {
+Type SemanticAstWalker::CalculateBoolResultantType(
+    Type left,
+    Type right,
+    int line,
+    int column,
+    ExceptionStatus type_mismatch_error) {
 
     // Both operands must be TYPE_BOOL.
     if (left != TYPE_BOOL || right != TYPE_BOOL) {
-        throw SemanticAstWalkerTypeMismatchException(*this);
+        THROW_EXCEPTION(
+            line,
+            column,
+            STATUS_SEMANTIC_NONBOOL_OPERANDS);
     }
 
     return right;

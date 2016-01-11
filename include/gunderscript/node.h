@@ -74,12 +74,12 @@ const std::string NodeRuleString(NodeRule rule);
 // or sub-constructs.
 class Node {
 public:
-    Node(NodeRule rule);
-    Node(NodeRule rule, bool value);
-    Node(NodeRule rule, long value);
-    Node(NodeRule rule, double value);
-    Node(NodeRule rule, LexerSymbol symbol);
-    Node(NodeRule rule, const std::string* value);
+    Node(NodeRule rule, int line, int column);
+    Node(NodeRule rule, int line, int column, bool value);
+    Node(NodeRule rule, int line, int column, long value);
+    Node(NodeRule rule, int line, int column, double value);
+    Node(NodeRule rule, int line, int column, LexerSymbol symbol);
+    Node(NodeRule rule, int line, int column, const std::string* value);
     ~Node();
     void AddChild(Node* child);
     Node* child(int child) const;
@@ -90,10 +90,14 @@ public:
     LexerSymbol symbol_value() const { return num_value_.symbol_value; }
     const std::string* string_value() const { return string_value_; }
     NodeRule rule() const { return rule_; }
+    int line() { return line_; }
+    int column() { return column_; }
 
 private:
     std::vector<Node*> children_;
     const std::string* string_value_;
+    const int line_;
+    const int column_;
 
     union {
         bool bool_value;

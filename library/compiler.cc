@@ -59,6 +59,10 @@ void CompilerImpl::DebugCompilation(
         return;
     }
 
+    // Perform typechecking step.
+    SemanticAstWalker semantic_walker(*root);
+    semantic_walker.Walk();
+
     // Run Post-Typecheck AST walker function if given.
     if (typecheck_walk_func != NULL) {
         typecheck_walk_func(root);
@@ -89,7 +93,7 @@ void Compiler::DebugCompilation(
         stop_at,
         LexerIterationFunc,
         ParserWalkFunc,
-        ParserWalkFunc);
+        TypeCheckedWalkFunc);
 }
 
 // Destroy private implementation object when done.
