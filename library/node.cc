@@ -90,7 +90,12 @@ Node* Node::child(int child) const {
         return this->children_[child];
     }
 
-    throw IllegalStateException();
+    // Line and column are arbritrary since this is never thrown in
+    // normal operation.
+    THROW_EXCEPTION(
+        1,
+        1,
+        STATUS_ILLEGAL_STATE);
 }
 
 } // namespace gunderscript

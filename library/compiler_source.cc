@@ -39,7 +39,10 @@ CompilerFileSource::CompilerFileSource(const std::string& file_name) : file_name
 
     // If unable to read file, throw an exception.
     if (!this->file_stream_->is_open() || !this->file_stream_->good()) {
-        throw CompilerFileReadException(file_name);
+        THROW_EXCEPTION(
+            1,
+            1,
+            STATUS_FILESOURCE_FILE_READ_ERROR);
     }
 
     // Preload the first byte.
@@ -66,7 +69,10 @@ int CompilerFileSource::NextChar() {
 
     // Throw exception if unable to read.
     if (this->file_stream_->fail() && this->has_next()) {
-        throw CompilerFileReadException(this->file_name_);
+        THROW_EXCEPTION(
+            1,
+            1,
+            STATUS_FILESOURCE_FILE_READ_ERROR);
     }
 
     // Return the old next, a.k.a., current char.

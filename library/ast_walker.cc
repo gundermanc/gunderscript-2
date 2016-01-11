@@ -6,8 +6,6 @@
 
 #include "ast_walker.h"
 
-using gunderscript::IllegalStateException;
-
 namespace gunderscript {
 namespace library {
 

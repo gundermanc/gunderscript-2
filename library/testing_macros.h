@@ -16,7 +16,7 @@ using namespace gunderscript;
 try {                                                           \
     stmt;                                                       \
 }                                                               \
-catch (const Exception2& ex) {                                  \
+catch (const Exception& ex) {                                  \
     EXPECT_EQ(ex.status().code(), (exception_status).code());   \
     return;                                                     \
 }                                                               \

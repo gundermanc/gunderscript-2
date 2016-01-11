@@ -45,10 +45,6 @@ static CliResult DebugCompile(
                 typecheck_walk_func);
         }
         catch (const Exception& ex) {
-            std::cout << std::endl << ex.what() << std::endl;
-            return CliResult::EXCEPTION_BASE;
-        }
-        catch (const Exception2& ex) {
             std::cout << std::endl << "GS" << ex.status().code() << ": Near Line " << ex.line() << " Column " << ex.column() << " " << ex.what() << std::endl;
 
             // Uncomment this line to see where in the implementation an exception was thrown from.

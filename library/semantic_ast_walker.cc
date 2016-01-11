@@ -129,7 +129,7 @@ void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* na
     try {
         this->symbol_table_.PutBottom(*name_node->string_value(), spec_symbol);
     }
-    catch (const Exception2& ex) {
+    catch (const Exception& ex) {
         // Rethrow as more relevant exception.
         if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
             THROW_EXCEPTION(
@@ -173,7 +173,7 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
                 MangleFunctionSymbolName(spec_node, name_node, arguments_result),
                 function_symbol);
         }
-        catch (const Exception2& ex) {
+        catch (const Exception& ex) {
 
             // Throw a more relevant exception.
             if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
@@ -215,7 +215,7 @@ Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
             MangleLocalVariableSymbolName(name_node),
             variable_symbol);
     }
-    catch (const Exception2& ex) {
+    catch (const Exception& ex) {
 
         // Throw a more relevant exception.
         if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
@@ -284,7 +284,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         // Define the setter symbol.
         this->symbol_table_.PutBottom(set_function_symbol_name, set_function_symbol);
     }
-    catch (const Exception2& ex) {
+    catch (const Exception& ex) {
 
         // Rethrow as more understandable error.
         if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
@@ -324,7 +324,7 @@ Type SemanticAstWalker::WalkFunctionCall(
 
         return symbol.type();
     }
-    catch (const Exception2& ex) {
+    catch (const Exception& ex) {
 
         // Rethrow as more relevant exception.
         if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
@@ -362,7 +362,7 @@ Type SemanticAstWalker::WalkAssign(
 
         return operations_result;
     }
-    catch (const Exception2& ex) {
+    catch (const Exception& ex) {
 
         // Throw exception if it's not the expected exception, we don't have handling
         // for this case.

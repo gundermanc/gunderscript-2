@@ -9,6 +9,7 @@
 
 namespace gunderscript {
 
+// Describes a Gunderscript status that indicates a compilation or execution error.
 class ExceptionStatus {
 public:
     ExceptionStatus(int code, const std::string& what) : code_(code), what_(what) { }
@@ -21,9 +22,10 @@ private:
     const std::string what_;
 };
 
-class Exception2 : public std::exception {
+// The class for all Gunderscript engine exceptions.
+class Exception : public std::exception {
 public:
-    Exception2(
+    Exception(
         int impl_line,
         const char* impl_file,
         int line,
@@ -47,7 +49,9 @@ private:
     const ExceptionStatus status_;
 };
 
-#define THROW_EXCEPTION(line, column, status)     throw Exception2(__LINE__, __FILE__, line, column, status)
+// Used to throw all exceptions within Gunderscript engine so that implementation
+// file and line are saved.
+#define THROW_EXCEPTION(line, column, status)     throw Exception(__LINE__, __FILE__, line, column, status)
 
 // Status definitions indicating the compile errors.
 // Officially status codes are identified by GS[code] but we leave this out so we can use INT comparisons.
@@ -57,6 +61,7 @@ const ExceptionStatus STATUS_ILLEGAL_STATE = ExceptionStatus(-1, "Feature not im
 const ExceptionStatus STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL = ExceptionStatus(-2, "Symbol table symbol is already defined");
 const ExceptionStatus STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL = ExceptionStatus(-3, "No symbol in symbol table with given key");
 const ExceptionStatus STATUS_SYMBOLTABLE_BOTTOM_OF_STACK = ExceptionStatus(-4, "Reached bottom of stack while popping Symbol table scope");
+const ExceptionStatus STATUS_FILESOURCE_FILE_READ_ERROR = ExceptionStatus(-5, "Unable to read file");
 
 // Lexer Exceptions 100-199:
 const ExceptionStatus STATUS_LEXER_UNTERMINATED_COMMENT = ExceptionStatus(100, "Unterminated comment");
@@ -153,71 +158,43 @@ const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_ADD
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_SUB
     = ExceptionStatus(307, "Non-matching types in '-' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_MUL
-    = ExceptionStatus(307, "Non-matching types in '*' expression");
+    = ExceptionStatus(308, "Non-matching types in '*' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_DIV
-    = ExceptionStatus(308 , "Non-matching types in '/' expression");
+    = ExceptionStatus(309 , "Non-matching types in '/' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_MOD
-    = ExceptionStatus(309, "Non-matching types in '%' expression");
+    = ExceptionStatus(310, "Non-matching types in '%' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LOGOR
-    = ExceptionStatus(310, "Non-matching types in '||' expression");
+    = ExceptionStatus(311, "Non-matching types in '||' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LOGAND
-    = ExceptionStatus(311, "Non-matching types in '&&' expression");
+    = ExceptionStatus(312, "Non-matching types in '&&' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_GREATER
-    = ExceptionStatus(312, "Non-matching types in '>' expression");
+    = ExceptionStatus(313, "Non-matching types in '>' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS
-    = ExceptionStatus(313, "Non-matching types in '<' expression");
+    = ExceptionStatus(314, "Non-matching types in '<' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_GREATER_EQUALS
-    = ExceptionStatus(314, "Non-matching types in '>=' expression");
+    = ExceptionStatus(315, "Non-matching types in '>=' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS_EQUALS
-    = ExceptionStatus(315, "Non-matching types in '<=' expression");
+    = ExceptionStatus(316, "Non-matching types in '<=' expression");
 const ExceptionStatus STATUS_SEMANTIC_NONNUMERIC_OPERANDS
-    = ExceptionStatus(316, "Non-numeric operands used with numeric operator");
+    = ExceptionStatus(317, "Non-numeric operands used with numeric operator");
 const ExceptionStatus STATUS_SEMANTIC_NONBOOL_OPERANDS
-    = ExceptionStatus(316, "Non-boolean operands used with boolean operator");
+    = ExceptionStatus(318, "Non-boolean operands used with boolean operator");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_EQUALS
-    = ExceptionStatus(317, "Non-matching types in '=' expression");
+    = ExceptionStatus(319, "Non-matching types in '=' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_NOT_EQUALS
-    = ExceptionStatus(318, "Non-matching types in '!=' expression");
+    = ExceptionStatus(320, "Non-matching types in '!=' expression");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_FUNCTION
-    = ExceptionStatus(319, "A function with the same name parameters has already been declared in this Spec");
+    = ExceptionStatus(321, "A function with the same name parameters has already been declared in this Spec");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_PROPERTY
-    = ExceptionStatus(320, "A property with the same name has already been declared in this Spec");
+    = ExceptionStatus(322, "A property with the same name has already been declared in this Spec");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_FUNCTION_PARAM
-    = ExceptionStatus(321, "A function param with the same name has already been declared in this function");
+    = ExceptionStatus(323, "A function param with the same name has already been declared in this function");
 const ExceptionStatus STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND
-    = ExceptionStatus(322, "Cannot find a function overload with that name that accepts the specified param types");
+    = ExceptionStatus(324, "Cannot find a function overload with that name that accepts the specified param types");
 const ExceptionStatus STATUS_SEMANTIC_INVALID_TYPE_IN_ADD
-    = ExceptionStatus(323, "'+' operator supports only string and numeric types");
+    = ExceptionStatus(325, "'+' operator supports only string and numeric types");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_SPEC
-    = ExceptionStatus(324, "A Spec with that name already exists");
-
-
-// Gunderscript Exceptions Parent Class
-// Each module's exceptions descend from this class.
-class Exception : public std::exception {
-public:
-    Exception() throw() { };
-    Exception(const std::string& message) throw() { message_ = message; };
-    virtual const char* what() const throw() { return message_.c_str(); }
-
-private:
-    std::string message_;
-    std::exception exception_;
-};
-
-// Not implemented exception.
-class NotImplementedException : public Exception {
-public:
-    NotImplementedException() : Exception("Feature not implemented.") { }
-    NotImplementedException(const std::string& message) : Exception(message) { }
-};
-
-// Illegal State exception: thrown if bug detected in Gunderscript.
-class IllegalStateException : public Exception {
-public:
-    IllegalStateException() : Exception("Illegal State: bug detected in Gunderscript.") { }
-    IllegalStateException(const std::string& message) : Exception(message) { }
-};
+    = ExceptionStatus(326, "A Spec with that name already exists");
 
 } // namespace gunderscript
 

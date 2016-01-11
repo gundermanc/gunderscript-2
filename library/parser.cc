@@ -20,7 +20,7 @@ Node* Parser::Parse() {
     try {
         return ParseModule();
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete module_node_;
         throw;
     }
@@ -848,7 +848,7 @@ Node* Parser::ParseAssignExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseOrExpressionA());
         parent_node = ParseAssignExpressionB(operation_node);
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete operation_node;
         throw;
     }
@@ -883,7 +883,7 @@ Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
         operation_node->AddChild(left_operand_node);
         operation_node->AddChild(ParseAndExpressionA());
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete operation_node;
         throw;
     }
@@ -892,7 +892,7 @@ Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
     try {
         parent_node = ParseOrExpressionB(operation_node);
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete parent_node;
         throw;
     }
@@ -935,7 +935,7 @@ Node* Parser::ParseAndExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseComparisonExpressionA());
         parent_node = ParseAndExpressionB(operation_node);
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete operation_node;
         throw;
     }
@@ -1008,7 +1008,7 @@ Node* Parser::ParseComparisonExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParsePrimaryExpressionA());
         parent_node = ParseComparisonExpressionB(operation_node);
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete operation_node;
         throw;
     }
@@ -1057,7 +1057,7 @@ Node* Parser::ParsePrimaryExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseSecondaryExpressionA());
         parent_node = ParsePrimaryExpressionB(operation_node);
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete operation_node;
         throw;
     }
@@ -1112,7 +1112,7 @@ Node* Parser::ParseSecondaryExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseTertiaryExpressionA());
         parent_node = ParseSecondaryExpressionB(operation_node);
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete operation_node;
         throw;
     }
@@ -1155,7 +1155,7 @@ Node* Parser::ParseTertiaryExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseInvertExpression());
         parent_node = ParseTertiaryExpressionB(operation_node);
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete operation_node;
         throw;
     }
@@ -1203,7 +1203,7 @@ Node* Parser::ParseInvertExpression() {
         AdvanceNext();
         invert_node->AddChild(ParseInvertExpression());
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete invert_node;
         throw;
     }
@@ -1303,7 +1303,7 @@ Node* Parser::ParseMemberNameExpression() {
     try {
         AdvanceNext();
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete name_node;
         throw;
     }
@@ -1347,7 +1347,7 @@ Node* Parser::ParseCallExpression() {
         }
         AdvanceNext();
     }
-    catch (const Exception2 ex) {
+    catch (const Exception ex) {
         delete function_node;
         throw;
     }
@@ -1404,7 +1404,7 @@ Node* Parser::ParseVariableExpression() {
     try {
         AdvanceNext();
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete variable_node;
         throw;
     }
@@ -1523,7 +1523,7 @@ Node* Parser::ParseStringConstant() {
     try {
         AdvanceNext();
     }
-    catch (const Exception2&) {
+    catch (const Exception&) {
         delete string_node;
         throw;
     }
