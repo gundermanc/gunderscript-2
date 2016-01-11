@@ -979,10 +979,22 @@ Type SemanticAstWalker::CalculateBoolResultantType(
 // Looks up a type node's name in the symbol table and returns its Type
 // object.
 Type SemanticAstWalker::ResolveTypeNode(Node* type_node) {
-    // TODO: better exception here.
-    const Symbol& type_symbol = this->symbol_table_.Get(*type_node->string_value());
+    try {
+        const Symbol& type_symbol = this->symbol_table_.Get(*type_node->string_value());
 
-    return type_symbol.type();
+        return type_symbol.type();
+    }
+    catch (const Exception& ex) {
+        // Rethrow as more relevant exception.
+        if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+            THROW_EXCEPTION(
+                type_node->line(),
+                type_node->column(),
+                STATUS_SEMANTIC_UNDEFINED_TYPE);
+        }
+
+        throw;
+    }
 }
 
 } // namespace library

@@ -195,6 +195,8 @@ const ExceptionStatus STATUS_SEMANTIC_INVALID_TYPE_IN_ADD
     = ExceptionStatus(325, "'+' operator supports only string and numeric types");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_SPEC
     = ExceptionStatus(326, "A Spec with that name already exists");
+const ExceptionStatus STATUS_SEMANTIC_UNDEFINED_TYPE
+    = ExceptionStatus(327, "Undefined type");
 
 } // namespace gunderscript
 
