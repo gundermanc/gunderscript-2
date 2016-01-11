@@ -8,12 +8,12 @@
 #include <vector>
 
 #include "gunderscript/node.h"
-#include "gunderscript/type.h"
 
 #include "ast_walker.h"
 #include "lexer.h"
 #include "symbol.h"
 #include "symbol_table.h"
+#include "type.h"
 
 namespace gunderscript {
 namespace library {
@@ -207,52 +207,32 @@ protected:
 private:
     SymbolTable<Symbol> symbol_table_;
 
-    void CheckValidModuleName(const std::string& module_name);
+    void CheckValidModuleName(const std::string& module_name, int line, int column);
     void CheckAccessModifier(
         const std::string& caller_class,
         const std::string& callee_class,
-        LexerSymbol callee_access_modifier);
-    Type CalculateResultantType(Type left, Type right);
-    Type CalculateNumericResultantType(Type left, Type right);
-    Type CalculateBoolResultantType(Type left, Type right);
+        LexerSymbol callee_access_modifier,
+        int line,
+        int column);
+    Type CalculateResultantType(
+        Type left,
+        Type right,
+        int line,
+        int column,
+        ExceptionStatus type_mismatch_error);
+    Type CalculateNumericResultantType(
+        Type left, 
+        Type right,
+        int line,
+        int column,
+        ExceptionStatus type_mismatch_error);
+    Type CalculateBoolResultantType(
+        Type left,
+        Type right,
+        int line,
+        int column,
+        ExceptionStatus type_mismatch_error);
     Type ResolveTypeNode(Node* type_node);
-};
-
-// SemanticAstWalker Exceptions Parent Class
-// All Parser exceptions descend from this class.
-class SemanticAstWalkerException : public Exception {
-public:
-    SemanticAstWalkerException(const SemanticAstWalker& walker) : Exception(), walker_(walker) { }
-    SemanticAstWalkerException(const SemanticAstWalker& walker,
-        const std::string& message) : Exception(message), walker_(walker) { }
-    const SemanticAstWalker& walker() { return walker_; }
-
-private:
-    const SemanticAstWalker& walker_;
-};
-
-// SemanticAstWalker invalid package name exception.
-class SemanticAstWalkerInvalidPackageNameException : public SemanticAstWalkerException {
-public:
-    SemanticAstWalkerInvalidPackageNameException(const SemanticAstWalker& walker) :
-        SemanticAstWalkerException(walker,
-            "Invalid package name.") { }
-};
-
-// SemanticAstWalker member not accessible exception.
-class SemanticAstWalkerNotAccessibleException : public SemanticAstWalkerException {
-public:
-    SemanticAstWalkerNotAccessibleException(const SemanticAstWalker& walker) :
-        SemanticAstWalkerException(walker,
-            "Class or class member not accessible.") { }
-};
-
-// SemanticAstWalker type mismatch exception.
-class SemanticAstWalkerTypeMismatchException : public SemanticAstWalkerException {
-public:
-    SemanticAstWalkerTypeMismatchException(const SemanticAstWalker& walker) :
-        SemanticAstWalkerException(walker,
-            "Invalid type in operation.") { }
 };
 
 } // namespace library

@@ -2,11 +2,9 @@
 // (C) 2014-2016 Christian Gunderman
 
 #include "gunderscript/exceptions.h"
-#include "gunderscript/type.h"
+#include "type.h"
 
 #include "ast_walker.h"
-
-using gunderscript::IllegalStateException;
 
 namespace gunderscript {
 namespace library {
@@ -26,7 +24,10 @@ void AstWalker<ReturnType>::WalkModuleChildren() {
 
     // Check that we have the proper number of MODULE node children.
     if (this->root().child_count() != 3) {
-        throw IllegalStateException();
+        THROW_EXCEPTION(
+            this->root().line(),
+            this->root().column(),
+            STATUS_ILLEGAL_STATE);
     }
 
     // Call public pure virtual function implemented by child class
@@ -373,10 +374,10 @@ void AstWalker<ReturnType>::WalkBlockChildren(
                 arguments_result);
             break;
         default:
-            // There are still some unimplemented features so for now throw this.
-            // TODO: implement other statements.
-            throw NotImplementedException();
-            //throw new IllegalStateException();
+            THROW_EXCEPTION(
+                this->root().line(),
+                this->root().column(),
+                STATUS_ILLEGAL_STATE);
         }
     }
 }
@@ -663,7 +664,10 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
                 left_result,
                 right_result);
         default:
-            throw IllegalStateException();
+            THROW_EXCEPTION(
+                this->root().line(),
+                this->root().column(),
+                STATUS_ILLEGAL_STATE);
         }
     }
 
@@ -758,10 +762,10 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
             property_function,
             atomic_node);
     default:
-        // Normally we'd throw IllegalStateException but we have lots of stuff that isn't
-        // implemented yet.
-        throw new NotImplementedException();
-        //throw new IllegalStateException();
+        THROW_EXCEPTION(
+            this->root().line(),
+            this->root().column(),
+            STATUS_ILLEGAL_STATE);
     }
 }
 
@@ -770,7 +774,10 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
 template <typename ReturnType>
 void AstWalker<ReturnType>::CheckNodeRule(Node* node, NodeRule rule) {
     if (node->rule() != rule) {
-       throw IllegalStateException();
+        THROW_EXCEPTION(
+            this->root().line(),
+            this->root().column(),
+            STATUS_ILLEGAL_STATE);
     }
 }
 

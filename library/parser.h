@@ -19,7 +19,6 @@ class Parser {
 public:
     Parser(Lexer& lexer) : lexer_(lexer) { }
     Node* Parse();
-    Lexer* lexer() const { return &lexer_; }
 
 private:
     Lexer& lexer_;
@@ -93,123 +92,6 @@ private:
     Node* ParseCharConstant();
     Node* ParseStringConstant();
 };
-
-// Parser Exceptions Parent Class
-// All Parser exceptions descend from this class.
-class ParserException : public Exception {
-public:
-    ParserException(const Parser& parser) : Exception(), parser_(parser) { }
-    ParserException(const Parser& parser,
-        const std::string& message) : Exception(message), parser_(parser) { }
-    const Parser& parser() { return parser_; }
-
-private:
-    const Parser& parser_;
-};
-
-// Parser unexpected end of file exception.
-class ParserEndOfFileException : public ParserException {
-public:
-    ParserEndOfFileException(const Parser& parser) :
-        ParserException(parser,
-            "Encountered end of file while parsing.") { }
-};
-
-// Parser malformed package declaration.
-class ParserMalformedPackageException : public ParserException {
-public:
-    ParserMalformedPackageException(const Parser& parser,
-        const std::string& message) :
-        ParserException(parser, message) { }
-};
-
-// Parser malformed depends exception.
-class ParserMalformedDependsException : public ParserException {
-public:
-    ParserMalformedDependsException(const Parser& parser,
-        const std::string& message) :
-        ParserException(parser, message) { }
-};
-
-// Parser malformed spec exception.
-class ParserMalformedSpecException : public ParserException {
-public:
-    ParserMalformedSpecException(const Parser& parser,
-        const std::string& message) :
-        ParserException(parser, message) { }
-};
-
-// Parser malformed property exception.
-class ParserMalformedPropertyException : public ParserException {
-public:
-    ParserMalformedPropertyException(const Parser& parser,
-        const std::string& message) :
-        ParserException(parser, message) { }
-};
-
-// Parser malformed function exception.
-class ParserMalformedFunctionException : public ParserException {
-public:
-    ParserMalformedFunctionException(const Parser& parser,
-        const std::string& message) :
-        ParserException(parser, message) { }
-};
-
-// Parser malformed body exception.
-class ParserMalformedBodyException : public ParserException {
-public:
-    ParserMalformedBodyException(const Parser& parser,
-        const std::string& message) :
-        ParserException(parser, message) { }
-};
-
-// Parser malformed expression exception.
-class ParserMalformedExpressionException : public ParserException {
-public:
-    ParserMalformedExpressionException(const Parser& parser,
-        const std::string& message) :
-        ParserException(parser, message) { }
-};
-
-
-// Parser unexpected token exception.
-class ParserUnexpectedTokenException : public ParserException {
-public:
-    ParserUnexpectedTokenException(const Parser& parser,
-        const std::string& message) :
-        ParserException(parser, message) { }
-};
-
-// String error constants:
-const std::string PARSER_ERR_EXPECTED_PACKAGE 
-    = "Expected package declaration at beginning of file.";
-
-const std::string PARSER_ERR_EXPECTED_SEMICOLON
-    = "Expected terminating semicolon.";
-
-const std::string PARSER_ERR_EXPECTED_STATEMENT
-    = "Expected statement. No known statement begins with given token.";
-
-const std::string PARSER_ERR_BAD_PACKAGE_NAME
-    = "Expected name for package in declaration at head of file.";
-
-const std::string PARSER_ERR_MALFORMED_DEPENDS
-    = "Malformed depends statement.";
-
-const std::string PARSER_ERR_MALFORMED_SPEC
-    = "Malformed spec definition.";
-
-const std::string PARSER_ERR_MALFORMED_PROPERTY
-    = "Malformed property definition.";
-
-const std::string PARSER_ERR_MALFORMED_FUNCTION
-    = "Malformed function definition.";
-
-const std::string PARSER_ERR_MALFORMED_BODY
-    = "Malformed function or property body definition.";
-
-const std::string PARSER_ERR_MALFORMED_EXPRESSION
-    = "Malformed expression.";
 
 } // namespace library
 } // namespace gunderscript

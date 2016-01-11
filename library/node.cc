@@ -26,42 +26,42 @@ const std::string NodeRuleString(NodeRule rule) {
 }
 
 // Constructs a new node with no children and the specified NodeRule.
-Node::Node(NodeRule rule) {
+Node::Node(NodeRule rule, int line, int column) : line_(line), column_(column) {
     rule_ = rule;
     num_value_.int_value = 0;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a boolean value.
-Node::Node(NodeRule rule, bool value) {
+Node::Node(NodeRule rule, int line, int column, bool value) : line_(line), column_(column) {
     rule_ = rule;
     num_value_.bool_value = value;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a long value.
-Node::Node(NodeRule rule, long value) {
+Node::Node(NodeRule rule, int line, int column, long value) : line_(line), column_(column) {
     rule_ = rule;
     num_value_.int_value = value;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a double value.
-Node::Node(NodeRule rule, double value) {
+Node::Node(NodeRule rule, int line, int column, double value) : line_(line), column_(column) {
     rule_ = rule;
     num_value_.float_value = value;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a LexerSymbol.
-Node::Node(NodeRule rule, LexerSymbol symbol) {
+Node::Node(NodeRule rule, int line, int column, LexerSymbol symbol) : line_(line), column_(column) {
     rule_ = rule;
     num_value_.symbol_value = symbol;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a string value.
-Node::Node(NodeRule rule, const std::string* value) {
+Node::Node(NodeRule rule, int line, int column, const std::string* value) : line_(line), column_(column) {
     rule_ = rule;
     num_value_.int_value = 0;
     string_value_ = new std::string(*value);
@@ -90,7 +90,12 @@ Node* Node::child(int child) const {
         return this->children_[child];
     }
 
-    throw IllegalStateException();
+    // Line and column are arbritrary since this is never thrown in
+    // normal operation.
+    THROW_EXCEPTION(
+        1,
+        1,
+        STATUS_ILLEGAL_STATE);
 }
 
 } // namespace gunderscript

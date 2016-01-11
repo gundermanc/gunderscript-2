@@ -2,6 +2,7 @@
 // (C) 2014 Christian Gunderman
 // Technically more "functional" than unit.
 #include "gtest/gtest.h"
+#include "testing_macros.h"
 
 #include "lexer.h"
 #include "parser.h"
@@ -16,7 +17,7 @@ TEST(Parser, Empty) {
     Lexer lexer(source);
     Parser parser(lexer);
 
-    ASSERT_THROW(parser.Parse(), ParserEndOfFileException);
+    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
 }
 
 TEST(Parser, PackageOnly) {
@@ -56,7 +57,7 @@ TEST(Parser, MalformedPackage) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedPackageException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MISSING_PACKAGE);
     }
 
     // Case 2: incorrect package name type.
@@ -67,7 +68,7 @@ TEST(Parser, MalformedPackage) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedPackageException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INVALID_PACKAGE);
     }
 
     // Case 3: missing semicolon.
@@ -79,7 +80,7 @@ TEST(Parser, MalformedPackage) {
         Parser parser(lexer);
 
         // TODO: FIX: This test causes a memory leak in lexer.cc
-        EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_SEMICOLON);
     }
 }
 
@@ -93,7 +94,7 @@ TEST(Parser, MalformedDepends) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserEndOfFileException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
     }
 
     // Case 2: incorrect depends type.
@@ -104,7 +105,7 @@ TEST(Parser, MalformedDepends) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedDependsException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_DEPENDS);
     }
 
     // Case 3: missing semicolon.
@@ -115,7 +116,7 @@ TEST(Parser, MalformedDepends) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserEndOfFileException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_DEPENDS);
     }
 }
 
@@ -168,7 +169,7 @@ TEST(Parser, MalformedSpec) {
         Parser parser(lexer);
 
         // TODO: Fix: This test causes a memory leak in lexer.cc
-        ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_ACCESS_MODIFIER_MISSING);
     }
 
     // Case 2: missing spec keyword.
@@ -179,7 +180,7 @@ TEST(Parser, MalformedSpec) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_SPEC_KEYWORD_MISSING);
     }
 
     // Case 4: incorrect spec name format.
@@ -190,7 +191,7 @@ TEST(Parser, MalformedSpec) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_NAME_MISSING);
     }
 
     // Case 4: missing opening brace.
@@ -201,7 +202,7 @@ TEST(Parser, MalformedSpec) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_LBRACE_MISSING);
     }
 
     // Case 5: missing closing brace.
@@ -212,7 +213,7 @@ TEST(Parser, MalformedSpec) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        ASSERT_THROW(parser.Parse(), ParserMalformedSpecException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
     }
 }
 
@@ -302,7 +303,7 @@ TEST(Parser, ParseMalformedProperty) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_LPAREN);
     }
 
     // Case 2: incorrect symbol type property name.
@@ -316,7 +317,7 @@ TEST(Parser, ParseMalformedProperty) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_PROPERTY_NAME_MISSING);
     }
 
     // Case 3: missing opening brace.
@@ -330,7 +331,7 @@ TEST(Parser, ParseMalformedProperty) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_PROPERTY_LBRACE_MISSING);
     }
 
     // Case 4: missing closing brace.
@@ -345,7 +346,7 @@ TEST(Parser, ParseMalformedProperty) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
     }
 
     // Case 5: missing property accessor/mutator access modifier.
@@ -359,7 +360,7 @@ TEST(Parser, ParseMalformedProperty) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_PROPERTYFUNCTION_MISSING_ACCESS_MODIFIER);
     }
 
     // Case 6: multiple get/set.
@@ -373,7 +374,7 @@ TEST(Parser, ParseMalformedProperty) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_PROPERTYFUNCTION_DUPLICATE);
     }
 
     // Case 7: semicolon following property accessor body
@@ -387,8 +388,8 @@ TEST(Parser, ParseMalformedProperty) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        // TODO: this exception may be incorrect.
-        EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+        // TODO: better exception, this is confusing.
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_PROPERTYFUNCTION_MISSING_ACCESS_MODIFIER);
     }
 
     // Case 8: missing accessor/mutator.
@@ -402,8 +403,7 @@ TEST(Parser, ParseMalformedProperty) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        // TODO: this exception may be incorrect.
-        EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_PROPERTY_MISSING_PROPERTY_FUNCTION);
     }
 }
 
@@ -419,7 +419,7 @@ TEST(Parser, ParsePropertyEmpty) {
     Lexer lexer(source);
     Parser parser(lexer);
 
-    EXPECT_THROW(parser.Parse(), ParserMalformedPropertyException);
+    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_PROPERTY_MISSING_PROPERTY_FUNCTION);
 }
 
 TEST(Parser, ParsePropertyAuto) {
@@ -754,8 +754,7 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        // TODO: fix to throw ParserMalformedFunctionException instead.
-        EXPECT_THROW(parser.Parse(), ParserMalformedSpecException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_UNKNOWN_MEMBER);
     }
 
     // Case 2: out of order function attributes.
@@ -769,8 +768,7 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        // TODO: fix to throw ParserMalformedFunctionException instead.
-        EXPECT_THROW(parser.Parse(), ParserMalformedSpecException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_UNKNOWN_MEMBER);
     }
 
     // Case 3: incorrect token type for NAME.
@@ -784,7 +782,7 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
     }
 
     // Case 4: extraneous comma.
@@ -798,7 +796,7 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_TYPE);
     }
 
     // Case 5: incorrect argument.
@@ -812,7 +810,7 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_TYPE);
     }
 
     // Case 6: missing comma.
@@ -826,7 +824,7 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_COMMA);
     }
 
     // Case 7: missing LPAREN.
@@ -840,7 +838,7 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_LPAREN);
     }
 
     // Case 8: missing RPAREN.
@@ -854,10 +852,10 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedFunctionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_COMMA);
     }
 
-    // Case 8: missing SEMICOLON.
+    // Case 9: missing SEMICOLON.
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
@@ -868,24 +866,10 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedBodyException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_LBRACE);
     }
 
-    // Case 8: missing body.
-    {
-        std::string input("package \"FooPackage\";"
-            "public spec MySpec {"
-            "  public native string Foo(int x)"
-            "}");
-
-        CompilerStringSource source(input);
-        Lexer lexer(source);
-        Parser parser(lexer);
-
-        EXPECT_THROW(parser.Parse(), ParserMalformedBodyException);
-    }
-
-    // Case 9: missing brace.
+    // Case 11: missing brace.
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
@@ -896,7 +880,7 @@ TEST(Parser, ParseMalformedFunctions) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedBodyException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_LBRACE);
     }
 }
 
@@ -982,7 +966,7 @@ TEST(Parser, ParseMalformedReturn) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_SEMICOLON);
     }
 
     // Case 2: no expression but missing semicolon.
@@ -998,7 +982,7 @@ TEST(Parser, ParseMalformedReturn) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 }
 
@@ -1323,7 +1307,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 2: missing left operand add.
@@ -1339,7 +1323,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 3: missing right operand multiply.
@@ -1355,7 +1339,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 4: missing left operand divide.
@@ -1371,7 +1355,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 5: keyword in expression
@@ -1387,7 +1371,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 6: extraneous RPAREN.
@@ -1403,7 +1387,9 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
+        // This technically works fine but is a confusing error message.
+        // TODO: more context relevant error message.
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_SEMICOLON);
     }
 
     // Case 7: Unclosed parenthesis.
@@ -1419,7 +1405,7 @@ TEST(Parser, ParseMalformedArithmeticExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_MISSING_RPAREN);
     }
 }
 
@@ -1851,7 +1837,7 @@ TEST(Parser, ParseMalformedMemberExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 2: Preceding DOT.
@@ -1867,7 +1853,7 @@ TEST(Parser, ParseMalformedMemberExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 }
 
@@ -2096,7 +2082,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 2: missing right operand.
@@ -2112,7 +2098,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 3: missing right and semicolon.
@@ -2128,7 +2114,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 4: missing semicolon.
@@ -2144,7 +2130,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserUnexpectedTokenException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_SEMICOLON);
     }
 
     // Case 5: mismatched LPAREN.
@@ -2160,7 +2146,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_MISSING_RPAREN);
     }
 
     // Case 6: mismatched RPAREN.
@@ -2176,7 +2162,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_MISSING_RPAREN);
     }
 
     // Case 7: mismatched RPAREN with NOT
@@ -2192,7 +2178,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_MISSING_RPAREN);
     }
 
     // Case 8: previously caused SEGFAULT for unknown reason,
@@ -2209,7 +2195,7 @@ TEST(Parser, ParseMalformedComparisonExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_THROW(parser.Parse(), ParserMalformedExpressionException);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_MISSING_RPAREN);
     }
 }
 

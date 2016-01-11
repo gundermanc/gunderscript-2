@@ -48,13 +48,6 @@ private:
     int next_ = 0;
 };
 
-// Exception for file read errors.
-class CompilerFileReadException : public Exception {
-public:
-    CompilerFileReadException(const std::string& file_name) :
-        Exception("Error opening or reading from " + file_name + ".") { }
-};
-
 } // namespace gunderscript
 
 #endif // GUNDERSCRIPT_COMPILER_SOURCE__H__

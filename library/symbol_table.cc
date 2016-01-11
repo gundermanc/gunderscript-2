@@ -38,7 +38,11 @@ void SymbolTable<ValueType>::Pop() {
 
     // Check that there are items left to pop.
     if (this->map_vector_.size() == 1) {
-        throw SymbolTableBottomOfStackException();
+        // Never thrown in normal operation, the numbers are arbitrary.
+        THROW_EXCEPTION(
+            1,
+            1,
+            STATUS_SYMBOLTABLE_BOTTOM_OF_STACK);
     }
 
     this->map_vector_.pop_back();
@@ -58,7 +62,10 @@ void SymbolTable<ValueType>::Put(const std::string& key, ValueType value) {
 
     // Result of operation is second tuple entry.
     if (!result.second) {
-        throw SymbolTableDuplicateKeyException();
+        THROW_EXCEPTION(
+            1,
+            1,
+            STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL);
     }
 }
 
@@ -76,7 +83,12 @@ void SymbolTable<ValueType>::PutBottom(const std::string& key, ValueType value) 
 
     // Result of operation is second tuple entry.
     if (!result.second) {
-        throw SymbolTableDuplicateKeyException();
+        // These are incorrect line numbers but this exception should ALWAYS be caught
+        // and never bubble up so it doesn't matter.
+        THROW_EXCEPTION(
+            1,
+            1,
+            STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL);
     }
 }
 
@@ -97,7 +109,12 @@ const ValueType& SymbolTable<ValueType>::Get(const std::string& key) const {
         }
     }
 
-    throw SymbolTableUndefinedSymbolException();
+    // These are incorrect line numbers but this exception should ALWAYS be caught
+    // and never bubble up so it doesn't matter.
+    THROW_EXCEPTION(
+        1,
+        1,
+        STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
 }
 
 // Gets the value associated with the given symbol, if one was Put
@@ -111,7 +128,10 @@ const ValueType& SymbolTable<ValueType>::GetTopOnly(const std::string& key) cons
         return this->map_vector_.back().at(key);
     }
     catch (const std::out_of_range&) {
-        throw SymbolTableUndefinedSymbolException();
+        THROW_EXCEPTION(
+            1,
+            1,
+            STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
     }
 }
 

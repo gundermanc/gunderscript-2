@@ -2,6 +2,7 @@
 // (C) 2015-2016 Christian Gunderman
 
 #include "gtest/gtest.h"
+#include "testing_macros.h"
 
 #include "gunderscript/node.h"
 
@@ -9,15 +10,10 @@
 #include "parser.h"
 #include "semantic_ast_walker.h"
 
-using gunderscript::CompilerStringSource;
-using gunderscript::Node;
+using namespace gunderscript;
 using gunderscript::library::Lexer;
 using gunderscript::library::Parser;
 using gunderscript::library::SemanticAstWalker;
-using gunderscript::library::SemanticAstWalkerInvalidPackageNameException;
-using gunderscript::library::SemanticAstWalkerTypeMismatchException;
-using gunderscript::library::SymbolTableDuplicateKeyException;
-using gunderscript::library::SymbolTableUndefinedSymbolException;
 
 // This module tests the semantic checker layer for Gunderscript 2.
 // The tests cover only the expected positive and negative cases from
@@ -35,7 +31,7 @@ TEST(SemanticAstWalker, ModuleNameTrailingPeriodThrows) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerInvalidPackageNameException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_PACKAGE);
 
     delete root;
 }
@@ -51,7 +47,7 @@ TEST(SemanticAstWalker, ModuleNameEmptyThrows) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerInvalidPackageNameException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_PACKAGE);
 
     delete root;
 }
@@ -66,7 +62,7 @@ TEST(SemanticAstWalker, ModuleNameOnlyPeriodThrows) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerInvalidPackageNameException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_PACKAGE);
 
     delete root;
 }
@@ -81,7 +77,7 @@ TEST(SemanticAstWalker, ModuleNameStartsWithPeriodThrows) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerInvalidPackageNameException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_PACKAGE);
 
     delete root;
 }
@@ -98,7 +94,7 @@ TEST(SemanticAstWalker, ModuleDependsNameTrailingPeriodThrows) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerInvalidPackageNameException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_PACKAGE);
 
     delete root;
 }
@@ -115,7 +111,7 @@ TEST(SemanticAstWalker, ModuleDependsNameEmptyThrows) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerInvalidPackageNameException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_PACKAGE);
 
     delete root;
 }
@@ -132,7 +128,7 @@ TEST(SemanticAstWalker, ModuleDependsNameOnlyPeriodThrows) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerInvalidPackageNameException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_PACKAGE);
 
     delete root;
 }
@@ -149,7 +145,7 @@ TEST(SemanticAstWalker, ModuleDependsNameStartsWithPeriodThrows) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerInvalidPackageNameException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_PACKAGE);
 
     delete root;
 }
@@ -167,7 +163,7 @@ TEST(SemanticAstWalker, SpecDuplicateDefinition) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_DUPLICATE_SPEC);
     delete root;
 }
 
@@ -186,7 +182,7 @@ TEST(SemanticAstWalker, FunctionDuplicateDefinition) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_DUPLICATE_FUNCTION);
     delete root;
 }
 
@@ -205,7 +201,7 @@ TEST(SemanticAstWalker, AutoPropertyDuplicateDefinition) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_DUPLICATE_PROPERTY);
     delete root;
 }
 
@@ -224,7 +220,7 @@ TEST(SemanticAstWalker, PropertyWithBodyDuplicateDefinition) {
 
     SemanticAstWalker semantic_walker(*root);
     
-    EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_DUPLICATE_PROPERTY);
     delete root;
 }
 
@@ -282,7 +278,7 @@ TEST(SemanticAstWalker, FunctionCallWithInvalidParameter) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SymbolTableUndefinedSymbolException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
     delete root;
 }
 
@@ -301,7 +297,7 @@ TEST(SemanticAstWalker, FunctionCallNeedingTypecastedParameter) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SymbolTableUndefinedSymbolException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
     delete root;
 }
 
@@ -341,7 +337,7 @@ TEST(SemanticAstWalker, DuplicateFunctions) {
 
         SemanticAstWalker semantic_walker(*root);
 
-        EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
+        EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_DUPLICATE_FUNCTION);
         delete root;
     }
 
@@ -361,7 +357,7 @@ TEST(SemanticAstWalker, DuplicateFunctions) {
 
         SemanticAstWalker semantic_walker(*root);
 
-        EXPECT_THROW(semantic_walker.Walk(), SymbolTableDuplicateKeyException);
+        EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_DUPLICATE_FUNCTION);
         delete root;
     }
 }
@@ -449,7 +445,7 @@ TEST(SemanticAstWalker, AttemptCrossTypeOperations) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNMATCHING_TYPE_IN_ADD);
     delete root;
 }
 
@@ -472,7 +468,7 @@ TEST(SemanticAstWalker, AttemptTypeReassignment) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN);
     delete root;
 }
 
@@ -541,7 +537,7 @@ TEST(SemanticAstWalker, FunctionIncorrectReturnStatement) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
     delete root;
 }
 
@@ -608,7 +604,7 @@ TEST(SemanticAstWalker, PropertyReturnFromSet) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_FROM_PROPERTY_SET);
     delete root;
 }
 
@@ -630,7 +626,7 @@ TEST(SemanticAstWalker, PropertyReturnInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
     delete root;
 }
 
@@ -650,7 +646,7 @@ TEST(SemanticAstWalker, AddInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNMATCHING_TYPE_IN_ADD);
     delete root;
 }
 
@@ -674,12 +670,12 @@ TEST(SemanticAstWalker, AddString) {
     delete root;
 }
 
-TEST(SemanticAstWalker, SubtractString) {
+TEST(SemanticAstWalker, AddBool) {
     std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
-        "    public int X(string x) {"
-        "        main(\"sfsf\" - \"sfsf\");"
+        "    public int X(bool x) {"
+        "        x <- true + true;"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -690,7 +686,27 @@ TEST(SemanticAstWalker, SubtractString) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_TYPE_IN_ADD);
+    delete root;
+}
+
+TEST(SemanticAstWalker, SubtractString) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public int X(string x) {"
+        "        x <- \"sfsf\" - \"sfsf\";"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONNUMERIC_OPERANDS);
     delete root;
 }
 
@@ -699,7 +715,7 @@ TEST(SemanticAstWalker, ModString) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(string x) {"
-        "        main(\"sfsf\" % \"sfsf\");"
+        "        x <- \"sfsf\" % \"sfsf\";"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -710,7 +726,7 @@ TEST(SemanticAstWalker, ModString) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONNUMERIC_OPERANDS);
     delete root;
 }
 
@@ -719,7 +735,7 @@ TEST(SemanticAstWalker, MulInvalidType) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
-        "        main(true * true);"
+        "        x <- true * true;"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -730,7 +746,7 @@ TEST(SemanticAstWalker, MulInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONNUMERIC_OPERANDS);
     delete root;
 }
 
@@ -739,7 +755,7 @@ TEST(SemanticAstWalker, DivInvalidType) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
-        "        main(true / true);"
+        "        x <- true / true;"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -750,7 +766,7 @@ TEST(SemanticAstWalker, DivInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONNUMERIC_OPERANDS);
     delete root;
 }
 
@@ -759,7 +775,7 @@ TEST(SemanticAstWalker, AndInvalidType) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
-        "        main(3 && 3);"
+        "        x <- 3 && 3;"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -770,7 +786,7 @@ TEST(SemanticAstWalker, AndInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONBOOL_OPERANDS);
     delete root;
 }
 
@@ -779,7 +795,7 @@ TEST(SemanticAstWalker, OrInvalidType) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
-        "        main(3.0 || 3.0);"
+        "        x <- 3.0 || 3.0;"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -790,7 +806,7 @@ TEST(SemanticAstWalker, OrInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONBOOL_OPERANDS);
     delete root;
 }
 
@@ -799,7 +815,7 @@ TEST(SemanticAstWalker, GreaterInvalidType) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
-        "        main(true > false);"
+        "        x <- true > false;"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -810,7 +826,7 @@ TEST(SemanticAstWalker, GreaterInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONNUMERIC_OPERANDS);
     delete root;
 }
 
@@ -819,7 +835,7 @@ TEST(SemanticAstWalker, LessInvalidType) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(bool x) {"
-        "        main(true < false);"
+        "        x <- true < false;"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -830,7 +846,7 @@ TEST(SemanticAstWalker, LessInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONNUMERIC_OPERANDS);
     delete root;
 }
 
@@ -839,7 +855,7 @@ TEST(SemanticAstWalker, GreaterEqualsInvalidType) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(string x) {"
-        "        main(\"h\" >= \"d\");"
+        "        x <- \"h\" >= \"d\";"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -850,7 +866,7 @@ TEST(SemanticAstWalker, GreaterEqualsInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONNUMERIC_OPERANDS);
     delete root;
 }
 
@@ -859,7 +875,7 @@ TEST(SemanticAstWalker, LessEqualsInvalidType) {
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int X(string x) {"
-        "        main(\"h\" <= \"d\");"
+        "        x <- \"h\" <= \"d\";"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -870,7 +886,7 @@ TEST(SemanticAstWalker, LessEqualsInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_THROW(semantic_walker.Walk(), SemanticAstWalkerTypeMismatchException);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NONNUMERIC_OPERANDS);
     delete root;
 }
 

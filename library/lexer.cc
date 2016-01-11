@@ -266,7 +266,10 @@ bool Lexer::SkipMultiLineComments() {
         }
 
         if (!HAS_CHAR()) {
-            throw LexerCommentException(*this);
+            THROW_EXCEPTION(
+                this->current_line_number(),
+                this->current_column_number(),
+                STATUS_LEXER_UNTERMINATED_COMMENT);
         }
     }
 
@@ -330,7 +333,10 @@ void Lexer::EscapeChar(std::stringstream& buffer) {
         buffer << '\f';
         break;
     default:
-        throw LexerEscapeException(*this);
+        THROW_EXCEPTION(
+            this->current_line_number(),
+            this->current_column_number(),
+            STATUS_LEXER_INVALID_ESCAPE);
     }
 }
 
@@ -346,7 +352,10 @@ void Lexer::ParseString() {
             break;
 
         case '\n':
-            throw LexerStringException(*this);
+            THROW_EXCEPTION(
+                this->current_line_number(),
+                this->current_column_number(),
+                STATUS_LEXER_NEWLINE_IN_STRING);
 
         case '"':
             this->valid_next_token_ = true;
@@ -360,7 +369,10 @@ void Lexer::ParseString() {
         }
     }
 
-    throw LexerStringException(*this);
+    THROW_EXCEPTION(
+        this->current_line_number(),
+        this->current_column_number(),
+        STATUS_LEXER_UNTERMINATED_STRING);
 }
 
 // Parses a name or Keyword from the InputStream and sets it as the
@@ -421,14 +433,23 @@ void Lexer::ParseNumber() {
         }
 
         if (consumed_idx < num_str.length()) {
-            throw LexerNumberException(*this);
+            THROW_EXCEPTION(
+                this->current_line_number(),
+                this->current_column_number(),
+                STATUS_LEXER_MALFORMED_NUMBER);
         }
     }
     catch (const std::invalid_argument&) {
-        throw LexerNumberException(*this);
+        THROW_EXCEPTION(
+            this->current_line_number(),
+            this->current_column_number(),
+            STATUS_LEXER_MALFORMED_NUMBER);
     }
     catch (const std::out_of_range&) {
-        throw LexerNumberException(*this);
+        THROW_EXCEPTION(
+            this->current_line_number(),
+            this->current_column_number(),
+            STATUS_LEXER_MALFORMED_NUMBER);
     }
 
     this->valid_next_token_ = true;
@@ -458,7 +479,10 @@ void Lexer::ParseCharacter() {
 
     ADVANCE_CHAR();
     if (PEEK_CHAR() != '\'') {
-        throw LexerCharacterException(*this);
+        THROW_EXCEPTION(
+            this->current_line_number(),
+            this->current_column_number(),
+            STATUS_LEXER_MALFORMED_CHAR);
     }
 
     ADVANCE_CHAR();
@@ -584,7 +608,10 @@ void Lexer::AdvanceTokens() {
             }
             else {
                 // No matching lexing rules.
-                throw LexerNoMatchException(*this);
+                THROW_EXCEPTION(
+                    this->current_line_number(),
+                    this->current_column_number(),
+                    STATUS_LEXER_NO_MATCH);
             }
             return;
         }
