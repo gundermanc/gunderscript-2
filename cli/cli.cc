@@ -97,7 +97,7 @@ static CliResult TypeCheckFiles(int file_count, const char** file_names) {
 // Prints Gunderscript Application Description to stdout.
 void PrintDescription() {
     std::cout << "Gunderscript 2 CLI Application, Compiled " << __DATE__ << std::endl;
-    std::cout << "(C) 2014-2015 Christian Gunderman" << std::endl << std::endl;
+    std::cout << "(C) 2014-2016 Christian Gunderman" << std::endl << std::endl;
     std::cout << "Usage: ./gunderscript_cli [parameters] [files]" << std::endl;
     std::cout << "Parameters:" << std::endl;
     std::cout << "  -l : Feed code through lexer stage only and tokenize output." << std::endl;
