@@ -51,8 +51,12 @@ private:
 
 // Status definitions indicating the compile errors.
 // Officially status codes are identified by GS[code] but we leave this out so we can use INT comparisons.
+// None of the first group should ever be thrown in normal operation but they're here for completeness.
 const ExceptionStatus STATUS_SUCCESS = ExceptionStatus(0, "Success");
 const ExceptionStatus STATUS_ILLEGAL_STATE = ExceptionStatus(-1, "Feature not implemented or bug detected in Gunderscript");
+const ExceptionStatus STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL = ExceptionStatus(-2, "Symbol table symbol is already defined");
+const ExceptionStatus STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL = ExceptionStatus(-3, "No symbol in symbol table with given key");
+const ExceptionStatus STATUS_SYMBOLTABLE_BOTTOM_OF_STACK = ExceptionStatus(-4, "Reached bottom of stack while popping Symbol table scope");
 
 // Lexer Exceptions 100-199:
 const ExceptionStatus STATUS_LEXER_UNTERMINATED_COMMENT = ExceptionStatus(100, "Unterminated comment");
@@ -139,7 +143,7 @@ const ExceptionStatus STATUS_SEMANTIC_RETURN_FROM_PROPERTY_SET
 const ExceptionStatus STATUS_SEMANTIC_RETURN_TYPE_MISMATCH
     = ExceptionStatus(302, "Return statement expression type does not match function or property type");
 const ExceptionStatus STATUS_SEMANTIC_INVALID_PACKAGE
-    = ExceptionStatus(303, "Invalid package name at top of file");
+    = ExceptionStatus(303, "Invalid package name");
 const ExceptionStatus STATUS_SEMANTIC_NONBOOL_IN_LOGNOT
     = ExceptionStatus(304, "Non-boolean type in '!' expression");
 const ExceptionStatus STATUS_SEMANTIC_NOT_ACCESSIBLE
@@ -169,11 +173,24 @@ const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS_EQUALS
 const ExceptionStatus STATUS_SEMANTIC_NONNUMERIC_OPERANDS
     = ExceptionStatus(316, "Non-numeric operands used with numeric operator");
 const ExceptionStatus STATUS_SEMANTIC_NONBOOL_OPERANDS
-    = ExceptionStatus(316, "Non-boolean operands used with numeric operator");
+    = ExceptionStatus(316, "Non-boolean operands used with boolean operator");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_EQUALS
     = ExceptionStatus(317, "Non-matching types in '=' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_NOT_EQUALS
     = ExceptionStatus(318, "Non-matching types in '!=' expression");
+const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_FUNCTION
+    = ExceptionStatus(319, "A function with the same name parameters has already been declared in this Spec");
+const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_PROPERTY
+    = ExceptionStatus(320, "A property with the same name has already been declared in this Spec");
+const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_FUNCTION_PARAM
+    = ExceptionStatus(321, "A function param with the same name has already been declared in this function");
+const ExceptionStatus STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND
+    = ExceptionStatus(322, "Cannot find a function overload with that name that accepts the specified param types");
+const ExceptionStatus STATUS_SEMANTIC_INVALID_TYPE_IN_ADD
+    = ExceptionStatus(323, "'+' operator supports only string and numeric types");
+const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_SPEC
+    = ExceptionStatus(324, "A Spec with that name already exists");
+
 
 // Gunderscript Exceptions Parent Class
 // Each module's exceptions descend from this class.

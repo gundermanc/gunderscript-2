@@ -1,5 +1,5 @@
 // Gunderscript-2 Semantic (type) Checker for Abstract Syntax Tree
-// (C) 2015 Christian Gunderman
+// (C) 2015-2016 Christian Gunderman
 
 #include <regex>
 #include <sstream>
@@ -126,7 +126,20 @@ void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* na
         std::string(),
         *name_node->string_value());
 
-    this->symbol_table_.PutBottom(*name_node->string_value(), spec_symbol);
+    try {
+        this->symbol_table_.PutBottom(*name_node->string_value(), spec_symbol);
+    }
+    catch (const Exception2& ex) {
+        // Rethrow as more relevant exception.
+        if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+            THROW_EXCEPTION(
+                name_node->line(),
+                name_node->column(),
+                STATUS_SEMANTIC_DUPLICATE_SPEC);
+        }
+
+        throw;
+    }
 }
 
 // Walks a single function declaration inside of a SPEC.
@@ -155,9 +168,24 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
     // before we type check the function body so functions can reference one another
     // regardless of the order in which they are declared.
     if (prescan) {
-        this->symbol_table_.PutBottom(
-            MangleFunctionSymbolName(spec_node, name_node, arguments_result),
-            function_symbol);
+        try {
+            this->symbol_table_.PutBottom(
+                MangleFunctionSymbolName(spec_node, name_node, arguments_result),
+                function_symbol);
+        }
+        catch (const Exception2& ex) {
+
+            // Throw a more relevant exception.
+            if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+                THROW_EXCEPTION(
+                    name_node->line(),
+                    name_node->column(),
+                    STATUS_SEMANTIC_DUPLICATE_FUNCTION);
+            }
+            else {
+                throw;
+            }
+        }
     }
 }
 
@@ -181,10 +209,25 @@ Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
         *spec_name_node->string_value(),
         *name_node->string_value());
 
-    // Insert the symbol into the table.
-    this->symbol_table_.Put(
-        MangleLocalVariableSymbolName(name_node),
-        variable_symbol);
+    try {
+        // Insert the symbol into the table.
+        this->symbol_table_.Put(
+            MangleLocalVariableSymbolName(name_node),
+            variable_symbol);
+    }
+    catch (const Exception2& ex) {
+
+        // Throw a more relevant exception.
+        if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+            THROW_EXCEPTION(
+                name_node->line(),
+                name_node->column(),
+                STATUS_SEMANTIC_DUPLICATE_FUNCTION_PARAM);
+        }
+        else {
+            throw;
+        }
+    }
 
     // Return the type.
     return ResolveTypeNode(type_node);
@@ -222,9 +265,6 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         *spec_name_node->string_value(),
         *name_node->string_value());
 
-    // Define the getter symbol.
-    this->symbol_table_.PutBottom(get_function_symbol_name, get_function_symbol);
-
     // Determine the setter function symbol name.
     std::string set_function_symbol_name
         = ManglePropertyFunctionSymbolName(spec_node, name_node, PropertyFunction::SET);
@@ -237,8 +277,25 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         *spec_name_node->string_value(),
         *name_node->string_value());
 
-    // Define the setter symbol.
-    this->symbol_table_.PutBottom(set_function_symbol_name, set_function_symbol);
+    try {
+        // Define the getter symbol.
+        this->symbol_table_.PutBottom(get_function_symbol_name, get_function_symbol);
+
+        // Define the setter symbol.
+        this->symbol_table_.PutBottom(set_function_symbol_name, set_function_symbol);
+    }
+    catch (const Exception2& ex) {
+
+        // Rethrow as more understandable error.
+        if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+            THROW_EXCEPTION(
+                name_node->line(),
+                name_node->column(),
+                STATUS_SEMANTIC_DUPLICATE_PROPERTY);
+        }
+
+        throw;
+    }
 }
 
 // Walks a function call and checks to make sure that the types
@@ -250,21 +307,35 @@ Type SemanticAstWalker::WalkFunctionCall(
 
     Node* spec_name_node = spec_node->child(1);
 
-    // Lookup the function. Throws if there isn't a function with the correct arguments.
-    const Symbol& symbol = this->symbol_table_.Get(
-        MangleFunctionSymbolName(spec_node, name_node, arguments_result));
+    try {
+        // Lookup the function. Throws if there isn't a function with the correct arguments.
+        const Symbol& symbol = this->symbol_table_.Get(
+            MangleFunctionSymbolName(spec_node, name_node, arguments_result));
 
-    // Check for access to the callee function.
-    // TODO: as of the moment this does nothing because we don't support calls between classes
-    // yet. Implement calls between classes.
-    CheckAccessModifier(
-        *spec_name_node->string_value(),
-        symbol.spec_name(),
-        symbol.access_modifier(),
-        name_node->line(),
-        name_node->column());
+        // Check for access to the callee function.
+        // TODO: as of the moment this does nothing because we don't support calls between classes
+        // yet. Implement calls between classes.
+        CheckAccessModifier(
+            *spec_name_node->string_value(),
+            symbol.spec_name(),
+            symbol.access_modifier(),
+            name_node->line(),
+            name_node->column());
 
-    return symbol.type();
+        return symbol.type();
+    }
+    catch (const Exception2& ex) {
+
+        // Rethrow as more relevant exception.
+        if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+            THROW_EXCEPTION(
+                name_node->line(),
+                name_node->column(),
+                STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
+        }
+
+        throw;
+    }
 }
 
 // Walks an assignment statement or expression and checks to make sure
@@ -291,7 +362,17 @@ Type SemanticAstWalker::WalkAssign(
 
         return operations_result;
     }
-    catch (const SymbolTableDuplicateKeyException&) {
+    catch (const Exception2& ex) {
+
+        // Throw exception if it's not the expected exception, we don't have handling
+        // for this case.
+        if (ex.status().code() != STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+            THROW_EXCEPTION(
+                name_node->line(),
+                name_node->column(),
+                STATUS_ILLEGAL_STATE);
+        }
+
         // Value already exists in the current level of the symbol table
         // so look up the existing value and its type and make sure that the new type
         // matches the existing type.
@@ -360,9 +441,13 @@ Type SemanticAstWalker::WalkReturn(
     // Check to make sure that the type of the function symbol matches the type
     // of the return statement expression.
     if (symbol.type() != expression_result) {
+
+        // WalkReturn() will have either a property_node or a function_node, not both.
+        Node* line_number_node = property_node != NULL ? property_node : function_node;
+
         THROW_EXCEPTION(
-            property_node->line(),
-            property_node->column(),
+            line_number_node->line(),
+            line_number_node->column(),
             STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
     }
 
@@ -388,7 +473,15 @@ Type SemanticAstWalker::WalkAdd(
     Type left_result,
     Type right_result) {
 
-    // TODO: allow only string and numbers.
+    // Only allow numeric and string types.
+    if (left_result != TYPE_INT &&
+        left_result != TYPE_FLOAT &&
+        left_result != TYPE_STRING) {
+        THROW_EXCEPTION(
+            left_node->line(),
+            left_node->column(),
+            STATUS_SEMANTIC_INVALID_TYPE_IN_ADD);
+    }
 
     return CalculateResultantType(
         left_result,
@@ -520,7 +613,7 @@ Type SemanticAstWalker::WalkGreater(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    return CalculateNumericResultantType(
+    CalculateNumericResultantType(
         left_result,
         right_result,
         left_node->line(),
@@ -541,7 +634,7 @@ Type SemanticAstWalker::WalkEquals(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    return CalculateResultantType(
+    CalculateResultantType(
         left_result,
         right_result,
         left_node->line(),
@@ -562,7 +655,7 @@ Type SemanticAstWalker::WalkNotEquals(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    return CalculateResultantType(
+    CalculateResultantType(
         left_result,
         right_result,
         left_node->line(),
@@ -583,7 +676,7 @@ Type SemanticAstWalker::WalkLess(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    return CalculateNumericResultantType(
+    CalculateNumericResultantType(
         left_result,
         right_result,
         left_node->line(),
@@ -604,7 +697,7 @@ Type SemanticAstWalker::WalkGreaterEquals(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    return CalculateNumericResultantType(
+    CalculateNumericResultantType(
         left_result,
         right_result,
         left_node->line(),
@@ -625,7 +718,7 @@ Type SemanticAstWalker::WalkLessEquals(
 
     // Check that comparision types are the same.
     // Function will throw if different.
-    return CalculateNumericResultantType(
+    CalculateNumericResultantType(
         left_result,
         right_result,
         left_node->line(),

@@ -235,43 +235,6 @@ private:
     Type ResolveTypeNode(Node* type_node);
 };
 
-// SemanticAstWalker Exceptions Parent Class
-// All Parser exceptions descend from this class.
-class SemanticAstWalkerException : public Exception {
-public:
-    SemanticAstWalkerException(const SemanticAstWalker& walker) : Exception(), walker_(walker) { }
-    SemanticAstWalkerException(const SemanticAstWalker& walker,
-        const std::string& message) : Exception(message), walker_(walker) { }
-    const SemanticAstWalker& walker() { return walker_; }
-
-private:
-    const SemanticAstWalker& walker_;
-};
-
-// SemanticAstWalker invalid package name exception.
-class SemanticAstWalkerInvalidPackageNameException : public SemanticAstWalkerException {
-public:
-    SemanticAstWalkerInvalidPackageNameException(const SemanticAstWalker& walker) :
-        SemanticAstWalkerException(walker,
-            "Invalid package name.") { }
-};
-
-// SemanticAstWalker member not accessible exception.
-class SemanticAstWalkerNotAccessibleException : public SemanticAstWalkerException {
-public:
-    SemanticAstWalkerNotAccessibleException(const SemanticAstWalker& walker) :
-        SemanticAstWalkerException(walker,
-            "Class or class member not accessible.") { }
-};
-
-// SemanticAstWalker type mismatch exception.
-class SemanticAstWalkerTypeMismatchException : public SemanticAstWalkerException {
-public:
-    SemanticAstWalkerTypeMismatchException(const SemanticAstWalker& walker) :
-        SemanticAstWalkerException(walker,
-            "Invalid type in operation.") { }
-};
-
 } // namespace library
 } // namespace gunderscript
 

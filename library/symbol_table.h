@@ -29,35 +29,6 @@ private:
     std::vector< std::unordered_map<std::string, ValueType, std::hash<std::string> > > map_vector_;
 };
 
-// SymbolTable Exceptions Parent Class
-// All Parser exceptions descend from this class.
-class SymbolTableException : public Exception {
-public:
-    SymbolTableException(const std::string& message)
-        : Exception(message) { }
-};
-
-// SemanticAstWalker undefined symbol name exception.
-class SymbolTableUndefinedSymbolException : public SymbolTableException {
-public:
-    SymbolTableUndefinedSymbolException() :
-        SymbolTableException("Undefined symbol.") { }
-};
-
-// SemanticAstWalker bottom of stack exception.
-class SymbolTableBottomOfStackException : public SymbolTableException {
-public:
-    SymbolTableBottomOfStackException() :
-        SymbolTableException("Cannot pop symbol table, no more tables.") { }
-};
-
-// SemanticAstWalker duplicate key exception.
-class SymbolTableDuplicateKeyException : public SymbolTableException {
-public:
-    SymbolTableDuplicateKeyException() :
-        SymbolTableException("Cannot define symbol. Symbol already defined.") { }
-};
-
 } // namespace library
 } // namespace gunderscript
 
