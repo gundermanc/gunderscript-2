@@ -20,7 +20,7 @@ Node* Parser::Parse() {
     try {
         return ParseModule();
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete module_node_;
         throw;
     }
@@ -736,26 +736,19 @@ Node* Parser::ParseAssignExpressionB(Node* left_operand_node) {
         return left_operand_node;
     }
 
-    Node* operation_node = NULL;
-
-    switch (CurrentToken()->symbol) {
-    case LexerSymbol::ASSIGN:
-        operation_node = new Node(NodeRule::ASSIGN);
-        break;
-    default:
-        // Return left operand if this isn't an operation.
+    if (CurrentToken()->symbol != LexerSymbol::ASSIGN) {
         return left_operand_node;
     }
 
+    Node* operation_node = new Node(NodeRule::ASSIGN);
     Node* parent_node = NULL;
-
     try {
         AdvanceNext();
         operation_node->AddChild(left_operand_node);
         operation_node->AddChild(ParseOrExpressionA());
         parent_node = ParseAssignExpressionB(operation_node);
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete operation_node;
         throw;
     }
@@ -776,33 +769,27 @@ Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
         return left_operand_node;
     }
 
-    Node* operation_node = NULL;
-
-    switch (CurrentToken()->symbol) {
-    case LexerSymbol::LOGOR:
-        operation_node = new Node(NodeRule::LOGOR);
-        break;
-    default:
-        // Return left operand if this isn't an operation.
+    if (CurrentToken()->symbol != LexerSymbol::LOGOR) {
         return left_operand_node;
     }
 
-    Node* parent_node = NULL;
+    Node* operation_node = new Node(NodeRule::LOGOR);
 
     try {
         AdvanceNext();
         operation_node->AddChild(left_operand_node);
         operation_node->AddChild(ParseAndExpressionA());
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete operation_node;
         throw;
     }
 
+    Node* parent_node = NULL;
     try {
         parent_node = ParseOrExpressionB(operation_node);
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete parent_node;
         throw;
     }
@@ -842,7 +829,7 @@ Node* Parser::ParseAndExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseComparisonExpressionA());
         parent_node = ParseAndExpressionB(operation_node);
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete operation_node;
         throw;
     }
@@ -897,7 +884,7 @@ Node* Parser::ParseComparisonExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParsePrimaryExpressionA());
         parent_node = ParseComparisonExpressionB(operation_node);
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete operation_node;
         throw;
     }
@@ -940,7 +927,7 @@ Node* Parser::ParsePrimaryExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseSecondaryExpressionA());
         parent_node = ParsePrimaryExpressionB(operation_node);
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete operation_node;
         throw;
     }
@@ -986,7 +973,7 @@ Node* Parser::ParseSecondaryExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseTertiaryExpressionA());
         parent_node = ParseSecondaryExpressionB(operation_node);
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete operation_node;
         throw;
     }
@@ -1026,7 +1013,7 @@ Node* Parser::ParseTertiaryExpressionB(Node* left_operand_node) {
         operation_node->AddChild(ParseInvertExpression());
         parent_node = ParseTertiaryExpressionB(operation_node);
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete operation_node;
         throw;
     }
@@ -1064,7 +1051,7 @@ Node* Parser::ParseInvertExpression() {
         AdvanceNext();
         invert_node->AddChild(ParseInvertExpression());
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete invert_node;
         throw;
     }
@@ -1160,7 +1147,7 @@ Node* Parser::ParseMemberNameExpression() {
     try {
         AdvanceNext();
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete name_node;
         throw;
     }
@@ -1198,7 +1185,7 @@ Node* Parser::ParseCallExpression() {
         }
         AdvanceNext();
     }
-    catch (const ParserException ex) {
+    catch (const Exception2 ex) {
         delete function_node;
         throw;
     }
@@ -1246,7 +1233,7 @@ Node* Parser::ParseVariableExpression() {
     try {
         AdvanceNext();
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete variable_node;
         throw;
     }
@@ -1257,7 +1244,10 @@ Node* Parser::ParseVariableExpression() {
 Node* Parser::ParseBoolConstant() {
 
     if (CurrentToken()->type != LexerTokenType::KEYWORD) {
-        throw IllegalStateException();
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_ILLEGAL_STATE);
     }
 
     LexerSymbol true_false_value = CurrentToken()->symbol;
@@ -1338,7 +1328,7 @@ Node* Parser::ParseStringConstant() {
     try {
         AdvanceNext();
     }
-    catch (const ParserException&) {
+    catch (const Exception2&) {
         delete string_node;
         throw;
     }
@@ -1411,7 +1401,10 @@ bool Parser::CurrentAccessModifier(LexerSymbol am) {
 
 void Parser::ThrowEOFIfNull(const LexerToken* token) {
     if (token == NULL) {
-        throw ParserEndOfFileException(*this);
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_EOF);
     }
 }
 

@@ -103,7 +103,7 @@ const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTION_MISSING_LPAREN
 const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTION_MISSING_RPAREN
     = ExceptionStatus(221, "Trying to parse Function definition, expected but did not find right parenthesis for parameters");
 const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_COMMA
-    = ExceptionStatus(222, "Trying to parse Function parameter definitions, expected but did not find comma delimiter");
+    = ExceptionStatus(222, "Trying to parse Function parameter definitions, expected but did not find comma delimiter or right parenthesis");
 const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_TYPE
     = ExceptionStatus(223, "Trying to parse Function parameter definitions, expected but did not find type");
 const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_NAME
@@ -117,15 +117,17 @@ const ExceptionStatus STATUS_PARSER_EXPECTED_STATEMENT
 const ExceptionStatus STATUS_PARSER_EXPECTED_STATEMENT_INVALID_KEYWORD
     = ExceptionStatus(228, "Invalid keyword, expected a statement");
 const ExceptionStatus STATUS_PARSER_MALFORMED_SPEC_UNKNOWN_MEMBER
-    = ExceptionStatus(229, "Invalid Spec member, Specs only contain either functions or properties");
+    = ExceptionStatus(229, "Invalid or malformed Spec member, functions start with access modifiers and properties with a type");
 const ExceptionStatus STATUS_PARSER_MALFORMED_EXPRESSION_MISSING_RPAREN
     = ExceptionStatus(230, "Invalid expression, missing right parenthesis");
 const ExceptionStatus STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN
-    = ExceptionStatus(231, "Invalid token in expression");
+    = ExceptionStatus(231, "Invalid expression, unexpected token");
 const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTIONCALL_MISSING_RPAREN
     = ExceptionStatus(232, "Trying to parse function call parameters, expected but did not find right parenthesis");
 const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTIONCALL_MISSING_COMMA
     = ExceptionStatus(233, "Missing comma delimiter in function call parameters");
+const ExceptionStatus STATUS_PARSER_EOF
+    = ExceptionStatus(234, "Reached end of file while parsing");
 
 // Gunderscript Exceptions Parent Class
 // Each module's exceptions descend from this class.
