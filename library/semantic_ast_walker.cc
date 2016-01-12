@@ -829,6 +829,7 @@ void SemanticAstWalker::CheckAccessModifier(
                 column,
                 STATUS_SEMANTIC_NOT_ACCESSIBLE);
         }
+        break;
     case LexerSymbol::PACKAGE:
         // What exactly a 'package' will be is currently up in the air.
         // TODO: complete this.
@@ -836,6 +837,7 @@ void SemanticAstWalker::CheckAccessModifier(
             line,
             column,
             STATUS_ILLEGAL_STATE);
+        break;
     case LexerSymbol::INTERNAL:
         // What exactly 'internal' means is currently up in the air.
         // Internal is TYPE_INTENDED to mean that it is internal to the file,
