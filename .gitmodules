@@ -1,3 +1,6 @@
 [submodule "googletest"]
 	path = googletest
 	url = https://github.com/google/googletest
+[submodule "nanojit"]
+	path = nanojit
+	url = https://github.com/gundermanc/nanojit.git

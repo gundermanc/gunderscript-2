@@ -49,11 +49,13 @@ void DebugPrintNode(const Node* node) {
         printf("** NULL NODE **");
     }
 
+    // TODO: use C++ streams or otherwise eliminate unsafe typecasts from size_t to int.
+
     switch (node->rule()) {
     case NodeRule::NAME:
     case NodeRule::STRING:
         printf("%i:%s, \"%s\"\n",
-            node->child_count(),
+            (int)node->child_count(),
             NodeRuleString(node->rule()).c_str(),
             node->string_value()->c_str());
         break;
@@ -61,7 +63,7 @@ void DebugPrintNode(const Node* node) {
     case NodeRule::TYPE:
     case NodeRule::ACCESS_MODIFIER:
         printf("%i:%s, %s\n",
-            node->child_count(),
+            (int)node->child_count(),
             NodeRuleString(node->rule()).c_str(),
             LexerSymbolString(node->symbol_value()).c_str());
         break;
@@ -69,7 +71,7 @@ void DebugPrintNode(const Node* node) {
     case NodeRule::BOOL:
     case NodeRule::NATIVE:
         printf("%i:%s, %s\n",
-            node->child_count(),
+            (int)node->child_count(),
             NodeRuleString(node->rule()).c_str(),
             node->bool_value() ? "true" : "false");
         break;
@@ -77,21 +79,21 @@ void DebugPrintNode(const Node* node) {
     case NodeRule::CHAR:
     case NodeRule::INT:
         printf("%i:%s, %lu\n",
-            node->child_count(),
+            (int)node->child_count(),
             NodeRuleString(node->rule()).c_str(),
             node->int_value());
         break;
 
     case NodeRule::FLOAT:
         printf("%i:%s, %lf\n",
-            node->child_count(),
+            (int)node->child_count(),
             NodeRuleString(node->rule()).c_str(),
             node->float_value());
         break;
 
     default:
         printf("%i:%s\n",
-            node->child_count(),
+            (int)node->child_count(),
             NodeRuleString(node->rule()).c_str());
     }
 

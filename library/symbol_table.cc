@@ -100,9 +100,15 @@ void SymbolTable<ValueType>::PutBottom(const std::string& key, ValueType value) 
 template <typename ValueType>
 const ValueType& SymbolTable<ValueType>::Get(const std::string& key) const {
 
-    for (int i = this->map_vector_.size() - 1; i >= 0; i--) {
+    // size_t is the correct type to use when indexing the map_vector_ since
+    // we can't a have a negative index, however, it is unsigned and so i
+    // less than zero is an invalid loop termination because if i is zero and
+    // we subtract one, it wraps around. To combat this, i is equal to the
+    // desired index + 1 and the termination condition is i == 0. i = 1 maps
+    // maps to the zero-th index.
+    for (size_t i = this->map_vector_.size(); i > 0; i--) {
         try {
-            return this->map_vector_[i].at(key);
+            return this->map_vector_[i-1].at(key);
         }
         catch (const std::out_of_range&) {
             // do nothing

@@ -56,7 +56,7 @@ template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleDependsChildren(Node* depends_node) {
 
     // Iterate through all modules that this modules depends on.
-    for (int i = 0; i < depends_node->child_count(); i++) {
+    for (size_t i = 0; i < depends_node->child_count(); i++) {
 
         // Check that each node is a NAME node and then walk it.
         CheckNodeRule(depends_node->child(i), NodeRule::NAME);
@@ -70,7 +70,7 @@ template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleSpecsChildren(Node* specs_node) {
 
     // Iterate through all specs defined by this class.
-    for (int i = 0; i < specs_node->child_count(); i++) {
+    for (size_t i = 0; i < specs_node->child_count(); i++) {
 
         // Check that each node is a SPEC node and then walk it.
         CheckNodeRule(specs_node->child(i), NodeRule::SPEC);
@@ -109,7 +109,7 @@ void AstWalker<ReturnType>::WalkSpecFunctionsChildren(Node* spec_node, Node* fun
 
     // Iterates through all function declarations in the spec,
     // this time looking only at the function implentation.
-    for (int i = 0; i < functions_node->child_count(); i++) {
+    for (size_t i = 0; i < functions_node->child_count(); i++) {
         Node* function_node = functions_node->child(i);
 
         WalkSpecFunctionChildren(spec_node, function_node, false);
@@ -196,14 +196,14 @@ void AstWalker<ReturnType>::WalkSpecPropertiesFunctionsPrescanChildren(
 
     // Iterates through all function declarations in the spec
     // reading only the function headers and definitions.
-    for (int i = 0; i < functions_node->child_count(); i++) {
+    for (size_t i = 0; i < functions_node->child_count(); i++) {
         Node* function_node = functions_node->child(i);
 
         WalkSpecFunctionChildren(spec_node, function_node, true);
     }
 
     // Iterate through all properties in the SPEC's PROPERTIES node.
-    for (int i = 0; i < properties_node->child_count(); i++) {
+    for (size_t i = 0; i < properties_node->child_count(); i++) {
         Node* property_node = properties_node->child(i);
 
         WalkSpecPropertyChildren(spec_node, property_node, true);
@@ -225,7 +225,7 @@ void AstWalker<ReturnType>::WalkSpecFunctionDeclarationParametersChildren(
 
     // Iterate all FUNCTION_PARAMETER nodes in the FUNCTION_PARAMETERS node
     // and dispatch to subclass function.
-    for (int i = 0; i < function_params_node->child_count(); i++) {
+    for (size_t i = 0; i < function_params_node->child_count(); i++) {
         Node* function_param_node = function_params_node->child(i);
 
         CheckNodeRule(function_param_node, NodeRule::FUNCTION_PARAMETER);
@@ -253,7 +253,7 @@ void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* pr
     CheckNodeRule(properties_node, NodeRule::PROPERTIES);
 
     // Iterate through all properties in the SPEC's PROPERTIES node.
-    for (int i = 0; i < properties_node->child_count(); i++) {
+    for (size_t i = 0; i < properties_node->child_count(); i++) {
         Node* property_node = properties_node->child(i);
 
         WalkSpecPropertyChildren(spec_node, property_node, false);
@@ -344,7 +344,7 @@ void AstWalker<ReturnType>::WalkBlockChildren(
     CheckNodeRule(block_node, NodeRule::BLOCK);
 
     // Iterate through all statements in the block.
-    for (int i = 0; i < block_node->child_count(); i++) {
+    for (size_t i = 0; i < block_node->child_count(); i++) {
         Node* statement_node = block_node->child(i);
 
         switch (statement_node->rule())
@@ -401,7 +401,7 @@ void AstWalker<ReturnType>::WalkFunctionCallChildren(
 
     // Iterate through all call param expressions and evaluate their
     // types.
-    for (int i = 0; i < arguments_node->child_count(); i++) {
+    for (size_t i = 0; i < arguments_node->child_count(); i++) {
         Node* expression_node = arguments_node->child(i);
 
         // Walk the parameter expressions and add the results

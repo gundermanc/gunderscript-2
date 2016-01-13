@@ -4,6 +4,7 @@
 #ifndef GUNDERSCRIPT_NODE__H__
 #define GUNDERSCRIPT_NODE__H__
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -83,7 +84,7 @@ public:
     ~Node();
     void AddChild(Node* child);
     Node* child(int child) const;
-    int child_count() const { return this->children_.size(); }
+    size_t child_count() const { return this->children_.size(); }
     bool bool_value() const { return num_value_.bool_value; }
     long int_value() const { return num_value_.int_value; }
     double float_value() const { return num_value_.float_value; }

@@ -31,6 +31,9 @@ endif ()
 if (gunderscript_tests)
     add_subdirectory (googletest)
 endif ()
+
+# Compile NanoJIT dependency.
+add_subdirectory (nanojit)
   
 # Compile libgunderscript.
 add_subdirectory (library)

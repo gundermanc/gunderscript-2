@@ -5,6 +5,13 @@
 
 # Compile the Gunderscript Library.
 include_directories(../include)
+
+# TODO: These paths are nasty. Refactor the nanojit library.
+include_directories(
+    ${nanojit_SOURCE_DIR}/nanojit
+    ${nanojit_SOURCE_DIR}/lirasm/VMPI.nj
+    ${nanojit_SOURCE_DIR})
+
 add_library (
     gunderscript
     lexer.cc
@@ -15,6 +22,7 @@ add_library (
     ast_walker.cc
     semantic_ast_walker.cc
     compiler.cc)
+target_link_libraries(gunderscript nanojit)
 
 # Generate tests if option enabled.
 if (gunderscript_tests)
