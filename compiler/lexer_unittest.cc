@@ -9,7 +9,7 @@
 #include "lexer.h"
 
 using namespace gunderscript;
-using gunderscript::library::Lexer;
+using gunderscript::compiler::Lexer;
 
 // TEST_SYMBOL Macro:
 // Defines the test template for symbol recognition.

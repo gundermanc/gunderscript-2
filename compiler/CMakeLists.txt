@@ -1,5 +1,5 @@
 #
-# Gunderscript 2 Library Build File
+# Gunderscript 2 Compiler Library Build File
 # (C) 2015-2016 Christian Gunderman
 #
 
@@ -13,7 +13,7 @@ include_directories(
     ${nanojit_SOURCE_DIR})
 
 add_library (
-    gunderscript
+    gunderscript_compiler
     lexer.cc
     compiler_source.cc
     symbol_table.cc
@@ -21,18 +21,19 @@ add_library (
     parser.cc
     ast_walker.cc
     semantic_ast_walker.cc
+    lirgen_ast_walker.cc
     compiler.cc)
-target_link_libraries(gunderscript nanojit)
+target_link_libraries(gunderscript_compiler nanojit)
 
 # Generate tests if option enabled.
-if (gunderscript_tests)
+if (gunderscript_compiler_tests)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
     add_executable (
-        gunderscript_tests
+        gunderscript_compiler_tests
         lexer_unittest.cc
         symbol_table_unittest.cc
         parser_unittest.cc
         semantic_ast_walker_unittest.cc)
-    target_link_libraries(gunderscript_tests gunderscript)
-    target_link_libraries(gunderscript_tests gtest gtest_main)
+    target_link_libraries(gunderscript_compiler_tests gunderscript_compiler)
+    target_link_libraries(gunderscript_compiler_tests gtest gtest_main)
 endif ()

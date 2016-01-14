@@ -7,7 +7,7 @@
 #include "parser.h"
 #include "semantic_ast_walker.h"
 
-using namespace gunderscript::library;
+using namespace gunderscript::compiler;
 
 namespace gunderscript {
 

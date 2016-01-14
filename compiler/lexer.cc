@@ -51,7 +51,7 @@ const std::string LexerSymbolString(LexerSymbol symbol) {
     return kLexerSymbolString[(int)symbol];
 }
 
-namespace library {
+namespace compiler {
 
 // Get next character from input and advance to next.
 #define ADVANCE_CHAR()                                    \
@@ -618,5 +618,5 @@ void Lexer::AdvanceTokens() {
     }
 }
 
-} // namespace library
+} // namespace compiler
 } // namespace gunderscript

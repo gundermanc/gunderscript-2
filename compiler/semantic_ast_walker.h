@@ -1,0 +1,241 @@
+// Gunderscript-2 Parse/AST Node
+// (C) 2015 Christian Gunderman
+
+#ifndef GUNDERSCRIPT_SEMANTIC_CHECKER__H__
+#define GUNDERSCRIPT_SEMANTIC_CHECKER__H__
+
+#include <string>
+#include <vector>
+
+#include "gunderscript/node.h"
+
+#include "ast_walker.h"
+#include "lexer.h"
+#include "symbol.h"
+#include "symbol_table.h"
+#include "type.h"
+
+namespace gunderscript {
+namespace compiler {
+
+// Type checking abstract syntax tree walker.
+// Walks along the AST and checks for type correctness.
+class SemanticAstWalker : public AstWalker<Type> {
+public:
+
+    SemanticAstWalker(Node& node);
+
+protected:
+    void WalkModule(Node* module_node);
+    void WalkModuleName(Node* name_node);
+    void WalkModuleDependsName(Node* name_node);
+    void WalkSpecDeclaration(Node* access_modifier_node, Node* name_node);
+    void WalkSpecFunctionDeclaration(
+        Node* spec_node,
+        Node* access_modifier_node,
+        Node* native_node,
+        Node* type_node,
+        Node* name_node,
+        Node* block_node,
+        std::vector<Type>& arguments_result,
+        bool prescan);
+    Type WalkSpecFunctionDeclarationParameter(
+        Node* spec_node,
+        Node* function_node,
+        Node* type_node,
+        Node* name_node,
+        bool prescan);
+    void WalkSpecPropertyDeclaration(
+        Node* spec_node,
+        Node* type_node,
+        Node* name_node,
+        Node* get_access_modifier_node,
+        Node* set_access_modifier_node,
+        bool prescan);
+    Type WalkFunctionCall(
+        Node* spec_node,
+        Node* name_node,
+        std::vector<Type>& arguments_result);
+    Type WalkAssign(
+        Node* spec_node,
+        Node* name_node,
+        Type operations_result);
+    Type WalkReturn(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Type expression_result,
+        std::vector<Type>* arguments_result);
+    Type WalkAdd(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkSub(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkMul(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkDiv(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkMod(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkLogAnd(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkLogNot(
+        Node* spec_node,
+        Node* child_node,
+        Type child_result);
+    Type WalkLogOr(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkGreater(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkNotEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkLess(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkGreaterEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkLessEquals(
+        Node* spec_node,
+        Node* left_node,
+        Node* right_node,
+        Type left_result,
+        Type right_result);
+    Type WalkBool(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* bool_node);
+    Type WalkInt(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* int_node);
+    Type WalkFloat(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* float_node);
+    Type WalkString(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* string_node);
+    Type WalkChar(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* char_node);
+    Type WalkVariable(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* name_node);
+    Type WalkAnyType(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* any_type_node);
+
+    void WalkSpecFunctionChildren(
+        Node* spec_node,
+        Node* function_node,
+        bool prescan);
+    void WalkBlockChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* block,
+        std::vector<Type>* arguments_result);
+     
+private:
+    SymbolTable<Symbol> symbol_table_;
+
+    void CheckValidModuleName(const std::string& module_name, int line, int column);
+    void CheckAccessModifier(
+        const std::string& caller_class,
+        const std::string& callee_class,
+        LexerSymbol callee_access_modifier,
+        int line,
+        int column);
+    Type CalculateResultantType(
+        Type left,
+        Type right,
+        int line,
+        int column,
+        ExceptionStatus type_mismatch_error);
+    Type CalculateNumericResultantType(
+        Type left, 
+        Type right,
+        int line,
+        int column,
+        ExceptionStatus type_mismatch_error);
+    Type CalculateBoolResultantType(
+        Type left,
+        Type right,
+        int line,
+        int column,
+        ExceptionStatus type_mismatch_error);
+    Type ResolveTypeNode(Node* type_node);
+};
+
+} // namespace library
+} // namespace gunderscript
+
+#endif // GUNDERSCRIPT_SEMANTIC_CHECKER__H__

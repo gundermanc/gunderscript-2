@@ -11,7 +11,7 @@
 #include "gunderscript/exceptions.h"
 
 namespace gunderscript {
-namespace library {
+namespace compiler {
 
 // Lexer Class definition and Public/Private interfaces.
 class Lexer {

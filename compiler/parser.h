@@ -11,7 +11,7 @@
 #include "lexer.h"
 
 namespace gunderscript {
-namespace library {
+namespace compiler {
 
 // Accepts a Lexer and converts a stream of lexemes into an abstract syntax tree
 // that is ready to be analyzed.

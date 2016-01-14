@@ -9,7 +9,7 @@
 #include "symbol_table.h"
 
 using namespace gunderscript;
-using gunderscript::library::SymbolTable;
+using gunderscript::compiler::SymbolTable;
 
 // Checks to make sure that all values are at correct defaults
 // upon initialization.
