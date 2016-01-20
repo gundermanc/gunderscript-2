@@ -14,7 +14,8 @@ namespace gunderscript {
 enum class CompilerStage {
     LEXER = 100,
     PARSER = 200,
-    TYPE_CHECKER = 300
+    TYPE_CHECKER = 300,
+    CODE_GEN = 400
 };
 
 typedef void(*LexerTokenFunc)(const LexerToken& token);

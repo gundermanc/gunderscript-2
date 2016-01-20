@@ -5,4 +5,18 @@
 
 namespace gunderscript {
 
+// Virtual Machine Private Implementation.
+class VirtualMachineImpl {
+
+};
+
+// Public constructor.
+VirtualMachine::VirtualMachine() : pimpl_(new VirtualMachineImpl()) {
+}
+
+// Public destructor.
+VirtualMachine::~VirtualMachine() {
+    delete this->pimpl_;
+}
+
 } // namespace gunderscript

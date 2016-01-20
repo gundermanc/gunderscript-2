@@ -6,6 +6,19 @@
 
 namespace gunderscript {
 
+// Forward declaration of private implementation class.
+class VirtualMachineImpl;
+
+// Declaration of public class interface.
+class VirtualMachine {
+public:
+    VirtualMachine();
+    ~VirtualMachine();
+
+private:
+    VirtualMachineImpl* pimpl_;
+};
+
 } // namespace gunderscript
 
 #endif // GUNDERSCRIPT_VIRTUAL_MACHINE__H__
