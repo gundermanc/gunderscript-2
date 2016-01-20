@@ -16,6 +16,11 @@ project (GUNDERSCRIPT)
 include(cmake/msvc_macros.cmake)
 configure_msvc_runtime ()
 
+# TODO: this is pretty jank, reconsider.
+# Define platform constants for NanoJIT
+include(nanojit/cmake_macros.cmake)
+define_nanojit_platform()
+
 # Travis CI Compatible C++11 Support
 # CXX_STANDARD proeprty doesn't work on Travis CI because
 # Travis has horribly out of date CMAKE *grumble grumble*

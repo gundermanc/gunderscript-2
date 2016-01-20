@@ -45,10 +45,16 @@ static CliResult DebugCompile(
                 typecheck_walk_func);
         }
         catch (const Exception& ex) {
-            std::cout << std::endl << "GS" << ex.status().code() << ": Near Line " << ex.line() << " Column " << ex.column() << " " << ex.what() << std::endl;
+            std::cout << std::endl
+                << "GS" << ex.status().code() << ": Near Line " << ex.line() 
+                << " Column " << ex.column() << " " << ex.what() << std::endl;
 
-            // Uncomment this line to see where in the implementation an exception was thrown from.
-            // std::cout << "Error originated from " << std::endl << ex.impl_file() << std::endl << " at line " << ex.impl_line() << std::endl;
+#ifdef _DEBUG
+            // In DEBUG build config print the origin point of the exception.
+            std::cout
+                << "Error originated from line " << ex.impl_line() << " in " 
+                << std::endl << "  " << ex.impl_file() << std::endl;
+#endif
             return (CliResult)(CLIRESULT_INT(CliResult::EXCEPTION_BASE) + ex.status().code());
         }
 

@@ -22,36 +22,51 @@ private:
     const std::string what_;
 };
 
-// The class for all Gunderscript engine exceptions.
+// The class for all Gunderscript engine exceptions. Use THROW_EXCEPTION instead
+// of concrete constructor calls. In DEBUG configuration exception defines a file
+// and line number field that show the implementation file where an exception
+// originated.
 class Exception : public std::exception {
 public:
     Exception(
+#ifdef _DEBUG
         int impl_line,
         const char* impl_file,
+#endif
         int line,
         int column,
-        const ExceptionStatus& status) throw()
-        : impl_line_(impl_line), impl_file_(impl_file),
+        const ExceptionStatus& status) throw() :
+#ifdef _DEBUG
+        impl_line_(impl_line), impl_file_(impl_file),
+#endif
         line_(line), column_(column), status_(status) { }
 
+#ifdef _DEBUG
     int impl_line() const { return impl_line_; }
     const char * impl_file() const { return impl_file_; }
+#endif
     int line() const { return line_; }
     int column() const { return column_; }
     ExceptionStatus status() const { return status_; }
     virtual const char* what() const throw() { return status_.what().c_str(); }
 
 private:
+#ifdef _DEBUG
     const int impl_line_;
     const char * impl_file_;
+#endif
     const int line_;
     const int column_;
     const ExceptionStatus status_;
 };
 
 // Used to throw all exceptions within Gunderscript engine so that implementation
-// file and line are saved.
+// file and line are saved when in DEBUG configuration.
+#ifdef _DEBUG
 #define THROW_EXCEPTION(line, column, status)     throw Exception(__LINE__, __FILE__, line, column, status)
+#else
+#define THROW_EXCEPTION(line, column, status)     throw Exception(line, column, status)
+#endif
 
 // Status definitions indicating the compile errors.
 // Officially status codes are identified by GS[code] but we leave this out so we can use INT comparisons.

@@ -6,6 +6,12 @@
 # Compile the Gunderscript Library.
 include_directories(../include)
 
+# TODO: These paths are nasty. Refactor the nanojit library.
+include_directories(
+    ${nanojit_SOURCE_DIR}/nanojit
+    ${nanojit_SOURCE_DIR}/lirasm/VMPI.nj
+    ${nanojit_SOURCE_DIR})
+
 add_library (
     gunderscript_runtime
     virtual_machine.cc)
