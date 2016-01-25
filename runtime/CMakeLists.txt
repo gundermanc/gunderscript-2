@@ -3,8 +3,9 @@
 # (C) 2016 Christian Gunderman
 #
 
-# Compile the Gunderscript Library.
+# Include the public and common includes.
 include_directories(../include)
+include_directories(../common)
 
 # TODO: These paths are nasty. Refactor the nanojit library.
 include_directories(
@@ -14,15 +15,15 @@ include_directories(
 
 add_library (
     gunderscript_runtime
-    module.cc
     virtual_machine.cc)
+
+target_link_libraries (gunderscript_runtime gunderscript_common)
 
 # Generate tests if option enabled.
 if (gunderscript_runtime_tests)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
     add_executable (
         gunderscript_runtime_tests
-        module_unittest.cc
         virtual_machine_unittest.cc)
     target_link_libraries(gunderscript_runtime_tests gunderscript_runtime)
     target_link_libraries(gunderscript_runtime_tests gtest gtest_main)

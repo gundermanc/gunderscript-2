@@ -2,15 +2,19 @@
 // (C) 2014-2016 Christian Gunderman
 
 #include "gunderscript/exceptions.h"
-#include "type.h"
 
 #include "ast_walker.h"
+#include "type.h"
+
+// HACK: this include is here for explicit template instantiation for LirGenResult.
+#include "lirgen_ast_walker.h"
 
 namespace gunderscript {
 namespace compiler {
 
-// Instantiate template with Type so we can link from external module.
+// Instantiate template with Type and LirGenResult so we can link from external module.
 template class AstWalker<Type>;
+template class AstWalker<LirGenResult>;
 
 // Walks through all expected children of the MODULE
 // AST node (the root of the AST). Expected children of this

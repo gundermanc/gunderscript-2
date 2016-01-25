@@ -85,7 +85,7 @@ void Node::AddChild(Node* child) {
 }
 
 // Gets a child from this node by its index (added order).
-Node* Node::child(int child) const {
+Node* Node::child(size_t child) const {
     if (this->child_count() > child) {
         return this->children_[child];
     }

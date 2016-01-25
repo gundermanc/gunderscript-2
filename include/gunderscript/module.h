@@ -4,6 +4,8 @@
 #ifndef GUNDERSCRIPT_MODULE__H__
 #define GUNDERSCRIPT_MODULE__H__
 
+#include <string>
+
 namespace gunderscript {
 
 // Forward declaration of private implementation class.
@@ -12,8 +14,10 @@ class ModuleImpl;
 // Declaration of public class interface.
 class Module {
 public:
-    Module();
+    Module(ModuleImpl* pimpl) : pimpl_(pimpl) { }
     ~Module();
+
+    const std::string& module_name() const;
 
 private:
     ModuleImpl* pimpl_;

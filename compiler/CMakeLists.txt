@@ -3,8 +3,9 @@
 # (C) 2015-2016 Christian Gunderman
 #
 
-# Compile the Gunderscript Library.
+# Include the public and common includes.
 include_directories(../include)
+include_directories(../common)
 
 # TODO: These paths are nasty. Refactor the nanojit library.
 include_directories(
@@ -23,7 +24,7 @@ add_library (
     semantic_ast_walker.cc
     lirgen_ast_walker.cc
     compiler.cc)
-target_link_libraries(gunderscript_compiler nanojit)
+target_link_libraries (gunderscript_compiler gunderscript_common)
 
 # Generate tests if option enabled.
 if (gunderscript_compiler_tests)

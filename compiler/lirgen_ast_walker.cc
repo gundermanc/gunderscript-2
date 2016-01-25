@@ -6,6 +6,11 @@
 namespace gunderscript {
 namespace compiler {
 
+// TODO
+Module LIRGenAstWalker::Generate() {
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+}
+
 // Walks the MODULE node in the abstract syntax tree.
 // Since there is no type information in this node, we can
 // safely do nothing.
@@ -326,7 +331,7 @@ LirGenResult LIRGenAstWalker::WalkVariable(
 }
 
 // Walks the ANY_TYPE node and returns the type for it.
-LirGenResult LIRGenAstWalker::WalkAnyLirGenResult(
+LirGenResult LIRGenAstWalker::WalkAnyType(
     Node* spec_node,
     Node* function_node,
     Node* property_node,

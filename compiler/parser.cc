@@ -1425,13 +1425,13 @@ Node* Parser::ParseBoolConstant() {
     AdvanceNext();
 
     switch (true_false_value) {
-    case LexerSymbol::TRUE:
+    case LexerSymbol::KTRUE:
         return new Node(
             NodeRule::BOOL,
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(), 
             true);
-    case LexerSymbol::FALSE:
+    case LexerSymbol::KFALSE:
         return new Node(
             NodeRule::BOOL,
             this->lexer_.current_line_number(),

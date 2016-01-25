@@ -6,9 +6,16 @@
 
 #include "compiler_source.h"
 #include "lexer_resources.h"
+#include "module.h"
 #include "node.h"
 
 namespace gunderscript {
+
+// Build configuration, RELEASE OR DEBUG with which this library was built.
+const char* GunderscriptBuildConfigurationString();
+
+// Timestamp on which this library was built.
+const char* GunderscriptBuildTimestampString();
 
 // Identifies stages of compilation.
 enum class CompilerStage {
@@ -33,6 +40,7 @@ public:
         LexerTokenFunc lexer_iteration_func,
         ParserNodeFunc parser_walk_func,
         ParserNodeFunc typecheck_walk_func);
+    Module Compile(CompilerSourceInterface& source);
 
 private:
     CompilerImpl* pimpl_;

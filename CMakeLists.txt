@@ -43,6 +43,9 @@ endif ()
 # Compile NanoJIT dependency.
 add_subdirectory (nanojit)
 
+# Compile libgunderscript common library.
+add_subdirectory (common)
+
 # Compile libgunderscript compiler if option enabled.
 if (gunderscript_compiler)
     add_subdirectory (compiler)

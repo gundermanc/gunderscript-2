@@ -83,7 +83,7 @@ public:
     Node(NodeRule rule, int line, int column, const std::string* value);
     ~Node();
     void AddChild(Node* child);
-    Node* child(int child) const;
+    Node* child(size_t child) const;
     size_t child_count() const { return this->children_.size(); }
     bool bool_value() const { return num_value_.bool_value; }
     long int_value() const { return num_value_.int_value; }

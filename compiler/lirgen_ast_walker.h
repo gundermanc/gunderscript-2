@@ -7,14 +7,15 @@
 #include <string>
 #include <vector>
 
+#include "gunderscript/module.h"
 #include "gunderscript/node.h"
 #include "gunderscript/virtual_machine.h"
 
 #include "ast_walker.h"
-#include "lexer.h"
 #include "symbol.h"
 #include "symbol_table.h"
 #include "type.h"
+
 
 namespace gunderscript {
 namespace compiler {
@@ -29,8 +30,10 @@ class LirGenResult {
 class LIRGenAstWalker : public AstWalker<LirGenResult> {
 public:
 
-    LIRGenAstWalker(Node& node, const SymbolTable<Symbol>& symbol_table)
-        : AstWalker(node), symbol_table_(symbol_table) { }
+    LIRGenAstWalker(Node& node)
+        : AstWalker(node) { }
+
+    Module Generate();
 
 protected:
     void WalkModule(Node* module_node);
@@ -192,7 +195,7 @@ protected:
         Node* property_node,
         PropertyFunction property_function,
         Node* name_node);
-    LirGenResult WalkAnyLirGenResult(
+    LirGenResult WalkAnyType(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
@@ -212,7 +215,7 @@ protected:
         std::vector<LirGenResult>* arguments_result);
 
 private:
-    const SymbolTable<Symbol>& symbol_table_;
+    const SymbolTable<Symbol> symbol_table_;
 };
 
 } // namespace compiler

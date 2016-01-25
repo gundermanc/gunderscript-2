@@ -6,11 +6,11 @@
 
 #include <string>
 
-#include "lexer.h"
+#include "gunderscript/lexer_resources.h"
+
 #include "type.h"
 
 namespace gunderscript {
-namespace compiler {
 
 class Symbol {
 public:
@@ -40,7 +40,6 @@ private:
     const std::string spec_name_;
 };
 
-} // namespace library
 } // namespace gunderscript
 
 #endif // GUNDERSCRIPT_SYMBOL__H__

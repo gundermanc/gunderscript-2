@@ -183,8 +183,8 @@ void Lexer::LoadKeywords() {
     DEFINE_KEYWORD("else", LexerTokenType::KEYWORD, LexerSymbol::ELSE);
     DEFINE_KEYWORD("do", LexerTokenType::KEYWORD, LexerSymbol::DO);
     DEFINE_KEYWORD("while", LexerTokenType::KEYWORD, LexerSymbol::WHILE);
-    DEFINE_KEYWORD("true", LexerTokenType::KEYWORD, LexerSymbol::TRUE);
-    DEFINE_KEYWORD("false", LexerTokenType::KEYWORD, LexerSymbol::FALSE);
+    DEFINE_KEYWORD("true", LexerTokenType::KEYWORD, LexerSymbol::KTRUE);
+    DEFINE_KEYWORD("false", LexerTokenType::KEYWORD, LexerSymbol::KFALSE);
     DEFINE_KEYWORD("return", LexerTokenType::KEYWORD, LexerSymbol::RETURN);
     DEFINE_KEYWORD("get", LexerTokenType::KEYWORD, LexerSymbol::GET);
     DEFINE_KEYWORD("set", LexerTokenType::KEYWORD, LexerSymbol::SET);
