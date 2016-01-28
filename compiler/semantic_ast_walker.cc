@@ -2,7 +2,8 @@
 // (C) 2015-2016 Christian Gunderman
 
 #include <regex>
-#include <sstream>
+
+#include "gunderscript/node.h"
 
 #include "lexer.h"
 #include "semantic_ast_walker.h"
@@ -17,7 +18,7 @@ const std::regex module_name_pattern = std::regex("^([A-Z]|[a-z])+(\\.([A-Z]|[a-
 // symbol table guarantees uniqueness for functions while allowing overloads
 // with different argument types.
 static const std::string MangleFunctionSymbolName(
-    Node* spec_node, 
+    Node* spec_node,
     Node* name_node,
     std::vector<Type>& arguments_result) {
 
@@ -69,19 +70,33 @@ static const std::string ManglePropertyFunctionSymbolName(
 SemanticAstWalker::SemanticAstWalker(Node& node) : AstWalker(node), symbol_table_() {
 
     // Add all default types to the Symbol table.
-    for (unsigned int i = 0; i < TYPES.size(); i++) {
+    for (size_t i = 0; i < TYPES.size(); i++) {
         const Type& current_type = TYPES[i];
 
         // Create a symbol for the Type.
         // Extraneous fields are left empty or filled with defaults.
-        Symbol type_symbol(
+        Symbol* type_symbol = new Symbol(
+            SymbolType::TYPE,
             LexerSymbol::PUBLIC,
             false,
             current_type,
-            current_type.symbol_name(),
-            std::string());
+            std::string(),
+            current_type.symbol_name());
 
         this->symbol_table_.PutBottom(current_type.symbol_name(), type_symbol);
+    }
+}
+
+// Destructor, frees the prepopulated default types.
+SemanticAstWalker::~SemanticAstWalker() {
+
+    // Destroys the default types that we populated the symbol table with.
+    // All other Symbols must be associated with a Node object. The Node
+    // has the responsibility to delete these symbols when the AST is destroyed.
+    for (size_t i = 0; i < TYPES.size(); i++) {
+        const Type& current_type = TYPES[i];
+
+        delete this->symbol_table_.Get(current_type.symbol_name());
     }
 }
 
@@ -117,14 +132,21 @@ void SemanticAstWalker::WalkModuleDependsName(Node* name_node) {
 
 // Attempts to declare a new spec in the given scope. Throws if spec
 // name is taken in this context.
-void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* name_node) {
+void SemanticAstWalker::WalkSpecDeclaration(
+    Node* spec_node,
+    Node* access_modifier_node,
+    Node* name_node) {
     // Construct symbol with extranous fields filled in arbitrarily.
-    Symbol spec_symbol(
+    Symbol* spec_symbol = new Symbol(
+        SymbolType::TYPE,
         access_modifier_node->symbol_value(),
         false,
         TYPE_NONE,
         std::string(),
         *name_node->string_value());
+
+    // Store a reference to the symbol. Node will destroy symbol on cleanup.
+    spec_node->set_symbol(spec_symbol);
 
     try {
         this->symbol_table_.PutBottom(*name_node->string_value(), spec_symbol);
@@ -146,6 +168,7 @@ void SemanticAstWalker::WalkSpecDeclaration(Node* access_modifier_node, Node* na
 // Throws if the function already exists in the symbol table.
 void SemanticAstWalker::WalkSpecFunctionDeclaration(
     Node* spec_node,
+    Node* function_node,
     Node* access_modifier_node,
     Node* native_node,
     Node* type_node,
@@ -156,21 +179,27 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
 
     Node* spec_name_node = spec_node->child(1);
 
-    Symbol function_symbol(
-        access_modifier_node->symbol_value(),
-        native_node->bool_value(),
-        ResolveTypeNode(type_node),
-        *spec_name_node->string_value(),
-        *name_node->string_value());
-
     // Only define the symbol during the prescan portion of the walking process.
     // The prescan allows for us to iterate and define symbols for all functions
     // before we type check the function body so functions can reference one another
     // regardless of the order in which they are declared.
     if (prescan) {
         try {
+            const std::string symbol_name = MangleFunctionSymbolName(spec_node, name_node, arguments_result);
+
+            Symbol* function_symbol = new Symbol(
+                SymbolType::FUNCTION,
+                access_modifier_node->symbol_value(),
+                native_node->bool_value(),
+                ResolveTypeNode(type_node),
+                *spec_name_node->string_value(),
+                symbol_name);
+
+            // Node will destroy symbol on cleanup.
+            function_node->set_symbol(function_symbol);
+
             this->symbol_table_.PutBottom(
-                MangleFunctionSymbolName(spec_node, name_node, arguments_result),
+                symbol_name,
                 function_symbol);
         }
         catch (const Exception& ex) {
@@ -195,25 +224,28 @@ Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* spec_node,
     Node* function_node,
     Node* type_node,
+    Node* function_param_node,
     Node* name_node,
     bool prescan) {
 
     Node* spec_name_node = spec_node->child(1);
 
-    // Create a new symbol for the variable.
+    // Create a new symbol for the parameter.
     // Extraneous values are arbitrary.
-    Symbol variable_symbol(
+    Symbol* param_symbol = new Symbol(
+        SymbolType::FUNCTION,
         LexerSymbol::CONCEALED,
         false,
         ResolveTypeNode(type_node),
         *spec_name_node->string_value(),
         *name_node->string_value());
+    function_param_node->set_symbol(param_symbol);
 
     try {
         // Insert the symbol into the table.
         this->symbol_table_.Put(
             MangleLocalVariableSymbolName(name_node),
-            variable_symbol);
+            param_symbol);
     }
     catch (const Exception& ex) {
 
@@ -239,6 +271,8 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
     Node* spec_node,
     Node* type_node,
     Node* name_node,
+    Node* get_property_function_node,
+    Node* set_property_function_node,
     Node* get_access_modifier_node,
     Node* set_access_modifier_node,
     bool prescan) {
@@ -258,24 +292,30 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         = ManglePropertyFunctionSymbolName(spec_node, name_node, PropertyFunction::GET);
 
     // Create the symbol table symbol for the getter.
-    Symbol get_function_symbol(
+    Symbol* get_function_symbol = new Symbol(
+        SymbolType::FUNCTION,
         get_access_modifier_node->symbol_value(),
         false,
         ResolveTypeNode(type_node),
         *spec_name_node->string_value(),
-        *name_node->string_value());
+        get_function_symbol_name);
+
+    get_property_function_node->set_symbol(get_function_symbol);
 
     // Determine the setter function symbol name.
     std::string set_function_symbol_name
         = ManglePropertyFunctionSymbolName(spec_node, name_node, PropertyFunction::SET);
 
     // Create the symbol table symbol for the getter.
-    Symbol set_function_symbol(
+    Symbol* set_function_symbol = new Symbol(
+        SymbolType::FUNCTION,
         set_access_modifier_node->symbol_value(),
         false,
         ResolveTypeNode(type_node),
         *spec_name_node->string_value(),
-        *name_node->string_value());
+        set_function_symbol_name);
+
+    set_property_function_node->set_symbol(set_function_symbol);
 
     try {
         // Define the getter symbol.
@@ -303,39 +343,103 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
 Type SemanticAstWalker::WalkFunctionCall(
     Node* spec_node,
     Node* name_node,
+    Node* call_node,
     std::vector<Type>& arguments_result) {
 
     Node* spec_name_node = spec_node->child(1);
 
     try {
         // Lookup the function. Throws if there isn't a function with the correct arguments.
-        const Symbol& symbol = this->symbol_table_.Get(
+        Symbol* symbol = this->symbol_table_.Get(
             MangleFunctionSymbolName(spec_node, name_node, arguments_result));
+
+        // Copied symbol because ~Node() destroys symbol on exit.
+        call_node->set_symbol(new Symbol(symbol));
 
         // Check for access to the callee function.
         // TODO: as of the moment this does nothing because we don't support calls between classes
         // yet. Implement calls between classes.
         CheckAccessModifier(
             *spec_name_node->string_value(),
-            symbol.spec_name(),
-            symbol.access_modifier(),
+            symbol->spec_name(),
+            symbol->access_modifier(),
             name_node->line(),
             name_node->column());
 
-        return symbol.type();
+        return symbol->type();
     }
     catch (const Exception& ex) {
 
-        // Rethrow as more relevant exception.
+        // The symbol for this function is unknown. Either a typo or a function-like typecast.
+        if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+
+            // Check if we have exactly one param. If so, it might be a typecast.
+            if (arguments_result.size() != 1) {
+                THROW_EXCEPTION(
+                    name_node->line(),
+                    name_node->column(),
+                    STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
+            }
+
+            // Try walking it as if it were a typecast.
+            return WalkFunctionLikeTypecast(
+                spec_node,
+                name_node,
+                call_node,
+                arguments_result.at(0));
+        }
+
+        throw;
+    }
+}
+
+// Walks a function-like type cast and performs the typecast operation and resolves the types.
+// Throws if the typecast is unknown or unsupported.
+Type SemanticAstWalker::WalkFunctionLikeTypecast(
+    Node* spec_node,
+    Node* name_node,
+    Node* call_node,
+    Type argument_result) {
+
+    try {
+        // If this fails, user specified invalid function or typecast.
+        Symbol* symbol = this->symbol_table_.Get(*name_node->string_value());
+
+        call_node->set_symbol(new Symbol(symbol));
+
+        // Make the assumption that we support conversions between all non-string types.
+        // It is up the the LIRGenAstWalker to implement support for the OP codes.
+        switch (symbol->type().type_format()) {
+        case TypeFormat::BOOL:
+        case TypeFormat::INT:
+        case TypeFormat::FLOAT:
+            // TODO: put exceptions in here if any.
+            // For now, assume all types except string can be cast to anything.
+            if (argument_result.type_format() != TypeFormat::OBJECT) {
+                return symbol->type();
+            }
+            break;
+        default:
+            // Unimplemented typecast.
+            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+        }
+    }
+    catch (const Exception& ex) {
+
+        // If the symbol is undefined, this is an invalid function symbol or typecast.
         if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
             THROW_EXCEPTION(
                 name_node->line(),
                 name_node->column(),
                 STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
         }
-
-        throw;
     }
+
+    // If we reached this far then the user specified an _unsupported_ typecast.
+    THROW_EXCEPTION(
+        name_node->line(),
+        name_node->column(),
+        STATUS_SEMANTIC_UNSUPPORTED_TYPECAST);
 }
 
 // Walks an assignment statement or expression and checks to make sure
@@ -343,6 +447,7 @@ Type SemanticAstWalker::WalkFunctionCall(
 Type SemanticAstWalker::WalkAssign(
     Node* spec_node,
     Node* name_node,
+    Node* assign_node,
     Type operations_result) {
 
     std::string symbol_name = MangleLocalVariableSymbolName(name_node);
@@ -351,14 +456,20 @@ Type SemanticAstWalker::WalkAssign(
     // (most recent scope). If the value exists in a lower scope it will
     // be masked by this new definition until the newer scope is popped.
     try {
+
+        Symbol* assign_symbol = new Symbol(
+            SymbolType::VARIABLE,
+            LexerSymbol::CONCEALED,
+            false,
+            operations_result,
+            std::string(),
+            *name_node->string_value());
+
         this->symbol_table_.Put(
             symbol_name,
-            Symbol(
-                LexerSymbol::CONCEALED,
-                false,
-                operations_result,
-                std::string(),
-                *name_node->string_value()));
+            assign_symbol);
+
+        assign_node->set_symbol(assign_symbol);
 
         return operations_result;
     }
@@ -377,17 +488,17 @@ Type SemanticAstWalker::WalkAssign(
         // so look up the existing value and its type and make sure that the new type
         // matches the existing type.
 
-        const Symbol& variable_symbol = this->symbol_table_.Get(symbol_name);
+        const Symbol* variable_symbol = this->symbol_table_.Get(symbol_name);
 
         // Check to make sure that type of new assignment matches original declared type.
-        if (variable_symbol.type() != operations_result) {
+        if (variable_symbol->type() != operations_result) {
             THROW_EXCEPTION(
                 name_node->line(),
                 name_node->column(),
                 STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN);
         }
 
-        return variable_symbol.type();
+        return variable_symbol->type();
     }
 }
 
@@ -436,11 +547,11 @@ Type SemanticAstWalker::WalkReturn(
 
     // Lookup the function symbol. Shouldn't be able to throw since the
     // caller of this method is the function containing the statement.
-    const Symbol& symbol = this->symbol_table_.Get(symbol_name);
+    const Symbol* symbol = this->symbol_table_.Get(symbol_name);
 
     // Check to make sure that the type of the function symbol matches the type
     // of the return statement expression.
-    if (symbol.type() != expression_result) {
+    if (symbol->type() != expression_result) {
 
         // WalkReturn() will have either a property_node or a function_node, not both.
         Node* line_number_node = property_node != NULL ? property_node : function_node;
@@ -451,7 +562,7 @@ Type SemanticAstWalker::WalkReturn(
             STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
     }
 
-    return symbol.type();
+    return symbol->type();
 }
 
 // Checks to see if the given module name is valid. If it is not, throws
@@ -474,8 +585,8 @@ Type SemanticAstWalker::WalkAdd(
     Type right_result) {
 
     // Only allow numeric and string types.
-    if (left_result != TYPE_INT &&
-        left_result != TYPE_FLOAT &&
+    if (left_result.type_format() != TypeFormat::INT &&
+        left_result.type_format() != TypeFormat::FLOAT &&
         left_result != TYPE_STRING) {
         THROW_EXCEPTION(
             left_node->line(),
@@ -737,6 +848,8 @@ Type SemanticAstWalker::WalkBool(
     PropertyFunction property_function,
     Node* bool_node) {
 
+    // Alloc copy because ~Node() frees it's symbol on destroy.
+    bool_node->set_symbol(new Symbol(this->symbol_table_.Get(TYPE_BOOL.symbol_name())));
     return TYPE_BOOL;
 }
 
@@ -748,6 +861,8 @@ Type SemanticAstWalker::WalkInt(
     PropertyFunction property_function,
     Node* int_node) {
 
+    // Alloc copy because ~Node() frees it's symbol on destroy.
+    int_node->set_symbol(new Symbol(this->symbol_table_.Get(TYPE_INT.symbol_name())));
     return TYPE_INT;
 }
 
@@ -759,6 +874,7 @@ Type SemanticAstWalker::WalkFloat(
     PropertyFunction property_function,
     Node* float_node) {
 
+    float_node->set_symbol(new Symbol(this->symbol_table_.Get(TYPE_FLOAT.symbol_name())));
     return TYPE_FLOAT;
 }
 
@@ -781,7 +897,11 @@ Type SemanticAstWalker::WalkChar(
     PropertyFunction property_function,
     Node* char_node) {
 
-    return TYPE_CHAR;
+    // Store the symbol in the char node:
+    // Alloc copy because ~Node() destroys the symbol when done.
+    char_node->set_symbol(new Symbol(this->symbol_table_.Get(TYPE_INT8.symbol_name())));
+
+    return TYPE_INT8;
 }
 
 // Walks the SYMBOL->NAME subtree that represents a variable reference
@@ -791,12 +911,20 @@ Type SemanticAstWalker::WalkVariable(
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
+    Node* variable_node,
     Node* name_node) {
+
+    const std::string symbol_name = MangleLocalVariableSymbolName(name_node);
+
+    Symbol* symbol = this->symbol_table_.Get(symbol_name);
+
+    // Store the symbol in the variable node:
+    // Alloc copy because ~Node() destroys the symbol when done.
+    variable_node->set_symbol(new Symbol(symbol));
 
     // Looks up the variable in the SymbolTable and returns its type.
     // Throws if the symbol is undefined.
-    const Symbol& symbol = this->symbol_table_.Get(MangleLocalVariableSymbolName(name_node));
-    return symbol.type();
+    return symbol->type();
 }
 
 // Walks the ANY_TYPE node and returns the type for it.
@@ -948,7 +1076,8 @@ Type SemanticAstWalker::CalculateNumericResultantType(
         left, right, line, column, type_mismatch_error);
 
     // Disallow non-numerical operands.
-    if (resultant_type != TYPE_INT && resultant_type != TYPE_FLOAT) {
+    if (resultant_type.type_format() != TypeFormat::INT &&
+        resultant_type.type_format() != TypeFormat::FLOAT) {
         THROW_EXCEPTION(
             line,
             column,
@@ -982,9 +1111,9 @@ Type SemanticAstWalker::CalculateBoolResultantType(
 // object.
 Type SemanticAstWalker::ResolveTypeNode(Node* type_node) {
     try {
-        const Symbol& type_symbol = this->symbol_table_.Get(*type_node->string_value());
+        const Symbol* type_symbol = this->symbol_table_.Get(*type_node->string_value());
 
-        return type_symbol.type();
+        return type_symbol->type();
     }
     catch (const Exception& ex) {
         // Rethrow as more relevant exception.

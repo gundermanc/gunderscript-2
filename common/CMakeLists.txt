@@ -14,6 +14,6 @@ include_directories(
 
 add_library (
     gunderscript_common
-    moduleimpl.cc
+    common_resources.cc
     module.cc)
-target_link_libraries(gunderscript_common nanojit)
+target_link_libraries(gunderscript_common nanojit njutil)

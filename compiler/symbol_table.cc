@@ -3,15 +3,19 @@
 
 #include <utility>
 
-#include "symbol.h"
+#include "nanojit.h"
+
+#include "gunderscript/symbol.h"
+
 #include "symbol_table.h"
 
 namespace gunderscript {
 namespace compiler {
 
 // Instantiate template so we can unit test and link from external modules.
+template class SymbolTable<nanojit::LIns*>;
 template class SymbolTable<std::string>;
-template class SymbolTable<Symbol>;
+template class SymbolTable<Symbol*>;
 
 // Default Constructor, creates empty SymbolTable with
 // automatic minimum depth of 1.

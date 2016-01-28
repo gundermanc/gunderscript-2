@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "gunderscript/compiler_source.h"
+#include "gunderscript/exceptions.h"
 
 using std::fstream;
 using std::ios_base;

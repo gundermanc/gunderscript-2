@@ -2,9 +2,9 @@
 // (C) 2014-2016 Christian Gunderman
 
 #include "gunderscript/exceptions.h"
+#include "gunderscript/type.h"
 
 #include "ast_walker.h"
-#include "type.h"
 
 // HACK: this include is here for explicit template instantiation for LirGenResult.
 #include "lirgen_ast_walker.h"
@@ -99,7 +99,7 @@ void AstWalker<ReturnType>::WalkSpec(Node* spec_node) {
     CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
     CheckNodeRule(properties_node, NodeRule::PROPERTIES);
 
-    WalkSpecDeclaration(access_modifier_node, name_node);
+    WalkSpecDeclaration(spec_node, access_modifier_node, name_node);
     WalkSpecPropertiesFunctionsPrescanChildren(spec_node, functions_node, properties_node);
     WalkSpecFunctionsChildren(spec_node, functions_node);
     WalkSpecPropertiesChildren(spec_node, properties_node);
@@ -162,6 +162,7 @@ void AstWalker<ReturnType>::WalkSpecFunctionChildren(
     // Dispatch to subclass.
     WalkSpecFunctionDeclaration(
         spec_node,
+        function_node,
         access_modifier_node,
         native_node,
         type_node,
@@ -245,6 +246,7 @@ void AstWalker<ReturnType>::WalkSpecFunctionDeclarationParametersChildren(
                 spec_node,
                 function_node, 
                 type_node,
+                function_param_node,
                 name_node,
                 prescan));
     }
@@ -313,6 +315,8 @@ void AstWalker<ReturnType>::WalkSpecPropertyChildren(
         spec_node,
         type_node,
         name_node,
+        get_property_function_node,
+        set_property_function_node,
         get_access_modifier_node,
         set_access_modifier_node,
         prescan);
@@ -388,7 +392,7 @@ void AstWalker<ReturnType>::WalkBlockChildren(
 
 // Walks through a CALL Node's children.
 template <typename ReturnType>
-void AstWalker<ReturnType>::WalkFunctionCallChildren(
+ReturnType AstWalker<ReturnType>::WalkFunctionCallChildren(
     Node* spec_node, 
     Node* function_node, 
     Node* call_node) {
@@ -421,7 +425,7 @@ void AstWalker<ReturnType>::WalkFunctionCallChildren(
 
     // Walk the function call and provide it with the results of our
     // walk of the arguments.
-    WalkFunctionCall(spec_node, name_node, arguments_result);
+    return WalkFunctionCall(spec_node, name_node, call_node, arguments_result);
 }
 
 // Walks through an ASSIGN Node's children.
@@ -450,7 +454,7 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
     CheckNodeRule(name_node, NodeRule::NAME);
 
     // Walk the binary operation and obtain the result.
-    ReturnType binary_operation_result = WalkBinaryOperationChildren(
+    ReturnType binary_operation_result = WalkSubExpressionChildren(
         spec_node,
         function_node,
         property_node,
@@ -462,6 +466,7 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
     return WalkAssign(
         spec_node,
         name_node,
+        assign_node,
         binary_operation_result);
 }
 
@@ -520,12 +525,44 @@ ReturnType AstWalker<ReturnType>::WalkExpressionChildren(
     // Check mandatory nodes used by this walker.
     CheckNodeRule(expression_node, NodeRule::EXPRESSION);
 
-    return WalkBinaryOperationChildren(
+    return WalkSubExpressionChildren(
         spec_node,
         function_node,
         property_node,
         property_function,
         expression_node->child(0));
+}
+
+// Walks top level subexpressions.
+template <typename ReturnType>
+ReturnType AstWalker<ReturnType>::WalkSubExpressionChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    PropertyFunction property_function,
+    Node* subexpression_node) {
+
+    switch (subexpression_node->rule()) {
+    case NodeRule::CALL:
+        return WalkFunctionCallChildren(
+            spec_node,
+            function_node,
+            subexpression_node);
+    case NodeRule::ASSIGN:
+        return WalkAssignChildren(
+            spec_node,
+            function_node,
+            property_node,
+            property_function,
+            subexpression_node);
+    default:
+        return WalkBinaryOperationChildren(
+            spec_node,
+            function_node,
+            property_node,
+            property_function,
+            subexpression_node);
+    }
 }
 
 // Walks all children of binary expressions.
@@ -541,33 +578,17 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
     // This node has children, treat it as a binary operation.
     if (binary_operation_node->child_count() == 2) {
 
-        // The ASSIGN expression special case.
-        // Although we COULD treat the assign operator as a normal
-        // binary operation, we instead special case it to make
-        // the ASTWalker have it's own assign statement walker
-        // function, making writing an interpreter easier than if
-        // we had separate walkers for the symbol reference and the
-        // binary_operation_node.
-        if (binary_operation_node->rule() == NodeRule::ASSIGN) {
-            return WalkAssignChildren(
-                spec_node,
-                function_node,
-                property_node,
-                property_function,
-                binary_operation_node);
-        }
-
         Node* left_node = binary_operation_node->child(0);
         Node* right_node = binary_operation_node->child(1);
 
-        ReturnType left_result = WalkBinaryOperationChildren(
+        ReturnType left_result = WalkSubExpressionChildren(
             spec_node,
             function_node,
             property_node,
             property_function,
             left_node);
 
-        ReturnType right_result = WalkBinaryOperationChildren(
+        ReturnType right_result = WalkSubExpressionChildren(
             spec_node,
             function_node,
             property_node,
@@ -710,7 +731,7 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
         return WalkLogNot(
             spec_node,
             atomic_node->child(0),
-            WalkBinaryOperationChildren(
+            WalkSubExpressionChildren(
                 spec_node,
                 function_node,
                 property_node,
@@ -757,6 +778,7 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
             function_node,
             property_node,
             property_function,
+            atomic_node,
             atomic_node->child(0));
     case NodeRule::ANY_TYPE:
         return WalkAnyType(

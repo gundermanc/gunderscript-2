@@ -3,6 +3,7 @@
 
 #include "gunderscript/compiler.h"
 
+#include "common_resourcesimpl.h"
 #include "lexer.h"
 #include "lirgen_ast_walker.h"
 #include "moduleimpl.h"
@@ -31,14 +32,18 @@ const char* GunderscriptBuildTimestampString() {
 // pattern and is used to hide implementation details from callers.
 class CompilerImpl {
 public:
-    CompilerImpl() { }
+    CompilerImpl(Allocator& alloc, Config& config) : alloc_(alloc), config_(config) { }
     void DebugCompilation(
         CompilerSourceInterface& source,
         CompilerStage stop_at,
         LexerTokenFunc lexer_iteration_func,
         ParserNodeFunc parser_walk_func,
         ParserNodeFunc typecheck_walk_func);
-    Module Compile(CompilerSourceInterface& source);
+    void Compile(CompilerSourceInterface& source, Module& compiled_module);
+
+private:
+    Allocator& alloc_;
+    Config& config_;
 };
 
 // Implementation of compiler DebugCompilation function.
@@ -104,7 +109,7 @@ void CompilerImpl::DebugCompilation(
 }
 
 // Compiles code from a source into a module.
-Module CompilerImpl::Compile(CompilerSourceInterface& source) {
+void CompilerImpl::Compile(CompilerSourceInterface& source, Module& compiled_module) {
     Lexer lexer(source);
     Parser parser(lexer);
     
@@ -119,8 +124,11 @@ Module CompilerImpl::Compile(CompilerSourceInterface& source) {
         semantic_walker.Walk();
 
         // Generate NanoJIT IR Code.
-        LIRGenAstWalker lir_generator(*root);
-        return lir_generator.Generate();
+        LIRGenAstWalker lir_generator(
+            alloc_,
+            config_,
+            *root);
+        lir_generator.Generate(compiled_module);
     }
     catch (const Exception&) {
 
@@ -134,8 +142,9 @@ Module CompilerImpl::Compile(CompilerSourceInterface& source) {
 }
 
 // Public constructor.
-Compiler::Compiler() 
-    : pimpl_(new CompilerImpl()) {
+Compiler::Compiler(CommonResources& common_resources) 
+    : pimpl_(new CompilerImpl(common_resources.pimpl().alloc(),
+        common_resources.pimpl().config())) {
 }
 
 // The debug compilation method for snooping on the build process steps.
@@ -158,8 +167,8 @@ void Compiler::DebugCompilation(
 // The official compilation method for compiling a file to a Module.
 // This method is a wrapper that uses the PIMPL pattern to obscure implementation
 // details.
-Module Compiler::Compile(CompilerSourceInterface& source) {
-    return this->pimpl_->Compile(source);
+void Compiler::Compile(CompilerSourceInterface& source, Module& compiled_module) {
+    return this->pimpl_->Compile(source, compiled_module);
 }
 
 // Destroy private implementation object when done.

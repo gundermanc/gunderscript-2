@@ -4,7 +4,9 @@
 #ifndef GUNDERSCRIPT_COMPILER__H__
 #define GUNDERSCRIPT_COMPILER__H__
 
+#include "common_resources.h"
 #include "compiler_source.h"
+#include "exceptions.h"
 #include "lexer_resources.h"
 #include "module.h"
 #include "node.h"
@@ -32,7 +34,7 @@ class CompilerImpl;
 
 class Compiler {
 public:
-    Compiler();
+    Compiler(CommonResources& common_resources);
     ~Compiler();
     void DebugCompilation(
         CompilerSourceInterface& source,
@@ -40,7 +42,7 @@ public:
         LexerTokenFunc lexer_iteration_func,
         ParserNodeFunc parser_walk_func,
         ParserNodeFunc typecheck_walk_func);
-    Module Compile(CompilerSourceInterface& source);
+    void Compile(CompilerSourceInterface& source, Module& compiled_module);
 
 private:
     CompilerImpl* pimpl_;

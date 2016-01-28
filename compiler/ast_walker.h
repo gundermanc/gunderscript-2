@@ -8,19 +8,10 @@
 #include <vector>
 
 #include "gunderscript/node.h"
+#include "gunderscript/symbol.h"
 
 namespace gunderscript {
 namespace compiler {
-
-// Indicates which property function a statement or expression exists in.
-// NONE indicates that we're being called by a function.
-// GET is PROPERTY->child(0)
-// SET is PROPERTY->child(1)
-enum class PropertyFunction {
-    NONE,
-    GET,
-    SET
-};
 
 // Class for walking through the Abstract Syntax Tree Structure.
 template<typename ReturnType>
@@ -39,9 +30,13 @@ protected:
     virtual void WalkModule(Node* module_node) = 0;
     virtual void WalkModuleName(Node* name_node) = 0;
     virtual void WalkModuleDependsName(Node* name_node) = 0;
-    virtual void WalkSpecDeclaration(Node* access_modifier_node, Node* name_node) = 0;
+    virtual void WalkSpecDeclaration(
+        Node* spec_node,
+        Node* access_modifier_node,
+        Node* name_node) = 0;
     virtual void WalkSpecFunctionDeclaration(
         Node* spec_node,
+        Node* function_node,
         Node* access_modifier_node,
         Node* native_node,
         Node* type_node,
@@ -53,22 +48,27 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* type_node,
+        Node* function_param_node,
         Node* name_node,
         bool prescan) = 0;
     virtual void WalkSpecPropertyDeclaration(
         Node* spec_node,
         Node* type_node,
         Node* name_node,
+        Node* get_property_function_node,
+        Node* set_property_function_node,
         Node* get_access_modifier_node,
         Node* set_access_modifier_node,
         bool prescan) = 0;
     virtual ReturnType WalkFunctionCall(
         Node* spec_node,
         Node* name_node,
+        Node* call_node,
         std::vector<ReturnType>& arguments_result) = 0;
     virtual ReturnType WalkAssign(
         Node* spec_node,
         Node* name_node,
+        Node* assign_node,
         ReturnType operations_result) = 0;
     virtual ReturnType WalkReturn(
         Node* spec_node,
@@ -194,6 +194,7 @@ protected:
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
+        Node* variable_node,
         Node* name_node) = 0;
     virtual ReturnType WalkAnyType(
         Node* spec_node,
@@ -241,7 +242,7 @@ private:
         Node* spec_node,
         Node* property_node,
         bool prescan);
-    void WalkFunctionCallChildren(
+    ReturnType WalkFunctionCallChildren(
         Node* spec_node,
         Node* function_node,
         Node* call_node);
@@ -259,6 +260,12 @@ private:
         Node* return_node,
         std::vector<ReturnType>* arguments_result);
     ReturnType WalkExpressionChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* expression_node);
+    ReturnType WalkSubExpressionChildren(
         Node* spec_node,
         Node* function_node,
         Node* property_node,

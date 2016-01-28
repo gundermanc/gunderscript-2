@@ -7,22 +7,34 @@
 #include <string>
 #include <vector>
 
-#include "gunderscript/module.h"
 #include "gunderscript/node.h"
+#include "gunderscript/symbol.h"
+#include "gunderscript/type.h"
 #include "gunderscript/virtual_machine.h"
 
 #include "ast_walker.h"
-#include "symbol.h"
+#include "moduleimpl.h"
 #include "symbol_table.h"
-#include "type.h"
 
+#include "nanojit.h"
 
 namespace gunderscript {
 namespace compiler {
 
 // The result of a generation operation.
 class LirGenResult {
+public:
+    // TODO: remove this temporary constructor once the LIRGenerator is done.
+    LirGenResult() : type_symbol_(NULL), ins_(NULL) { }
 
+    LirGenResult(const Symbol* type_symbol, LIns* ins) : type_symbol_(type_symbol), ins_(ins) { }
+
+    LIns* ins() { return ins_; }
+    const Symbol* type_symbol() const { return type_symbol_; }
+
+private:
+    LIns* ins_;
+    const Symbol* type_symbol_;
 };
 
 // LirGenResult checking abstract syntax tree walker.
@@ -30,18 +42,31 @@ class LirGenResult {
 class LIRGenAstWalker : public AstWalker<LirGenResult> {
 public:
 
-    LIRGenAstWalker(Node& node)
-        : AstWalker(node) { }
+    LIRGenAstWalker(
+        Allocator& alloc,
+        Config& config,
+        Node& node)
+        : AstWalker(node),
+        alloc_(alloc),
+        config_(config),
+        module_name_(NULL),
+        current_fragment_(NULL) { }
 
-    Module Generate();
+    virtual ~LIRGenAstWalker() { }
+
+    void Generate(Module& generated_module);
 
 protected:
     void WalkModule(Node* module_node);
     void WalkModuleName(Node* name_node);
     void WalkModuleDependsName(Node* name_node);
-    void WalkSpecDeclaration(Node* access_modifier_node, Node* name_node);
+    void WalkSpecDeclaration(
+        Node* spec_node,
+        Node* access_modifier_node,
+        Node* name_node);
     void WalkSpecFunctionDeclaration(
         Node* spec_node,
+        Node* function_node,
         Node* access_modifier_node,
         Node* native_node,
         Node* type_node,
@@ -53,22 +78,32 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* type_node,
+        Node* function_param_node,
         Node* name_node,
         bool prescan);
     void WalkSpecPropertyDeclaration(
         Node* spec_node,
         Node* type_node,
         Node* name_node,
+        Node* get_property_function_node,
+        Node* set_property_function_node,
         Node* get_access_modifier_node,
         Node* set_access_modifier_node,
         bool prescan);
     LirGenResult WalkFunctionCall(
         Node* spec_node,
         Node* name_node,
+        Node* call_node,
         std::vector<LirGenResult>& arguments_result);
+    LirGenResult WalkFunctionLikeTypecast(
+        Node* spec_node,
+        Node* name_node,
+        Node* call_node,
+        LirGenResult argument_result);
     LirGenResult WalkAssign(
         Node* spec_node,
         Node* name_node,
+        Node* assign_node,
         LirGenResult operations_result);
     LirGenResult WalkReturn(
         Node* spec_node,
@@ -194,6 +229,7 @@ protected:
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
+        Node* atomic_node,
         Node* name_node);
     LirGenResult WalkAnyType(
         Node* spec_node,
@@ -215,7 +251,15 @@ protected:
         std::vector<LirGenResult>* arguments_result);
 
 private:
-    const SymbolTable<Symbol> symbol_table_;
+    LIns* GenerateLoad(const Symbol* symbol, nanojit::LIns* base);
+
+    const std::string* module_name_;
+    SymbolTable<nanojit::LIns*> register_table_;
+    std::vector<ModuleImplSymbol>* symbols_vector_;
+    nanojit::Allocator& alloc_;
+    nanojit::Fragment* current_fragment_;
+    nanojit::Config& config_;
+    nanojit::LirBufWriter* current_writer_;
 };
 
 } // namespace compiler

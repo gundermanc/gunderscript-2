@@ -1,5 +1,5 @@
-// Gunderscript-2 Parse/AST Node
-// (C) 2015 Christian Gunderman
+// Gunderscript-2 Semantic (type) Checker for Abstract Syntax Tree
+// (C) 2015-2016 Christian Gunderman
 
 #ifndef GUNDERSCRIPT_SEMANTIC_CHECKER__H__
 #define GUNDERSCRIPT_SEMANTIC_CHECKER__H__
@@ -7,13 +7,13 @@
 #include <string>
 #include <vector>
 
+#include "gunderscript/lexer_resources.h"
 #include "gunderscript/node.h"
+#include "gunderscript/symbol.h"
+#include "gunderscript/type.h"
 
 #include "ast_walker.h"
-#include "lexer.h"
-#include "symbol.h"
 #include "symbol_table.h"
-#include "type.h"
 
 namespace gunderscript {
 namespace compiler {
@@ -24,14 +24,21 @@ class SemanticAstWalker : public AstWalker<Type> {
 public:
 
     SemanticAstWalker(Node& node);
+    ~SemanticAstWalker();
+
+    const SymbolTable<Symbol*>& symbol_table() const { return symbol_table_; }
 
 protected:
     void WalkModule(Node* module_node);
     void WalkModuleName(Node* name_node);
     void WalkModuleDependsName(Node* name_node);
-    void WalkSpecDeclaration(Node* access_modifier_node, Node* name_node);
+    void WalkSpecDeclaration(
+        Node* spec_node,
+        Node* access_modifier_node,
+        Node* name_node);
     void WalkSpecFunctionDeclaration(
         Node* spec_node,
+        Node* function_node,
         Node* access_modifier_node,
         Node* native_node,
         Node* type_node,
@@ -43,22 +50,27 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* type_node,
+        Node* function_param_node,
         Node* name_node,
         bool prescan);
     void WalkSpecPropertyDeclaration(
         Node* spec_node,
         Node* type_node,
         Node* name_node,
+        Node* get_property_function_node,
+        Node* set_property_function_node,
         Node* get_access_modifier_node,
         Node* set_access_modifier_node,
         bool prescan);
     Type WalkFunctionCall(
         Node* spec_node,
         Node* name_node,
+        Node* call_none,
         std::vector<Type>& arguments_result);
     Type WalkAssign(
         Node* spec_node,
         Node* name_node,
+        Node* assign_node,
         Type operations_result);
     Type WalkReturn(
         Node* spec_node,
@@ -184,6 +196,7 @@ protected:
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
+        Node* atomic_node,
         Node* name_node);
     Type WalkAnyType(
         Node* spec_node,
@@ -205,7 +218,7 @@ protected:
         std::vector<Type>* arguments_result);
      
 private:
-    SymbolTable<Symbol> symbol_table_;
+    SymbolTable<Symbol*> symbol_table_;
 
     void CheckValidModuleName(const std::string& module_name, int line, int column);
     void CheckAccessModifier(
@@ -233,9 +246,14 @@ private:
         int column,
         ExceptionStatus type_mismatch_error);
     Type ResolveTypeNode(Node* type_node);
+    Type WalkFunctionLikeTypecast(
+        Node* spec_node,
+        Node* name_node,
+        Node* call_node,
+        Type argument_result);
 };
 
-} // namespace library
+} // namespace compiler
 } // namespace gunderscript
 
 #endif // GUNDERSCRIPT_SEMANTIC_CHECKER__H__

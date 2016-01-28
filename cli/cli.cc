@@ -8,6 +8,7 @@
 #include "debug.h"
 
 #include "gunderscript/compiler.h"
+#include "gunderscript/virtual_machine.h"
 
 using namespace gunderscript;
 
@@ -29,10 +30,6 @@ static CliResult PrintException(const Exception& ex) {
     return (CliResult)(CLIRESULT_INT(CliResult::EXCEPTION_BASE) + ex.status().code());
 }
 
-static void PrintModule(const Module& module) {
-    std::cout << std::endl << "Printing Modules is not yet supported." << std::endl;
-}
-
 // Performs a debuggable compilation with access to the AST.
 static CliResult DebugCompile(
     int file_count,
@@ -52,8 +49,9 @@ static CliResult DebugCompile(
         std::cout << "File: " << file_names[i] << "--------------------" << std::endl;
 
         try {
+            CommonResources common_resources;
             CompilerFileSource file_source(file_names[i]);
-            Compiler compiler;
+            Compiler compiler(common_resources);
 
             // Run a debug compilation.
             compiler.DebugCompilation(
@@ -121,11 +119,17 @@ static CliResult CodeGenFiles(int file_count, const char** file_names) {
         std::cout << "File: " << file_names[i] << "--------------------" << std::endl;
 
         try {
+            CommonResources common_resources;
             CompilerFileSource file_source(file_names[i]);
-            Compiler compiler;
+            Compiler compiler(common_resources);
+            Module module;
 
             // Run a debug compilation.
-            Module module = compiler.Compile(file_source);
+            compiler.Compile(file_source, module);
+
+            // Run the function.
+            VirtualMachine vm(common_resources);
+            std::cout << "Script result: " << vm.HackyRunScriptMain(module);
         }
         catch (const Exception& ex) {
             return PrintException(ex);
@@ -150,7 +154,7 @@ void PrintDescription() {
     std::cout << "  -l : Feed code through lexer stage only and tokenize output." << std::endl;
     std::cout << "  -p : Feed code through lexer and parser stages only and emit serialized AST." << std::endl;
     std::cout << "  -t : Feed code through lexer and parser and typechecker and emit AST." << std::endl;
-    std::cout << "  -g : Feed code through lexer and parser and typechecker and generate IR." << std::endl;
+    std::cout << "  -g : Feed code through lexer and parser and typechecker and generate and run code." << std::endl;
 }
 
 // Handles command line arguments and performs appropriate program action.

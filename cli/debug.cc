@@ -1,11 +1,12 @@
 // Gunderscript-2 Debug Functions
-// (C) 2015 Christian Gunderman
+// (C) 2015-2016 Christian Gunderman
 
 #include <cstring>
 
 #include "debug.h"
 
 namespace gunderscript {
+namespace cli {
 
 // Prints the debug representation of the given token to the console.
 void DebugPrintLexerToken(const LexerToken& token) {
@@ -61,6 +62,12 @@ void DebugPrintNode(const Node* node) {
         break;
 
     case NodeRule::TYPE:
+        printf("%i:%s, %s\n",
+            (int)node->child_count(),
+            NodeRuleString(node->rule()).c_str(),
+            node->string_value()->c_str());
+        break;
+
     case NodeRule::ACCESS_MODIFIER:
         printf("%i:%s, %s\n",
             (int)node->child_count(),
@@ -91,6 +98,15 @@ void DebugPrintNode(const Node* node) {
             node->float_value());
         break;
 
+    case NodeRule::SPEC:
+    case NodeRule::FUNCTION:
+    case NodeRule::PROPERTY_FUNCTION:
+        printf("%i:%s, %s\n",
+            (int)node->child_count(),
+            NodeRuleString(node->rule()).c_str(),
+            node->symbol() == NULL ? "[SYMBOL]" : node->symbol()->name().c_str());
+        break;
+
     default:
         printf("%i:%s\n",
             (int)node->child_count(),
@@ -103,4 +119,5 @@ void DebugPrintNode(const Node* node) {
     }
 }
 
-} // namspace gunderscript
+} // namespace cli
+} // namespace gunderscript

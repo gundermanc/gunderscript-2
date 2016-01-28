@@ -77,6 +77,7 @@ const ExceptionStatus STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL = ExceptionStatus(-2, 
 const ExceptionStatus STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL = ExceptionStatus(-3, "No symbol in symbol table with given key");
 const ExceptionStatus STATUS_SYMBOLTABLE_BOTTOM_OF_STACK = ExceptionStatus(-4, "Reached bottom of stack while popping Symbol table scope");
 const ExceptionStatus STATUS_FILESOURCE_FILE_READ_ERROR = ExceptionStatus(-5, "Unable to read file");
+const ExceptionStatus STATUS_INVALID_CALL = ExceptionStatus(-6, "Caller performed invalid call on Gunderscript library");
 
 // Lexer Exceptions 100-199:
 const ExceptionStatus STATUS_LEXER_UNTERMINATED_COMMENT = ExceptionStatus(100, "Unterminated comment");
@@ -205,13 +206,15 @@ const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_PROPERTY
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_FUNCTION_PARAM
     = ExceptionStatus(323, "A function param with the same name has already been declared in this function");
 const ExceptionStatus STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND
-    = ExceptionStatus(324, "Cannot find a function overload with that name that accepts the specified param types");
+    = ExceptionStatus(324, "Cannot find a function overload or typecast with that name that accepts the specified param types");
 const ExceptionStatus STATUS_SEMANTIC_INVALID_TYPE_IN_ADD
     = ExceptionStatus(325, "'+' operator supports only string and numeric types");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_SPEC
     = ExceptionStatus(326, "A Spec with that name already exists");
 const ExceptionStatus STATUS_SEMANTIC_UNDEFINED_TYPE
     = ExceptionStatus(327, "Undefined type");
+const ExceptionStatus STATUS_SEMANTIC_UNSUPPORTED_TYPECAST
+    = ExceptionStatus(328, "This typecast is not supported");
 
 } // namespace gunderscript
 

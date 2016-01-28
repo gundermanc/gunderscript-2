@@ -5,7 +5,6 @@
 #define GUNDERSCRIPT_PARSER__H__
 
 #include "gunderscript/exceptions.h"
-
 #include "gunderscript/node.h"
 
 #include "lexer.h"

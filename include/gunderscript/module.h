@@ -14,10 +14,12 @@ class ModuleImpl;
 // Declaration of public class interface.
 class Module {
 public:
-    Module(ModuleImpl* pimpl) : pimpl_(pimpl) { }
+    Module();
     ~Module();
 
+    bool compiled();
     const std::string& module_name() const;
+    const ModuleImpl* pimpl() const { return pimpl_; }
 
 private:
     ModuleImpl* pimpl_;
