@@ -55,7 +55,11 @@ int VirtualMachineImpl::HackyRunScriptMain(const Module& module) {
     LogControl lc;
     CodeAlloc codeAlloc(&config_);
 
+#ifdef NJ_VERBOSE
+    lc.lcbits = LC_ReadLIR | LC_Native;
+#else
     lc.lcbits = 0;
+#endif
 
     Assembler assm(codeAlloc, alloc_, alloc_, &lc, config_);
 
@@ -79,7 +83,12 @@ int VirtualMachineImpl::HackyRunScriptMain(const Module& module) {
 
         f = main.fragment();
 
-        assm.compile(f, alloc_, optimize);
+#ifdef NJ_VERBOSE
+        LInsPrinter p(alloc_, 1024);
+        f->lirbuf->printer = &p;
+#endif
+
+        assm.compile(f, alloc_, optimize verbose_only(, &p));
         printf("error: %d\n", assm.error());
 
         typedef int32_t(*MainFunction)();

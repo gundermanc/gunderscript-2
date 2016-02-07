@@ -1,6 +1,8 @@
 // Gunderscript-2 NanoJIT LIR Generator
 // (C) 2016 Christian Gunderman
 
+#include <cmath>
+
 #include "gunderscript/exceptions.h"
 
 #include "lirgen_ast_walker.h"
@@ -9,6 +11,20 @@ using namespace nanojit;
 
 namespace gunderscript {
 namespace compiler {
+
+// Static functions we can call into.
+// TODO: when we separate compiler and runtime these may have to be moved.
+// TODO: check that we don't have to manually specify the calling convention between compilers (MSVC vs. GCC).
+
+static float FloatMod(float a1, float a2) {
+    return fmod(a1, a2);
+}
+
+// Static function CallInfo structures.
+// POTENTIAL BUG BUG BUG: be ABSOLUTELY certain that these match up or we're gonna have
+// BAD things happen.
+
+const CallInfo CI_FLOAT_MOD = { (uintptr_t)FloatMod, CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_F, ARGTYPE_F) };
 
 void LIRGenAstWalker::Generate(Module& module) {
     
@@ -489,18 +505,40 @@ LirGenResult LIRGenAstWalker::WalkMod(
             // Modulo of 1 INT8/CHAR values is still LIR_modi because the actual
             // operation occurs in a standard >= 32 bit register.
 #if defined NANOJIT_IA32 || defined NANOJIT_X64
-            // LIR_modi instruction is only supported on x86 and x86_64 platforms.
-            // TODO: If porting to ARM, SPARC, etc, be sure to fix this.
             return LirGenResult(
                 left_result.type_symbol(),
                 this->current_writer_->ins1(LIR_modi,
                     this->current_writer_->ins2(LIR_divi, left_result.ins(), right_result.ins())));
+#else
+            // LIR_modi instruction is only supported on x86 and x86_64 platforms.
+            // TODO: If porting to ARM, SPARC, etc, be sure to fix this. We can probably use the
+            // same strategy as below with the FloatMod function but I have no way to test it
+            // so I'm gonna hold off until there is an official ARM port.
+            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 #endif
         default:
             // Unhandled size.
             THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
+    case TypeFormat::FLOAT:
+        switch (left_result.type_symbol()->type().size())
+        {
+        case 4:
+        {
+            // x86/x86_64 has no native support for floating point operations on floats so
+            // we wrap and call the cmath fmod function.
+            // Since we are pushing the args onto the stack apparently they have to be
+            // in reverse order.
+            LIns* float_args[3] = { right_result.ins(), left_result.ins(), NULL };
+            return LirGenResult(
+                left_result.type_symbol(),
+                this->current_writer_->insCall(&CI_FLOAT_MOD, float_args));
+        }
+        default:
+            // Unhandled size.
+            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+        }
     default:
         // Unhandled type format.
         THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
@@ -713,7 +751,11 @@ void LIRGenAstWalker::WalkSpecFunctionChildren(
         LirBuffer* buf = new (alloc_) LirBuffer(alloc_);
 
         // Allocate a fragment for the function.
+#ifdef NJ_VERBOSE
+        this->current_fragment_ = new Fragment(NULL verbose_only(,0));
+#else
         this->current_fragment_ = new Fragment(NULL);
+#endif
         this->current_fragment_->lirbuf = buf;
         this->current_writer_ = new LirBufWriter(buf, this->config_);
         buf->abi = ABI_CDECL;
