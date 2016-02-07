@@ -140,7 +140,8 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
             return LirGenResult(call_node->symbol(),
                 this->current_writer_->ins1(LIR_f2i, argument_result.ins()));
         }
-        else if (argument_result.type_symbol()->type().type_format() == TypeFormat::INT) {
+        else if (argument_result.type_symbol()->type().type_format() == TypeFormat::INT ||
+            argument_result.type_symbol()->type().type_format() == TypeFormat::BOOL) {
 
             // POTENTIAL BUG BUG BUG:
             // Although INT8/CHAR type is only 1 byte in size whereas INT32/INT is 32 bits
@@ -152,12 +153,13 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
             // typecasts should occur after a value has been loaded into a register and is once again
             // 32 bits. If this fails though you'll know it's because the value being typecasted is
             // not in a register (if this is even possible) or is greater than 4 bytes in size.
-            return argument_result;
+            return LirGenResult(call_node->symbol(), argument_result.ins());
         }
         break;
 
     case TypeFormat::FLOAT:
-        if (argument_result.type_symbol()->type() == TYPE_INT) {
+        if (argument_result.type_symbol()->type().type_format() == TypeFormat::INT ||
+            argument_result.type_symbol()->type().type_format() == TypeFormat::BOOL) {
             return LirGenResult(call_node->symbol(),
                 this->current_writer_->ins1(LIR_i2f, argument_result.ins()));
         }
