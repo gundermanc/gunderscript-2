@@ -24,7 +24,7 @@ class SemanticAstWalker : public AstWalker<Type> {
 public:
 
     SemanticAstWalker(Node& node);
-    ~SemanticAstWalker();
+    virtual ~SemanticAstWalker();
 
     const SymbolTable<Symbol*>& symbol_table() const { return symbol_table_; }
 

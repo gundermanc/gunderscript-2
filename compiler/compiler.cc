@@ -129,6 +129,7 @@ void CompilerImpl::Compile(CompilerSourceInterface& source, Module& compiled_mod
             config_,
             *root);
         lir_generator.Generate(compiled_module);
+        delete root;
     }
     catch (const Exception&) {
 

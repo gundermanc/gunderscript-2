@@ -116,7 +116,7 @@ TEST(Parser, MalformedDepends) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_DEPENDS);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
     }
 }
 
@@ -196,7 +196,7 @@ TEST(Parser, MalformedSpec) {
 
     // Case 4: missing opening brace.
     {
-        std::string input("package \"FooPackage\"; concealed spec \"MySpec\"  }");
+        std::string input("package \"FooPackage\"; concealed spec MySpec  }");
 
         CompilerStringSource source(input);
         Lexer lexer(source);
@@ -207,7 +207,7 @@ TEST(Parser, MalformedSpec) {
 
     // Case 5: missing closing brace.
     {
-        std::string input("package \"FooPackage\"; concealed spec \"MySpec\" { ");
+        std::string input("package \"FooPackage\"; concealed spec MySpec { ");
 
         CompilerStringSource source(input);
         Lexer lexer(source);
@@ -346,7 +346,7 @@ TEST(Parser, ParseMalformedProperty) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_PROPERTY_RBRACE_MISSING);
     }
 
     // Case 5: missing property accessor/mutator access modifier.

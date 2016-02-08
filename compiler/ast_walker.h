@@ -18,6 +18,7 @@ template<typename ReturnType>
 class AstWalker {
 public:
     AstWalker(Node& root) : root_(root) { }
+  virtual ~AstWalker() { }
 
     void Walk() { WalkModuleChildren(); }
 
