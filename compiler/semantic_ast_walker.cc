@@ -410,15 +410,28 @@ Type SemanticAstWalker::WalkFunctionLikeTypecast(
         // Make the assumption that we support conversions between all non-string types.
         // It is up the the LIRGenAstWalker to implement support for the OP codes.
         switch (symbol->type().type_format()) {
-        case TypeFormat::BOOL:
-        case TypeFormat::INT:
         case TypeFormat::FLOAT:
+        case TypeFormat::INT:
             // TODO: put exceptions in here if any.
-            // For now, assume all types except string can be cast to anything.
+            // For now, assume all types except string can be cast.
+           
             if (argument_result.type_format() != TypeFormat::OBJECT) {
                 return symbol->type();
             }
             break;
+        case TypeFormat::BOOL:
+            // Although we support typecasting from INT types to BOOL which is a no-no
+            // in other languages (don't care) we aren't going to support casting from
+            // floating types because there is too much risk of trouble due to mildly
+            // different floating point representations causing near-zero values to
+            // be treated as zero and vice versa. If the user wants to cast they must
+            // use an if statement.
+            if (argument_result.type_format() != TypeFormat::OBJECT &&
+                argument_result.type_format() != TypeFormat::FLOAT) {
+                return symbol->type();
+            }
+            break;
+
         default:
             // Unimplemented typecast.
             THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);

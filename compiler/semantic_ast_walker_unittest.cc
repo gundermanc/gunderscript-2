@@ -1046,7 +1046,7 @@ TEST(SemanticAstWalker, TypecastFloatToBool) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_NO_THROW(semantic_walker.Walk());
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNSUPPORTED_TYPECAST);
     delete root;
 }
 

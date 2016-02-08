@@ -200,23 +200,8 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
                 eq_ins,
                 this->current_writer_->insImmI(0),
                 this->current_writer_->insImmI(1),
-                false);
+                true);
 
-            return LirGenResult(call_node->symbol()->type(), choose_ins);
-        }
-        else if (argument_result.type().type_format() == TypeFormat::FLOAT) {
-            LIns* eq_ins = this->current_writer_->ins2(
-                LIR_eqf,
-                argument_result.ins(),
-                this->current_writer_->insImmF(0.0));
-
-            // Compiles as a CMOV instruction: x == 0 ? 1 : 0
-            // where 1 = true and 0 = false.
-            LIns* choose_ins = this->current_writer_->insChoose(
-                eq_ins,
-                this->current_writer_->insImmF(0.0),
-                this->current_writer_->insImmF(1.0),
-                false);
             return LirGenResult(call_node->symbol()->type(), choose_ins);
         }
         break;

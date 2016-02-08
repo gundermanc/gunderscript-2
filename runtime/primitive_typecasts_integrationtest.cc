@@ -35,13 +35,6 @@ TEST(PrimitiveTypecastsIntegration, FloatToInt) {
     EXPECT_EQ(9, COMPILE_AND_RUN_INT_MAIN_LINES("return int32(9.0);"));
 }
 
-TEST(PrimitiveTypecastsIntegration, FloatToBool) {
-    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return bool(1.0);"));
-    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return bool(0.0);"));
-    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return bool(-1.0);"));
-    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return bool(101.0);"));
-}
-
 TEST(PrimitiveTypecastsIntegration, FloatToChar) {
     EXPECT_EQ(101, COMPILE_AND_RUN_INT8_MAIN_LINES("return int8(101.0);"));
 }
