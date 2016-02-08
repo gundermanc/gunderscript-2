@@ -99,7 +99,7 @@ LirGenResult LIRGenAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* name_node,
     bool prescan) {
 
-    return LirGenResult();
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks a single property in a spec property declaration.
@@ -146,18 +146,18 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
     LirGenResult argument_result) {
 
     // If types are the same, no conversion neccessary.
-    if (argument_result.type_symbol()->type() == call_node->symbol()->type()) {
+    if (argument_result.type() == call_node->symbol()->type()) {
         return argument_result;
     }
 
     switch (call_node->symbol()->type().type_format()) {
     case TypeFormat::INT:
-        if (argument_result.type_symbol()->type().type_format() == TypeFormat::FLOAT) {
-            return LirGenResult(call_node->symbol(),
+        if (argument_result.type().type_format() == TypeFormat::FLOAT) {
+            return LirGenResult(call_node->symbol()->type(),
                 this->current_writer_->ins1(LIR_f2i, argument_result.ins()));
         }
-        else if (argument_result.type_symbol()->type().type_format() == TypeFormat::INT ||
-            argument_result.type_symbol()->type().type_format() == TypeFormat::BOOL) {
+        else if (argument_result.type().type_format() == TypeFormat::INT ||
+            argument_result.type().type_format() == TypeFormat::BOOL) {
 
             // POTENTIAL BUG BUG BUG:
             // Although INT8/CHAR type is only 1 byte in size whereas INT32/INT is 32 bits
@@ -169,20 +169,20 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
             // typecasts should occur after a value has been loaded into a register and is once again
             // 32 bits. If this fails though you'll know it's because the value being typecasted is
             // not in a register (if this is even possible) or is greater than 4 bytes in size.
-            return LirGenResult(call_node->symbol(), argument_result.ins());
+            return LirGenResult(call_node->symbol()->type(), argument_result.ins());
         }
         break;
 
     case TypeFormat::FLOAT:
-        if (argument_result.type_symbol()->type().type_format() == TypeFormat::INT ||
-            argument_result.type_symbol()->type().type_format() == TypeFormat::BOOL) {
-            return LirGenResult(call_node->symbol(),
+        if (argument_result.type().type_format() == TypeFormat::INT ||
+            argument_result.type().type_format() == TypeFormat::BOOL) {
+            return LirGenResult(call_node->symbol()->type(),
                 this->current_writer_->ins1(LIR_i2f, argument_result.ins()));
         }
         break;
 
     case TypeFormat::BOOL:
-        if (argument_result.type_symbol()->type().type_format() == TypeFormat::INT) {
+        if (argument_result.type().type_format() == TypeFormat::INT) {
             // The process for typecasting from INT to BOOL is more complex than BOOL to int
             // because going from BOOL to int we already know that BOOL is in {0, 1}
             // but going from INT to BOOL the INT can be anything so we compile this typecast
@@ -202,9 +202,9 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
                 this->current_writer_->insImmI(1),
                 false);
 
-            return LirGenResult(call_node->symbol(), choose_ins);
+            return LirGenResult(call_node->symbol()->type(), choose_ins);
         }
-        else if (argument_result.type_symbol()->type().type_format() == TypeFormat::FLOAT) {
+        else if (argument_result.type().type_format() == TypeFormat::FLOAT) {
             LIns* eq_ins = this->current_writer_->ins2(
                 LIR_eqf,
                 argument_result.ins(),
@@ -217,7 +217,7 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
                 this->current_writer_->insImmF(0.0),
                 this->current_writer_->insImmF(1.0),
                 false);
-            return LirGenResult(call_node->symbol(), choose_ins);
+            return LirGenResult(call_node->symbol()->type(), choose_ins);
         }
         break;
     }
@@ -244,7 +244,7 @@ LirGenResult LIRGenAstWalker::WalkAssign(
 
         // Check to see if the exception thrown is a SYMBOL_UNDEFINED, if so, alloc it.
         if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
-            variable_ptr = this->current_writer_->insAlloc(operations_result.type_symbol()->type().size());
+            variable_ptr = this->current_writer_->insAlloc(operations_result.type().size());
             this->register_table_.Put(*name_node->string_value(), variable_ptr);
         }
         else {
@@ -254,12 +254,12 @@ LirGenResult LIRGenAstWalker::WalkAssign(
     }
 
     LIns* store_ins;
-    switch (operations_result.type_symbol()->type().type_format())
+    switch (operations_result.type().type_format())
     {
     case TypeFormat::BOOL:
     case TypeFormat::INT:
         // BOOL types are simply INT values that are either 1 or 0.
-        switch (operations_result.type_symbol()->type().size())
+        switch (operations_result.type().size())
         {
         case 4:
             // TODO: tighter access sets.
@@ -278,7 +278,7 @@ LirGenResult LIRGenAstWalker::WalkAssign(
         }
         break;
     case TypeFormat::FLOAT:
-        switch (operations_result.type_symbol()->type().size())
+        switch (operations_result.type().size())
         {
         case 4:
             // TODO: tighter access sets.
@@ -299,8 +299,8 @@ LirGenResult LIRGenAstWalker::WalkAssign(
     // y <- (x <- 3 + 2)
     // we generate a load instruction right after our assign and return it
     // to the caller.
-    return LirGenResult(operations_result.type_symbol(),
-        GenerateLoad(operations_result.type_symbol(), variable_ptr));
+    return LirGenResult(operations_result.type(),
+        GenerateLoad(operations_result.type(), variable_ptr));
 }
 
 // Walks and validates a return value type for a function or property.
@@ -313,29 +313,31 @@ LirGenResult LIRGenAstWalker::WalkReturn(
     LirGenResult expression_result,
     std::vector<LirGenResult>* arguments_result) {
 
-    switch (expression_result.type_symbol()->type().type_format())
+    switch (expression_result.type().type_format())
     {
     case TypeFormat::BOOL:
     case TypeFormat::INT:
-        switch (expression_result.type_symbol()->type().size())
+        switch (expression_result.type().size())
         {
         case 4:
         case 1:
             // Return of 1 byte INT8/CHAR values is still LIR_reti because the actual
             // operation occurs in a standard >= 32 bit register on many systems.
-            return LirGenResult(NULL, this->current_writer_->ins1(LIR_reti, expression_result.ins()));
+            return LirGenResult(expression_result.type(), 
+                this->current_writer_->ins1(LIR_reti, expression_result.ins()));
         default:
             // Unknown integer size.
             THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
     case TypeFormat::FLOAT:
-        switch (expression_result.type_symbol()->type().size())
+        switch (expression_result.type().size())
         {
         case 4:
             // Return of 1 byte INT8/CHAR values is still LIR_reti because the actual
             // operation occurs in a standard >= 32 bit register on many systems.
-            return LirGenResult(NULL, this->current_writer_->ins1(LIR_retf, expression_result.ins()));
+            return LirGenResult(expression_result.type(),
+                this->current_writer_->ins1(LIR_retf, expression_result.ins()));
         default:
             // Unknown integer size.
             THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
@@ -357,17 +359,17 @@ LirGenResult LIRGenAstWalker::WalkAdd(
 
     // Ignore right_result types, we already went through the semantic_ast_walker.
     // Types are known.
-    switch (left_result.type_symbol()->type().type_format())
+    switch (left_result.type().type_format())
     {
     case TypeFormat::INT:
-        switch (left_result.type_symbol()->type().size())
+        switch (left_result.type().size())
         {
         case 4:
         case 1:
             // Addition of 1 INT8/CHAR values is still LIR_addi because the actual
             // operation occurs in a standard >= 32 bit register.
             return LirGenResult(
-                left_result.type_symbol(),
+                left_result.type(),
                 this->current_writer_->ins2(LIR_addi, left_result.ins(), right_result.ins()));
         default:
             // Unhandled size.
@@ -375,11 +377,11 @@ LirGenResult LIRGenAstWalker::WalkAdd(
         }
         break;
     case TypeFormat::FLOAT:
-        switch (left_result.type_symbol()->type().size())
+        switch (left_result.type().size())
         {
         case 4:
             return LirGenResult(
-                left_result.type_symbol(),
+                left_result.type(),
                 this->current_writer_->ins2(LIR_addf, left_result.ins(), right_result.ins()));
         default:
             // Unhandled size.
@@ -410,17 +412,17 @@ LirGenResult LIRGenAstWalker::WalkSub(
     // HACK: For the WalkSub case in particular we MUST use ONLY the RIGHT node's type because
     // the SemanticAstWalker returns ANY_TYPE for the left operand to get around the explict
     // typecast requirement for all operands with negative numbers.
-    switch (right_result.type_symbol()->type().type_format())
+    switch (right_result.type().type_format())
     {
     case TypeFormat::INT:
-        switch (right_result.type_symbol()->type().size())
+        switch (right_result.type().size())
         {
         case 4:
         case 1:
             // Subtraction of 1 byte INT8/CHAR values is still LIR_subi because the actual
             // operation occurs in a standard >= 32 bit register.
             return LirGenResult(
-                right_result.type_symbol(),
+                right_result.type(),
                 this->current_writer_->ins2(LIR_subi, left_ins, right_result.ins()));
         default:
             // Unhandled size.
@@ -428,11 +430,11 @@ LirGenResult LIRGenAstWalker::WalkSub(
         }
         break;
     case TypeFormat::FLOAT:
-        switch (right_result.type_symbol()->type().size())
+        switch (right_result.type().size())
         {
         case 4:
             return LirGenResult(
-                right_result.type_symbol(),
+                right_result.type(),
                 this->current_writer_->ins2(LIR_subf, left_ins, right_result.ins()));
         default:
             // Unhandled size.
@@ -455,17 +457,17 @@ LirGenResult LIRGenAstWalker::WalkMul(
 
     // Ignore right_result types, we already went through the semantic_ast_walker.
     // Types are known.
-    switch (left_result.type_symbol()->type().type_format())
+    switch (left_result.type().type_format())
     {
     case TypeFormat::INT:
-        switch (left_result.type_symbol()->type().size())
+        switch (left_result.type().size())
         {
         case 4:
         case 1:
             // Multiplication of 1 INT8/CHAR value is still LIR_muli because the actual
             // operation occurs in a standard >= 32 bit register.
             return LirGenResult(
-                left_result.type_symbol(),
+                left_result.type(),
                 this->current_writer_->ins2(LIR_muli, left_result.ins(), right_result.ins()));
         default:
             // Unhandled size.
@@ -473,11 +475,11 @@ LirGenResult LIRGenAstWalker::WalkMul(
         }
         break;
     case TypeFormat::FLOAT:
-        switch (left_result.type_symbol()->type().size())
+        switch (left_result.type().size())
         {
         case 4:
             return LirGenResult(
-                left_result.type_symbol(),
+                left_result.type(),
                 this->current_writer_->ins2(LIR_mulf, left_result.ins(), right_result.ins()));
         default:
             // Unhandled size.
@@ -500,17 +502,17 @@ LirGenResult LIRGenAstWalker::WalkDiv(
 
     // Ignore right_result types, we already went through the semantic_ast_walker.
     // Types are known.
-    switch (left_result.type_symbol()->type().type_format())
+    switch (left_result.type().type_format())
     {
     case TypeFormat::INT:
-        switch (left_result.type_symbol()->type().size())
+        switch (left_result.type().size())
         {
         case 4:
         case 1:
             // Division of 1 INT8/CHAR values is still LIR_divi because the actual
             // operation occurs in a standard >= 32 bit register.
             return LirGenResult(
-                left_result.type_symbol(),
+                left_result.type(),
                 this->current_writer_->ins2(LIR_divi, left_result.ins(), right_result.ins()));
         default:
             // Unhandled size.
@@ -518,11 +520,11 @@ LirGenResult LIRGenAstWalker::WalkDiv(
         }
         break;
     case TypeFormat::FLOAT:
-        switch (left_result.type_symbol()->type().size())
+        switch (left_result.type().size())
         {
         case 4:
             return LirGenResult(
-                left_result.type_symbol(),
+                left_result.type(),
                 this->current_writer_->ins2(LIR_divf, left_result.ins(), right_result.ins()));
         default:
             // Unhandled size.
@@ -545,10 +547,10 @@ LirGenResult LIRGenAstWalker::WalkMod(
 
     // Ignore right_result types, we already went through the semantic_ast_walker.
     // Types are known.
-    switch (left_result.type_symbol()->type().type_format())
+    switch (left_result.type().type_format())
     {
     case TypeFormat::INT:
-        switch (left_result.type_symbol()->type().size())
+        switch (left_result.type().size())
         {
         case 4:
         case 1:
@@ -556,7 +558,7 @@ LirGenResult LIRGenAstWalker::WalkMod(
             // operation occurs in a standard >= 32 bit register.
 #if defined NANOJIT_IA32 || defined NANOJIT_X64
             return LirGenResult(
-                left_result.type_symbol(),
+                left_result.type(),
                 this->current_writer_->ins1(LIR_modi,
                     this->current_writer_->ins2(LIR_divi, left_result.ins(), right_result.ins())));
 #else
@@ -572,7 +574,7 @@ LirGenResult LIRGenAstWalker::WalkMod(
         }
         break;
     case TypeFormat::FLOAT:
-        switch (left_result.type_symbol()->type().size())
+        switch (left_result.type().size())
         {
         case 4:
         {
@@ -582,7 +584,7 @@ LirGenResult LIRGenAstWalker::WalkMod(
             // in reverse order.
             LIns* float_args[3] = { right_result.ins(), left_result.ins(), NULL };
             return LirGenResult(
-                left_result.type_symbol(),
+                left_result.type(),
                 this->current_writer_->insCall(&CI_FLOAT_MOD, float_args));
         }
         default:
@@ -601,7 +603,7 @@ LirGenResult LIRGenAstWalker::WalkLogNot(
     Node* child_node,
     LirGenResult child_result) {
 
-    return LirGenResult();
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the LOGAND node and calculates it's return type.
@@ -612,7 +614,7 @@ LirGenResult LIRGenAstWalker::WalkLogAnd(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    return LirGenResult();
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the LOGOR node and calculates it's return type.
@@ -623,7 +625,7 @@ LirGenResult LIRGenAstWalker::WalkLogOr(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    return LirGenResult();
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the GREATER node and calculates it's return type.
@@ -634,7 +636,33 @@ LirGenResult LIRGenAstWalker::WalkGreater(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    return LirGenResult();
+    // Left and right are already the same type thanks to the typechecker.
+    switch (left_result.type().type_format()) {
+    case TypeFormat::INT:
+        if (left_result.type().size() == 4 ||
+            left_result.type().size() == 1) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_gti,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    case TypeFormat::FLOAT:
+        if (left_result.type().size() == 4) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_gtf,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    }
+
+    // Unhandled type.
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the EQUALS node and calculates it's return type.
@@ -645,7 +673,33 @@ LirGenResult LIRGenAstWalker::WalkEquals(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    return LirGenResult();
+    // Left and right are already the same type thanks to the typechecker.
+    switch (left_result.type().type_format()) {
+    case TypeFormat::INT:
+        if (left_result.type().size() == 4 ||
+            left_result.type().size() == 1) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_eqi,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    case TypeFormat::FLOAT:
+        if (left_result.type().size() == 4) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_eqf,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    }
+
+    // Unhandled type.
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the NOT_EQUALS node and calculates it's return type.
@@ -656,7 +710,45 @@ LirGenResult LIRGenAstWalker::WalkNotEquals(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    return LirGenResult();
+    // Left and right are already the same type thanks to the typechecker.
+    switch (left_result.type().type_format()) {
+    case TypeFormat::INT:
+        if (left_result.type().size() == 4 ||
+            left_result.type().size() == 1) {
+
+            // TODO: can we do this with one instruction??
+            // XORing 1 or 0 by 1 flips.
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_xori,
+                    this->current_writer_->insImmI(1),
+                    this->current_writer_->ins2(
+                        LIR_eqi,
+                        left_result.ins(),
+                        right_result.ins())));
+        }
+        break;
+    case TypeFormat::FLOAT:
+        if (left_result.type().size() == 4) {
+
+            // TODO: can we do this with one instruction??
+            // XORing 1 or 0 by 1 flips.
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_xori,
+                    this->current_writer_->insImmI(1),
+                    this->current_writer_->ins2(
+                        LIR_eqf,
+                        left_result.ins(),
+                        right_result.ins())));
+        }
+        break;
+    }
+
+    // Unhandled type.
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the LESS node and calculates it's return type.
@@ -667,7 +759,33 @@ LirGenResult LIRGenAstWalker::WalkLess(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    return LirGenResult();
+    // Left and right are already the same type thanks to the typechecker.
+    switch (left_result.type().type_format()) {
+    case TypeFormat::INT:
+        if (left_result.type().size() == 4 ||
+            left_result.type().size() == 1) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_lti,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    case TypeFormat::FLOAT:
+        if (left_result.type().size() == 4) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_ltf,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    }
+
+    // Unhandled type.
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the GREATER_EQUALS node and calculates it's return type.
@@ -678,7 +796,33 @@ LirGenResult LIRGenAstWalker::WalkGreaterEquals(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    return LirGenResult();
+    // Left and right are already the same type thanks to the typechecker.
+    switch (left_result.type().type_format()) {
+    case TypeFormat::INT:
+        if (left_result.type().size() == 4 ||
+            left_result.type().size() == 1) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_gei,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    case TypeFormat::FLOAT:
+        if (left_result.type().size() == 4) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_gef,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    }
+
+    // Unhandled type.
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the LESS_EQUALS node and calculates it's return type.
@@ -689,7 +833,33 @@ LirGenResult LIRGenAstWalker::WalkLessEquals(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    return LirGenResult();
+    // Left and right are already the same type thanks to the typechecker.
+    switch (left_result.type().type_format()) {
+    case TypeFormat::INT:
+        if (left_result.type().size() == 4 ||
+            left_result.type().size() == 1) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_lei,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    case TypeFormat::FLOAT:
+        if (left_result.type().size() == 4) {
+            return LirGenResult(
+                TYPE_BOOL,
+                this->current_writer_->ins2(
+                    LIR_lef,
+                    left_result.ins(),
+                    right_result.ins()));
+        }
+        break;
+    }
+
+    // Unhandled type.
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the TYPE_BOOL node and returns the type for it.
@@ -702,7 +872,7 @@ LirGenResult LIRGenAstWalker::WalkBool(
 
     // In C++ bool values are usually integers of the value 0 -> false or 1 -> true
     // but we'll use a ternary just in case this is violated for some reason.
-    return LirGenResult(bool_node->symbol(),
+    return LirGenResult(bool_node->symbol()->type(),
         this->current_writer_->insImmI(
             bool_node->bool_value() ? 1 : 0));
 }
@@ -715,7 +885,7 @@ LirGenResult LIRGenAstWalker::WalkInt(
     PropertyFunction property_function,
     Node* int_node) {
 
-    return LirGenResult(int_node->symbol(),
+    return LirGenResult(int_node->symbol()->type(),
         this->current_writer_->insImmI((int32_t)int_node->int_value()));
 }
 
@@ -727,7 +897,7 @@ LirGenResult LIRGenAstWalker::WalkFloat(
     PropertyFunction property_function,
     Node* float_node) {
 
-    return LirGenResult(float_node->symbol(),
+    return LirGenResult(float_node->symbol()->type(),
         this->current_writer_->insImmF(float_node->float_value()));
 }
 
@@ -739,7 +909,7 @@ LirGenResult LIRGenAstWalker::WalkString(
     PropertyFunction property_function,
     Node* string_node) {
 
-    return LirGenResult();
+    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
 // Walks the CHAR node and returns the type for it.
@@ -752,7 +922,7 @@ LirGenResult LIRGenAstWalker::WalkChar(
 
     // Although INT8/CHAR type is only 1 byte, most registers are >= 32 bits
     // so the IMM is still of type int.
-    return LirGenResult(char_node->symbol(),
+    return LirGenResult(char_node->symbol()->type(),
         this->current_writer_->insImmI((int32_t)char_node->int_value()));
 }
 
@@ -768,15 +938,16 @@ LirGenResult LIRGenAstWalker::WalkVariable(
 
     // No try/catch here, if register_table_ throws then the type checker made
     // a boo boo and didn't notice the missing variable initialization.
-    const Symbol* variable_symbol = variable_node->symbol();
+    const Type& variable_type = variable_node->symbol()->type();
     LIns* load = GenerateLoad(
-        variable_symbol,
+        variable_type,
         this->register_table_.Get(*name_node->string_value()));
 
-    return LirGenResult(variable_symbol, load);
+    return LirGenResult(variable_type, load);
 }
 
-// Walks the ANY_TYPE node and returns the type for it.
+// Walks the ANY_TYPE node and returns a NULL.
+// Walkers that use NONE/ANY must special case this.
 LirGenResult LIRGenAstWalker::WalkAnyType(
     Node* spec_node,
     Node* function_node,
@@ -784,7 +955,8 @@ LirGenResult LIRGenAstWalker::WalkAnyType(
     PropertyFunction property_function,
     Node* any_type_node) {
 
-    return LirGenResult();
+    // TODO: Get rid of the ANY/NONE type.
+    return LirGenResult(TYPE_NONE, NULL);
 }
 
 // Optional implemented function that overrides base class implementation.
@@ -849,7 +1021,6 @@ void LIRGenAstWalker::WalkSpecFunctionChildren(
                 ret_inst = this->current_writer_->ins1(LIR_retf, ret_value);
                 break;
             }
-            break;
         default:
             THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
@@ -900,13 +1071,13 @@ void LIRGenAstWalker::WalkBlockChildren(
 }
 
 // Generates a load instruction.
-LIns* LIRGenAstWalker::GenerateLoad(const Symbol* symbol, LIns* base) {
+LIns* LIRGenAstWalker::GenerateLoad(const Type& type, LIns* base) {
 
-    switch (symbol->type().type_format()) {
+    switch (type.type_format()) {
     case TypeFormat::BOOL:
     case TypeFormat::INT:
         // BOOL types are simply integers that contain either 1 or 0.
-        switch (symbol->type().size()) {
+        switch (type.size()) {
         case 4:
             // TODO: tighter access sets.
             return this->current_writer_->insLoad(LIR_ldi, base, 0, ACCSET_ALL, LoadQual::LOAD_NORMAL);
@@ -920,7 +1091,7 @@ LIns* LIRGenAstWalker::GenerateLoad(const Symbol* symbol, LIns* base) {
         }
         break;
     case TypeFormat::FLOAT:
-        switch (symbol->type().size()) {
+        switch (type.size()) {
         case 4:
             // TODO: tighter access sets.
             return this->current_writer_->insLoad(LIR_ldf, base, 0, ACCSET_ALL, LoadQual::LOAD_NORMAL);

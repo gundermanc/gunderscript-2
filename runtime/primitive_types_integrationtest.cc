@@ -105,3 +105,111 @@ TEST(PrimitiveTypesIntegration, StoreLoadFloat) {
 TEST(PrimitiveTypesIntegration, StoreLoadBool) {
     EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("bval <- true; return bval;"));
 }
+
+TEST(PrimitiveTypesIntegration, GreaterInt) {
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1 > 0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0 > 0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1 > 0;"));
+}
+
+TEST(PrimitiveTypesIntegration, LessInt) {
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1 < 0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0 < 0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1 < 0;"));
+}
+
+TEST(PrimitiveTypesIntegration, GreaterEqualsInt) {
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1 >= 0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0 >= 0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1 >= 0;"));
+}
+
+TEST(PrimitiveTypesIntegration, LessEqualsInt) {
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1 <= 0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0 <= 0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1 <= 0;"));
+}
+
+TEST(PrimitiveTypesIntegration, EqualsInt) {
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1 = 0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0 = 0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1 = 0;"));
+}
+
+TEST(PrimitiveTypesIntegration, NotEqualsInt) {
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1 != 0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0 != 0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1 != 0;"));
+}
+
+TEST(PrimitiveTypesIntegration, GreaterFloat) {
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1.0 > 0.0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0.0 > 0.0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1.0 > 0.0;"));
+}
+
+TEST(PrimitiveTypesIntegration, LessFloat) {
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1.0 < 0.0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0.0 < 0.0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1.0 < 0.0;"));
+}
+
+TEST(PrimitiveTypesIntegration, GreaterEqualsFloat) {
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1.0 >= 0.0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0.0 >= 0.0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1.0 >= 0.0;"));
+}
+
+TEST(PrimitiveTypesIntegration, LessEqualsFloat) {
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1.0 <= 0.0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0.0 <= 0.0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1.0 <= 0.0;"));
+}
+
+TEST(PrimitiveTypesIntegration, EqualsFloat) {
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1.0 = 0.0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0.0 = 0.0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1.0 = 0.0;"));
+}
+
+TEST(PrimitiveTypesIntegration, NotEqualsFloat) {
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1.0 != 0.0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0.0 != 0.0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1.0 != 0.0;"));
+}
+
+TEST(PrimitiveTypesIntegration, GreaterChar) {
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(1) > int8(0);"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(0) > int8(0);"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(-1) > int8(0);"));
+}
+
+TEST(PrimitiveTypesIntegration, LessChar) {
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(1) < int8(0);"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(0) < int8(0);"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(-1) < int8(0);"));
+}
+
+TEST(PrimitiveTypesIntegration, GreaterEqualsChar) {
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(1) >= int8(0);"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(0) >= int8(0);"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(-1) >= int8(0);"));
+}
+
+TEST(PrimitiveTypesIntegration, LessEqualsChar) {
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(1) <= int8(0);"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(0) <= int8(0);"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(-1) <= int8(0);"));
+}
+
+TEST(PrimitiveTypesIntegration, EqualsChar) {
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(1) = int8(0);"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(0) = int8(0);"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(-1) = int8(0);"));
+}
+
+TEST(PrimitiveTypesIntegration, NotEqualsChar) {
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1 != 0;"));
+    EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0 != 0;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1 != 0;"));
+}

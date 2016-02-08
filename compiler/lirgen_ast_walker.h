@@ -24,17 +24,14 @@ namespace compiler {
 // The result of a generation operation.
 class LirGenResult {
 public:
-    // TODO: remove this temporary constructor once the LIRGenerator is done.
-    LirGenResult() : type_symbol_(NULL), ins_(NULL) { }
-
-    LirGenResult(const Symbol* type_symbol, LIns* ins) : type_symbol_(type_symbol), ins_(ins) { }
+    LirGenResult(const Type type, LIns* ins) : type_(type), ins_(ins) { }
 
     LIns* ins() { return ins_; }
-    const Symbol* type_symbol() const { return type_symbol_; }
+    const Type& type() const { return type_; }
 
 private:
     LIns* ins_;
-    const Symbol* type_symbol_;
+    const Type type_;
 };
 
 // LirGenResult checking abstract syntax tree walker.
@@ -251,7 +248,7 @@ protected:
         std::vector<LirGenResult>* arguments_result);
 
 private:
-    LIns* GenerateLoad(const Symbol* symbol, nanojit::LIns* base);
+    LIns* GenerateLoad(const Type& type, nanojit::LIns* base);
 
     const std::string* module_name_;
     SymbolTable<nanojit::LIns*> register_table_;

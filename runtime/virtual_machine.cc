@@ -10,6 +10,15 @@
 
 #include "nanojit.h"
 
+// Platform specific:
+#ifdef _MSC_VER
+// Windows MSVC++ only:
+#define GS_CDECL __cdecl
+#elif __GNUG__
+// GCC only:
+#define GS_CDECL __attribute__((fastcall))
+#endif
+
 using namespace nanojit;
 
 namespace gunderscript {
@@ -106,7 +115,7 @@ int VirtualMachineImpl::HackyRunScriptMainInt(const Module& module) {
         assm.compile(f, alloc_, optimize verbose_only(, &p));
         printf("error: %d\n", assm.error());
 
-        typedef int32_t(__cdecl *MainFunction)();
+        typedef int32_t(GS_CDECL *MainFunction)();
 
         // Call the function.
         return reinterpret_cast<MainFunction>(f->code())();
@@ -165,7 +174,7 @@ float VirtualMachineImpl::HackyRunScriptMainFloat(const Module& module) {
         assm.compile(f, alloc_, optimize verbose_only(, &p));
         printf("error: %d\n", assm.error());
 
-        typedef float(__cdecl *MainFunction)();
+        typedef float(GS_CDECL *MainFunction)();
 
         // Call the function.
         return reinterpret_cast<MainFunction>(f->code())();
@@ -224,7 +233,7 @@ char VirtualMachineImpl::HackyRunScriptMainChar(const Module& module) {
         assm.compile(f, alloc_, optimize verbose_only(, &p));
         printf("error: %d\n", assm.error());
 
-        typedef char(__cdecl *MainFunction)();
+        typedef char(GS_CDECL *MainFunction)();
 
         // Call the function.
         return reinterpret_cast<MainFunction>(f->code())();
@@ -283,7 +292,7 @@ bool VirtualMachineImpl::HackyRunScriptMainBool(const Module& module) {
         assm.compile(f, alloc_, optimize verbose_only(, &p));
         printf("error: %d\n", assm.error());
 
-        typedef int32_t(__cdecl *MainFunction)();
+        typedef int32_t(GS_CDECL *MainFunction)();
 
         // Call the function.
         return reinterpret_cast<MainFunction>(f->code())();
