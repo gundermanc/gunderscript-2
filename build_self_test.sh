@@ -10,3 +10,4 @@ git submodule update
 cmake .
 make
 ./compiler/gunderscript_compiler_tests
+./runtime/gunderscript_runtime_tests

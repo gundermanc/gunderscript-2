@@ -182,6 +182,43 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
         break;
 
     case TypeFormat::BOOL:
+        if (argument_result.type_symbol()->type().type_format() == TypeFormat::INT) {
+            // The process for typecasting from INT to BOOL is more complex than BOOL to int
+            // because going from BOOL to int we already know that BOOL is in {0, 1}
+            // but going from INT to BOOL the INT can be anything so we compile this typecast
+            // as CMOV (the equivalent of the ternary: x == 0 ? 1 : 0) so that INTs != 1 will
+            // properly become true regardless.
+            // 0 is false, all else are true.
+            LIns* eq_ins = this->current_writer_->ins2(
+                LIR_eqi,
+                argument_result.ins(),
+                this->current_writer_->insImmI(0));
+
+            // Compiles as a CMOV instruction: x == 0 ? 1 : 0
+            // where 1 = true and 0 = false.
+            LIns* choose_ins = this->current_writer_->insChoose(
+                eq_ins,
+                this->current_writer_->insImmI(0),
+                this->current_writer_->insImmI(1),
+                false);
+
+            return LirGenResult(call_node->symbol(), choose_ins);
+        }
+        else if (argument_result.type_symbol()->type().type_format() == TypeFormat::FLOAT) {
+            LIns* eq_ins = this->current_writer_->ins2(
+                LIR_eqf,
+                argument_result.ins(),
+                this->current_writer_->insImmF(0.0));
+
+            // Compiles as a CMOV instruction: x == 0 ? 1 : 0
+            // where 1 = true and 0 = false.
+            LIns* choose_ins = this->current_writer_->insChoose(
+                eq_ins,
+                this->current_writer_->insImmF(0.0),
+                this->current_writer_->insImmF(1.0),
+                false);
+            return LirGenResult(call_node->symbol(), choose_ins);
+        }
         break;
     }
 
@@ -278,6 +315,7 @@ LirGenResult LIRGenAstWalker::WalkReturn(
 
     switch (expression_result.type_symbol()->type().type_format())
     {
+    case TypeFormat::BOOL:
     case TypeFormat::INT:
         switch (expression_result.type_symbol()->type().size())
         {
@@ -286,6 +324,18 @@ LirGenResult LIRGenAstWalker::WalkReturn(
             // Return of 1 byte INT8/CHAR values is still LIR_reti because the actual
             // operation occurs in a standard >= 32 bit register on many systems.
             return LirGenResult(NULL, this->current_writer_->ins1(LIR_reti, expression_result.ins()));
+        default:
+            // Unknown integer size.
+            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+        }
+        break;
+    case TypeFormat::FLOAT:
+        switch (expression_result.type_symbol()->type().size())
+        {
+        case 4:
+            // Return of 1 byte INT8/CHAR values is still LIR_reti because the actual
+            // operation occurs in a standard >= 32 bit register on many systems.
+            return LirGenResult(NULL, this->current_writer_->ins1(LIR_retf, expression_result.ins()));
         default:
             // Unknown integer size.
             THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
@@ -787,7 +837,9 @@ void LIRGenAstWalker::WalkSpecFunctionChildren(
         switch (function_symbol->type().size()) 
         {
         case 4:
-            if (function_symbol->type().type_format() == TypeFormat::INT) {
+        case 1:
+            if (function_symbol->type().type_format() == TypeFormat::INT ||
+                function_symbol->type().type_format() == TypeFormat::BOOL) {
                 ret_value = this->current_writer_->insImmI(0);
                 ret_inst = this->current_writer_->ins1(LIR_reti, ret_value);
                 break;
@@ -798,9 +850,6 @@ void LIRGenAstWalker::WalkSpecFunctionChildren(
                 break;
             }
             break;
-
-        case 1:
-            // TODO: no idea how to insert a 1 byte CHAR or BOOL. Might have to make this an INT.
         default:
             THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }

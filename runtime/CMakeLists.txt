@@ -24,7 +24,11 @@ if (gunderscript_runtime_tests)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
     add_executable (
         gunderscript_runtime_tests
-        virtual_machine_unittest.cc)
-    target_link_libraries(gunderscript_runtime_tests gunderscript_runtime)
-    target_link_libraries(gunderscript_runtime_tests gtest gtest_main)
+        primitive_types_integrationtest.cc
+        primitive_typecasts_integrationtest.cc)
+    target_link_libraries(gunderscript_runtime_tests
+                          gunderscript_compiler
+                          gunderscript_runtime
+                          gtest
+                          gtest_main)
 endif ()

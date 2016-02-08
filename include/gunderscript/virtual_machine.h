@@ -19,7 +19,10 @@ public:
     ~VirtualMachine();
 
     // TODO: replace with universal function calling interface.
-    int HackyRunScriptMain(const Module& module);
+    int HackyRunScriptMainInt(const Module& module);
+    float HackyRunScriptMainFloat(const Module& module);
+    char HackyRunScriptMainChar(const Module& module);
+    bool HackyRunScriptMainBool(const Module& module);
 
 private:
     VirtualMachineImpl* pimpl_;

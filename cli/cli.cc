@@ -129,7 +129,7 @@ static CliResult CodeGenFiles(int file_count, const char** file_names) {
 
             // Run the function.
             VirtualMachine vm(common_resources);
-            std::cout << "Script result: " << vm.HackyRunScriptMain(module);
+            std::cout << "Script result: " << vm.HackyRunScriptMainInt(module);
         }
         catch (const Exception& ex) {
             return PrintException(ex);
