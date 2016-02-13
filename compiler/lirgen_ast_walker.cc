@@ -588,7 +588,15 @@ LirGenResult LIRGenAstWalker::WalkLogNot(
     Node* child_node,
     LirGenResult child_result) {
 
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    // XORing a boolean value by 1 effectively performs effectively performs a NOT
+    // operation: 1 xor 1 = 0; 0 xor 1 = 1;
+    // This assumption works as long as we force booleans to ALWAYS be 0 or 1 only.
+    // TODO: can we do this with one instruction instead of two??
+    return LirGenResult(
+        TYPE_BOOL,
+        this->current_writer_->ins2(LIR_xori,
+            this->current_writer_->insImmI(1),
+            child_result.ins()));
 }
 
 // Walks the LOGAND node and calculates it's return type.
@@ -598,6 +606,30 @@ LirGenResult LIRGenAstWalker::WalkLogAnd(
     Node* right_node,
     LirGenResult left_result,
     LirGenResult right_result) {
+
+    // XORing a boolean value by 1 effectively performs effectively performs a NOT
+    // operation: 1 xor 1 = 0; 0 xor 1 = 1;
+    // This assumption works as long as we force booleans to ALWAYS be 0 or 1 only.
+    // TODO: can we do this with one instruction instead of two??
+    LIns* negated_left_inst = this->current_writer_->ins2(
+        LIR_xori,
+        this->current_writer_->insImmI(1),
+        left_result.ins());
+
+    // Short circuit evaluation of AND instruction:
+    // If the left condition is true (because we negated it,
+    // we return the value true immediately. If it is false (it was true
+    // before the negation we instead obtain our true/false value by
+    // evaluating the right instruction which may be a true,
+    // false, or a tree of additional boolean operations.
+    // TODO: can we use CMOV here? CMOV might break short circuit eval.
+    return LirGenResult(
+        TYPE_BOOL,
+        this->current_writer_->insChoose(
+            negated_left_inst,
+            this->current_writer_->insImmI(0),
+            right_result.ins(),
+            false));
 
     THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
@@ -610,7 +642,19 @@ LirGenResult LIRGenAstWalker::WalkLogOr(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    // Short circuit evaluation of OR instruction:
+    // If the left condition is true, we return the value true
+    // immediately. If it is false we instead obtain our true/false
+    // value by evaluating the right instruction which may be a true,
+    // false, or a tree of additional boolean operations.
+    // TODO: can we use CMOV here? CMOV might break short circuit eval.
+    return LirGenResult(
+        TYPE_BOOL,
+        this->current_writer_->insChoose(
+            left_result.ins(),
+            this->current_writer_->insImmI(1),
+            right_result.ins(),
+            false));
 }
 
 // Walks the GREATER node and calculates it's return type.
