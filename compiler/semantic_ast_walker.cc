@@ -731,7 +731,7 @@ Type SemanticAstWalker::WalkLogAnd(
     Type right_result) {
 
     // Alloc a new copy of the symbol because the node frees its own symbol.
-    left_node->set_symbol(new Symbol(left_node->symbol()));
+    log_and_node->set_symbol(new Symbol(left_node->symbol()));
 
     return CalculateBoolResultantType(
         left_result,
@@ -959,6 +959,8 @@ Type SemanticAstWalker::WalkString(
     PropertyFunction property_function,
     Node* string_node) {
 
+    // Alloc copy because ~Node() destroys the symbol when done.
+    string_node->set_symbol(new Symbol(this->symbol_table_.Get(TYPE_STRING.symbol_name())));
     return TYPE_STRING;
 }
 
