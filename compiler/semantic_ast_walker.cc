@@ -592,6 +592,7 @@ void SemanticAstWalker::CheckValidModuleName(const std::string& module_name, int
 // Walks the ADD node and calculates it's return type.
 Type SemanticAstWalker::WalkAdd(
     Node* spec_node,
+    Node* add_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
@@ -607,6 +608,9 @@ Type SemanticAstWalker::WalkAdd(
             STATUS_SEMANTIC_INVALID_TYPE_IN_ADD);
     }
 
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    add_node->set_symbol(new Symbol(left_node->symbol()));
+
     return CalculateResultantType(
         left_result,
         right_result,
@@ -618,10 +622,16 @@ Type SemanticAstWalker::WalkAdd(
 // Walks the SUB node and calculates it's return type.
 Type SemanticAstWalker::WalkSub(
     Node* spec_node,
+    Node* sub_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
     Type right_result) {
+
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    // HACK: unary negative numbers use ANY_TYPE to bypass typechecking, be sure
+    // this symbol always pulls from the right side.
+    sub_node->set_symbol(new Symbol(right_node->symbol()));
 
     return CalculateNumericResultantType(
         left_result,
@@ -634,10 +644,14 @@ Type SemanticAstWalker::WalkSub(
 // Walks the MUL node and calculates it's return type.
 Type SemanticAstWalker::WalkMul(
     Node* spec_node,
+    Node* mul_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
     Type right_result) {
+
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    mul_node->set_symbol(new Symbol(left_node->symbol()));
 
     return CalculateNumericResultantType(
         left_result,
@@ -650,10 +664,14 @@ Type SemanticAstWalker::WalkMul(
 // Walks the DIV node and calculates it's return type.
 Type SemanticAstWalker::WalkDiv(
     Node* spec_node,
+    Node* div_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
     Type right_result) {
+
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    div_node->set_symbol(new Symbol(left_node->symbol()));
 
     return CalculateNumericResultantType(
         left_result,
@@ -665,10 +683,14 @@ Type SemanticAstWalker::WalkDiv(
 // Walks the MOD node and calculates it's return type.
 Type SemanticAstWalker::WalkMod(
     Node* spec_node,
+    Node* mod_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
     Type right_result) {
+
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    mod_node->set_symbol(new Symbol(left_node->symbol()));
 
     return CalculateNumericResultantType(
         left_result,
@@ -681,6 +703,7 @@ Type SemanticAstWalker::WalkMod(
 // Walks the LOGNOT node and calculates it's return type.
 Type SemanticAstWalker::WalkLogNot(
     Node* spec_node,
+    Node* log_not_node,
     Node* child_node,
     Type child_result) {
 
@@ -692,16 +715,23 @@ Type SemanticAstWalker::WalkLogNot(
             STATUS_SEMANTIC_NONBOOL_IN_LOGNOT);
     }
 
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    log_not_node->set_symbol(new Symbol(child_node->symbol()));
+
     return child_result;
 }
 
 // Walks the LOGAND node and calculates it's return type.
 Type SemanticAstWalker::WalkLogAnd(
     Node* spec_node,
+    Node* log_and_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
     Type right_result) {
+
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    left_node->set_symbol(new Symbol(left_node->symbol()));
 
     return CalculateBoolResultantType(
         left_result,
@@ -714,10 +744,14 @@ Type SemanticAstWalker::WalkLogAnd(
 // Walks the LOGOR node and calculates it's return type.
 Type SemanticAstWalker::WalkLogOr(
     Node* spec_node,
+    Node* log_or_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
     Type right_result) {
+
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    log_or_node->set_symbol(new Symbol(left_node->symbol()));
 
     return CalculateBoolResultantType(
         left_result,
@@ -730,6 +764,7 @@ Type SemanticAstWalker::WalkLogOr(
 // Walks the GREATER node and calculates it's return type.
 Type SemanticAstWalker::WalkGreater(
     Node* spec_node,
+    Node* greater_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
@@ -744,6 +779,9 @@ Type SemanticAstWalker::WalkGreater(
         left_node->column(),
         STATUS_SEMANTIC_UNMATCHING_TYPE_IN_GREATER);
 
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    greater_node->set_symbol(new Symbol(left_node->symbol()));
+
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
 }
@@ -751,6 +789,7 @@ Type SemanticAstWalker::WalkGreater(
 // Walks the EQUALS node and calculates it's return type.
 Type SemanticAstWalker::WalkEquals(
     Node* spec_node,
+    Node* equals_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
@@ -765,6 +804,9 @@ Type SemanticAstWalker::WalkEquals(
         left_node->column(),
         STATUS_SEMANTIC_UNMATCHING_TYPE_IN_EQUALS);
 
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    equals_node->set_symbol(new Symbol(left_node->symbol()));
+
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
 }
@@ -772,6 +814,7 @@ Type SemanticAstWalker::WalkEquals(
 // Walks the NOT_EQUALS node and calculates it's return type.
 Type SemanticAstWalker::WalkNotEquals(
     Node* spec_node,
+    Node* not_equals_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
@@ -786,6 +829,9 @@ Type SemanticAstWalker::WalkNotEquals(
         left_node->column(),
         STATUS_SEMANTIC_UNMATCHING_TYPE_IN_NOT_EQUALS);
 
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    not_equals_node->set_symbol(new Symbol(left_node->symbol()));
+
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
 }
@@ -793,6 +839,7 @@ Type SemanticAstWalker::WalkNotEquals(
 // Walks the LESS node and calculates it's return type.
 Type SemanticAstWalker::WalkLess(
     Node* spec_node,
+    Node* less_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
@@ -807,6 +854,9 @@ Type SemanticAstWalker::WalkLess(
         left_node->column(),
         STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS);
 
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    less_node->set_symbol(new Symbol(left_node->symbol()));
+
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
 }
@@ -814,6 +864,7 @@ Type SemanticAstWalker::WalkLess(
 // Walks the GREATER_EQUALS node and calculates it's return type.
 Type SemanticAstWalker::WalkGreaterEquals(
     Node* spec_node,
+    Node* greater_equals_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
@@ -828,6 +879,10 @@ Type SemanticAstWalker::WalkGreaterEquals(
         left_node->column(),
         STATUS_SEMANTIC_UNMATCHING_TYPE_IN_GREATER_EQUALS);
 
+
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    greater_equals_node->set_symbol(new Symbol(left_node->symbol()));
+
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
 }
@@ -835,6 +890,7 @@ Type SemanticAstWalker::WalkGreaterEquals(
 // Walks the LESS_EQUALS node and calculates it's return type.
 Type SemanticAstWalker::WalkLessEquals(
     Node* spec_node,
+    Node* less_equals_node,
     Node* left_node,
     Node* right_node,
     Type left_result,
@@ -848,6 +904,10 @@ Type SemanticAstWalker::WalkLessEquals(
         left_node->line(),
         left_node->column(),
         STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS_EQUALS);
+
+
+    // Alloc a new copy of the symbol because the node frees its own symbol.
+    less_equals_node->set_symbol(new Symbol(left_node->symbol()));
 
     // Resultant type is a TYPE_BOOL telling whether comparision is true or false.
     return TYPE_BOOL;
@@ -1042,6 +1102,28 @@ void SemanticAstWalker::WalkBlockChildren(
 
     // Pop the scope.
     this->symbol_table_.Pop();
+}
+
+// Optional implemented function that overrides base class implementation.
+// In SemanticAstWalker, this function  assigns a type to the EXPRESSION node.
+Type SemanticAstWalker::WalkExpressionChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    PropertyFunction property_function,
+    Node* expression_node) {
+
+    Type expression_type = AstWalker::WalkExpressionChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        expression_node);
+
+    // TODO: cleaner.
+    expression_node->set_symbol(new Symbol(expression_node->child(0)->symbol()));
+
+    return expression_type;
 }
 
 // Calculates the type of a binary operator expression from the types of its

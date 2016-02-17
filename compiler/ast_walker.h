@@ -80,82 +80,96 @@ protected:
         std::vector<ReturnType>* arguments_result) = 0;
     virtual ReturnType WalkAdd(
         Node* spec_node,
+        Node* add_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkSub(
         Node* spec_node,
+        Node* sub_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkMul(
         Node* spec_node,
+        Node* mul_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkDiv(
         Node* spec_node,
+        Node* div_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkMod(
         Node* spec_node,
+        Node* mod_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkLogAnd(
         Node* spec_node,
+        Node* log_and_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkLogOr(
         Node* spec_node,
+        Node* log_or_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkLogNot(
         Node* spec_node,
+        Node* log_not_node,
         Node* child_node,
         ReturnType child_result) = 0;
     virtual ReturnType WalkGreater(
         Node* spec_node,
+        Node* greater_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkEquals(
         Node* spec_node,
+        Node* equals_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkNotEquals(
         Node* spec_node,
+        Node* not_equals_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkLess(
         Node* spec_node,
+        Node* less_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkGreaterEquals(
         Node* spec_node,
+        Node* greater_equals_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
         ReturnType right_result) = 0;
     virtual ReturnType WalkLessEquals(
         Node* spec_node,
+        Node* less_equals_node,
         Node* left_node,
         Node* right_node,
         ReturnType left_result,
@@ -219,6 +233,12 @@ protected:
         PropertyFunction property_function,
         Node* block,
         std::vector<ReturnType>* arguments_result);
+    virtual ReturnType WalkExpressionChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* expression_node);
 
 private:
     Node& root_;
@@ -260,12 +280,6 @@ private:
         PropertyFunction property_function,
         Node* return_node,
         std::vector<ReturnType>* arguments_result);
-    ReturnType WalkExpressionChildren(
-        Node* spec_node,
-        Node* function_node,
-        Node* property_node,
-        PropertyFunction property_function,
-        Node* expression_node);
     ReturnType WalkSubExpressionChildren(
         Node* spec_node,
         Node* function_node,

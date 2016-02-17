@@ -81,82 +81,96 @@ protected:
         std::vector<Type>* arguments_result);
     Type WalkAdd(
         Node* spec_node,
+        Node* add_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkSub(
         Node* spec_node,
+        Node* sub_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkMul(
         Node* spec_node,
+        Node* mul_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkDiv(
         Node* spec_node,
+        Node* div_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkMod(
         Node* spec_node,
+        Node* mod_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkLogAnd(
         Node* spec_node,
+        Node* log_and_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkLogNot(
         Node* spec_node,
+        Node* log_not_node,
         Node* child_node,
         Type child_result);
     Type WalkLogOr(
         Node* spec_node,
+        Node* log_or_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkGreater(
         Node* spec_node,
+        Node* greater_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkEquals(
         Node* spec_node,
+        Node* equals_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkNotEquals(
         Node* spec_node,
+        Node* not_equals_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkLess(
         Node* spec_node,
+        Node* less_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkGreaterEquals(
         Node* spec_node,
+        Node* greater_equals_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
         Type right_result);
     Type WalkLessEquals(
         Node* spec_node,
+        Node* less_equals_node,
         Node* left_node,
         Node* right_node,
         Type left_result,
@@ -216,6 +230,12 @@ protected:
         PropertyFunction property_function,
         Node* block,
         std::vector<Type>* arguments_result);
+    Type WalkExpressionChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* expression_node);
      
 private:
     SymbolTable<Symbol*> symbol_table_;

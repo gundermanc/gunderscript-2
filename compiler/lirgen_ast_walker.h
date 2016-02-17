@@ -111,82 +111,96 @@ protected:
         std::vector<LirGenResult>* arguments_result);
     LirGenResult WalkAdd(
         Node* spec_node,
+        Node* add_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkSub(
         Node* spec_node,
+        Node* sub_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkMul(
         Node* spec_node,
+        Node* mul_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkDiv(
         Node* spec_node,
+        Node* div_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkMod(
         Node* spec_node,
+        Node* mod_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkLogAnd(
         Node* spec_node,
+        Node* log_and_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkLogNot(
         Node* spec_node,
+        Node* log_not_node,
         Node* child_node,
         LirGenResult child_result);
     LirGenResult WalkLogOr(
         Node* spec_node,
+        Node* log_or_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkGreater(
         Node* spec_node,
+        Node* greater_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkEquals(
         Node* spec_node,
+        Node* equals_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkNotEquals(
         Node* spec_node,
+        Node* not_equals_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkLess(
         Node* spec_node,
+        Node* less_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkGreaterEquals(
         Node* spec_node,
+        Node* greater_equals_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
         LirGenResult right_result);
     LirGenResult WalkLessEquals(
         Node* spec_node,
+        Node* less_equals_node,
         Node* left_node,
         Node* right_node,
         LirGenResult left_result,
@@ -246,6 +260,12 @@ protected:
         PropertyFunction property_function,
         Node* block,
         std::vector<LirGenResult>* arguments_result);
+    LirGenResult WalkExpressionChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* expression_node);
 
 private:
     LIns* GenerateLoad(const Type& type, nanojit::LIns* base);

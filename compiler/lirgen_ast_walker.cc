@@ -337,6 +337,7 @@ LirGenResult LIRGenAstWalker::WalkReturn(
 // Walks the ADD node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkAdd(
     Node* spec_node,
+    Node* add_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -382,6 +383,7 @@ LirGenResult LIRGenAstWalker::WalkAdd(
 // Walks the SUB node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkSub(
     Node* spec_node,
+    Node* sub_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -435,6 +437,7 @@ LirGenResult LIRGenAstWalker::WalkSub(
 // Walks the MUL node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkMul(
     Node* spec_node,
+    Node* mul_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -480,6 +483,7 @@ LirGenResult LIRGenAstWalker::WalkMul(
 // Walks the DIV node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkDiv(
     Node* spec_node,
+    Node* div_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -525,6 +529,7 @@ LirGenResult LIRGenAstWalker::WalkDiv(
 // Walks the MOD node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkMod(
     Node* spec_node,
+    Node* mul_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -585,6 +590,7 @@ LirGenResult LIRGenAstWalker::WalkMod(
 // Walks the LOGNOT node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkLogNot(
     Node* spec_node,
+    Node* log_not_node,
     Node* child_node,
     LirGenResult child_result) {
 
@@ -594,6 +600,7 @@ LirGenResult LIRGenAstWalker::WalkLogNot(
 // Walks the LOGAND node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkLogAnd(
     Node* spec_node,
+    Node* log_and_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -605,6 +612,7 @@ LirGenResult LIRGenAstWalker::WalkLogAnd(
 // Walks the LOGOR node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkLogOr(
     Node* spec_node,
+    Node* log_or_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -616,6 +624,7 @@ LirGenResult LIRGenAstWalker::WalkLogOr(
 // Walks the GREATER node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkGreater(
     Node* spec_node,
+    Node* greater_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -653,6 +662,7 @@ LirGenResult LIRGenAstWalker::WalkGreater(
 // Walks the EQUALS node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkEquals(
     Node* spec_node,
+    Node* equals_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -690,6 +700,7 @@ LirGenResult LIRGenAstWalker::WalkEquals(
 // Walks the NOT_EQUALS node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkNotEquals(
     Node* spec_node,
+    Node* not_equals_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -739,6 +750,7 @@ LirGenResult LIRGenAstWalker::WalkNotEquals(
 // Walks the LESS node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkLess(
     Node* spec_node,
+    Node* less_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -776,6 +788,7 @@ LirGenResult LIRGenAstWalker::WalkLess(
 // Walks the GREATER_EQUALS node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkGreaterEquals(
     Node* spec_node,
+    Node* greater_equals_node,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -813,6 +826,7 @@ LirGenResult LIRGenAstWalker::WalkGreaterEquals(
 // Walks the LESS_EQUALS node and calculates it's return type.
 LirGenResult LIRGenAstWalker::WalkLessEquals(
     Node* spec_node,
+    Node* less_equals,
     Node* left_node,
     Node* right_node,
     LirGenResult left_result,
@@ -1053,6 +1067,24 @@ void LIRGenAstWalker::WalkBlockChildren(
 
     // Pop the scope.
     this->register_table_.Pop();
+}
+
+// Optional implemented function that overrides base class implementation.
+// In LIRGenAstWalker this function creates a jump instruction for short-circuiting
+// boolean expressions.
+LirGenResult LIRGenAstWalker::WalkExpressionChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    PropertyFunction property_function,
+    Node* expression_node) {
+
+    return AstWalker::WalkExpressionChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        expression_node);
 }
 
 // Generates a load instruction.

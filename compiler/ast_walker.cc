@@ -600,6 +600,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::ADD:
             return WalkAdd(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -607,6 +608,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::SUB:
             return WalkSub(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -614,6 +616,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::MUL:
             return WalkMul(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -621,6 +624,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::DIV:
             return WalkDiv(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -628,6 +632,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::MOD:
             return WalkMod(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -635,6 +640,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::LOGAND:
             return WalkLogAnd(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -642,6 +648,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::LOGOR:
             return WalkLogOr(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -649,6 +656,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::GREATER:
             return WalkGreater(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -656,6 +664,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::EQUALS:
             return WalkEquals(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -663,6 +672,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::NOT_EQUALS:
             return WalkNotEquals(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -670,6 +680,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::LESS:
             return WalkLess(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -677,6 +688,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::GREATER_EQUALS:
             return WalkGreaterEquals(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -684,6 +696,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
         case NodeRule::LESS_EQUALS:
             return WalkLessEquals(
                 spec_node,
+                binary_operation_node,
                 left_node,
                 right_node,
                 left_result,
@@ -730,6 +743,7 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
     case NodeRule::LOGNOT:
         return WalkLogNot(
             spec_node,
+            atomic_node,
             atomic_node->child(0),
             WalkSubExpressionChildren(
                 spec_node,
