@@ -24,7 +24,7 @@ catch (const Exception& ex) {                                   \
     return;                                                     \
 }                                                               \
 FAIL();                                                         \
-while (0);
+} while (0);
 
 
 // Integration Testing Macros:
