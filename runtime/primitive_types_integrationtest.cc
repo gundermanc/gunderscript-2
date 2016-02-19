@@ -208,12 +208,13 @@ TEST(PrimitiveTypesIntegration, EqualsChar) {
     EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return int8(-1) = int8(0);"));
 }
 
+
 TEST(PrimitiveTypesIntegration, NotEqualsChar) {
     EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1 != 0;"));
     EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0 != 0;"));
     EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return -1 != 0;"));
 }
-
+/*
 TEST(PrimitiveTypesIntegration, AndBool) {
     EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return false && false;"));
     EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return true && false;"));
@@ -231,4 +232,4 @@ TEST(PrimitiveTypesIntegration, OrBool) {
 TEST(PrimitiveTypesIntegration, NotBool) {
     EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return !true;"));
     EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return !false;"));
-}
+}*/

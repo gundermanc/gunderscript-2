@@ -21,17 +21,30 @@
 namespace gunderscript {
 namespace compiler {
 
+// Indicates whether we are not branching (true)
+// branching to the false body (false)
+// or end (end if)
+enum class BranchTarget {
+    NONE_LABEL,
+    FALSE_LABEL,
+    END_LABEL
+};
+
 // The result of a generation operation.
 class LirGenResult {
 public:
-    LirGenResult(const Type type, LIns* ins) : type_(type), ins_(ins) { }
+    LirGenResult(const BranchTarget branch_target, const Type type, LIns* ins) 
+        : branch_target_(branch_target), type_(type), ins_(ins) { }
+    LirGenResult(const Type type, LIns* ins) : LirGenResult(BranchTarget::NONE_LABEL, type, ins) { }
 
+    BranchTarget branch_target() { return branch_target_; }
     LIns* ins() { return ins_; }
     const Type& type() const { return type_; }
 
 private:
-    LIns* ins_;
+    const BranchTarget branch_target_;
     const Type type_;
+    LIns* ins_;
 };
 
 // LirGenResult checking abstract syntax tree walker.
@@ -273,6 +286,7 @@ private:
     const std::string* module_name_;
     SymbolTable<nanojit::LIns*> register_table_;
     std::vector<ModuleImplSymbol>* symbols_vector_;
+    std::vector<std::tuple<bool, LIns*> > backpatch_stack_;
     nanojit::Allocator& alloc_;
     nanojit::Fragment* current_fragment_;
     nanojit::Config& config_;

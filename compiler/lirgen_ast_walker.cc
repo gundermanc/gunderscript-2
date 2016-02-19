@@ -913,11 +913,13 @@ LirGenResult LIRGenAstWalker::WalkBool(
     PropertyFunction property_function,
     Node* bool_node) {
 
-    // In C++ bool values are usually integers of the value 0 -> false or 1 -> true
-    // but we'll use a ternary just in case this is violated for some reason.
-    return LirGenResult(bool_node->symbol()->type(),
-        this->current_writer_->insImmI(
-            bool_node->bool_value() ? 1 : 0));
+    // In C++ bools are integers and can be other than 1 or 0 so
+    // I am checking explicitly via ternary just in case.
+    // Jump target is back patched by caller.
+    return LirGenResult(
+        bool_node->bool_value() ? BranchTarget::NONE_LABEL : BranchTarget::FALSE_LABEL,
+        TYPE_BOOL,
+        this->current_writer_->insBranch(LIR_j, NULL, NULL));
 }
 
 // Walks the TYPE_INT node and returns the type for it.
@@ -1123,12 +1125,32 @@ LirGenResult LIRGenAstWalker::WalkExpressionChildren(
     PropertyFunction property_function,
     Node* expression_node) {
 
-    return AstWalker::WalkExpressionChildren(
+    LirGenResult result = AstWalker::WalkExpressionChildren(
         spec_node,
         function_node,
         property_node,
         property_function,
         expression_node);
+
+    if (result.type() == TYPE_BOOL) {
+
+        // LIns* true_label = this->current_writer_->ins0(LIR_label);
+        LIns* true_imm = this->current_writer_->insImmI(1); // TRUE
+        LIns* false_label = this->current_writer_->ins0(LIR_label);
+        LIns* false_imm = this->current_writer_->insImmI(0); // FALSE
+        LIns* end_label = this->current_writer_->ins0(LIR_label);
+
+        if (result.branch_target() == BranchTarget::FALSE_LABEL) {
+            result.ins()->setTarget(false_label);
+        }
+        else if (result.branch_target() == BranchTarget::END_LABEL) {
+            result.ins()->setTarget(end_label);
+        }
+
+        return LirGenResult(TYPE_BOOL, true_imm);
+    }
+
+    return result;
 }
 
 // Generates a load instruction.
