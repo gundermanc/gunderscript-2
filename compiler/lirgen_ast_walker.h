@@ -5,6 +5,7 @@
 #define GUNDERSCRIPT_LIRGEN_AST_WALKER__H__
 
 #include <string>
+#include <functional>
 #include <vector>
 
 #include "gunderscript/node.h"
@@ -24,6 +25,7 @@ namespace compiler {
 // Indicates whether we are not branching (true)
 // branching to the false body (false)
 // or end (end if)
+// TODO: can we get rid of this and just null check ins()?
 enum class BranchTarget {
     NONE_LABEL,
     FALSE_LABEL,
@@ -282,6 +284,10 @@ protected:
 
 private:
     LIns* GenerateLoad(const Type& type, nanojit::LIns* base);
+    LIns* BackpatchJump(
+        LirGenResult bool_jump_result,
+        std::function<LIns* (LirBufWriter* writer)> true_func,
+        std::function<LIns* (LirBufWriter* writer)> false_func);
 
     const std::string* module_name_;
     SymbolTable<nanojit::LIns*> register_table_;

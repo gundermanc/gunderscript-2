@@ -731,7 +731,7 @@ Type SemanticAstWalker::WalkLogAnd(
     Type right_result) {
 
     // Alloc a new copy of the symbol because the node frees its own symbol.
-    left_node->set_symbol(new Symbol(left_node->symbol()));
+    log_and_node->set_symbol(new Symbol(left_node->symbol()));
 
     return CalculateBoolResultantType(
         left_result,

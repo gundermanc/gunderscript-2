@@ -594,15 +594,14 @@ LirGenResult LIRGenAstWalker::WalkLogNot(
     Node* child_node,
     LirGenResult child_result) {
 
-    // XORing a boolean value by 1 effectively performs effectively performs a NOT
-    // operation: 1 xor 1 = 0; 0 xor 1 = 1;
-    // This assumption works as long as we force booleans to ALWAYS be 0 or 1 only.
-    // TODO: can we do this with one instruction instead of two??
+    // Backpatch and get the true/false value of the boolean.
     return LirGenResult(
+        BranchTarget::FALSE_LABEL,
         TYPE_BOOL,
-        this->current_writer_->ins2(LIR_xori,
-            this->current_writer_->insImmI(1),
-            child_result.ins()));
+        BackpatchJump(
+            child_result,
+            [](LirBufWriter* writer) { return writer->insBranch(LIR_j, NULL, NULL); },
+            [](LirBufWriter* writer) { return (LIns*)NULL; }));
 }
 
 // Walks the LOGAND node and calculates it's return type.
@@ -614,31 +613,14 @@ LirGenResult LIRGenAstWalker::WalkLogAnd(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    // XORing a boolean value by 1 effectively performs effectively performs a NOT
-    // operation: 1 xor 1 = 0; 0 xor 1 = 1;
-    // This assumption works as long as we force booleans to ALWAYS be 0 or 1 only.
-    // TODO: can we do this with one instruction instead of two??
-    LIns* negated_left_inst = this->current_writer_->ins2(
-        LIR_xori,
-        this->current_writer_->insImmI(1),
-        left_result.ins());
-
-    // Short circuit evaluation of AND instruction:
-    // If the left condition is true (because we negated it,
-    // we return the value true immediately. If it is false (it was true
-    // before the negation we instead obtain our true/false value by
-    // evaluating the right instruction which may be a true,
-    // false, or a tree of additional boolean operations.
-    // TODO: can we use CMOV here? CMOV might break short circuit eval.
+    this->current_writer_->insComment("AND");
     return LirGenResult(
+        BranchTarget::FALSE_LABEL,
         TYPE_BOOL,
-        this->current_writer_->insChoose(
-            negated_left_inst,
-            this->current_writer_->insImmI(0),
-            right_result.ins(),
-            false));
-
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+        BackpatchJump(
+            left_result,
+            [](LirBufWriter* writer) { return (LIns*)NULL; },
+            [](LirBufWriter* writer) { return writer->insBranch(LIR_j, NULL, NULL); }));
 }
 
 // Walks the LOGOR node and calculates it's return type.
@@ -913,13 +895,18 @@ LirGenResult LIRGenAstWalker::WalkBool(
     PropertyFunction property_function,
     Node* bool_node) {
 
-    // In C++ bools are integers and can be other than 1 or 0 so
-    // I am checking explicitly via ternary just in case.
-    // Jump target is back patched by caller.
+    this->current_writer_->insComment("BOOL");
+    if (!bool_node->bool_value()) {
+        return LirGenResult(
+            BranchTarget::FALSE_LABEL,
+            TYPE_BOOL,
+            this->current_writer_->insBranch(LIR_j, NULL, NULL));
+    }
+
     return LirGenResult(
-        bool_node->bool_value() ? BranchTarget::NONE_LABEL : BranchTarget::FALSE_LABEL,
+        BranchTarget::NONE_LABEL,
         TYPE_BOOL,
-        this->current_writer_->insBranch(LIR_j, NULL, NULL));
+        NULL);
 }
 
 // Walks the TYPE_INT node and returns the type for it.
@@ -1018,11 +1005,7 @@ void LIRGenAstWalker::WalkSpecFunctionChildren(
         LirBuffer* buf = new (alloc_) LirBuffer(alloc_);
 
         // Allocate a fragment for the function.
-#ifdef NJ_VERBOSE
         this->current_fragment_ = new Fragment(NULL verbose_only(,0));
-#else
-        this->current_fragment_ = new Fragment(NULL);
-#endif
         this->current_fragment_->lirbuf = buf;
         this->current_writer_ = new LirBufWriter(buf, this->config_);
         buf->abi = ABI_CDECL;
@@ -1134,20 +1117,13 @@ LirGenResult LIRGenAstWalker::WalkExpressionChildren(
 
     if (result.type() == TYPE_BOOL) {
 
-        // LIns* true_label = this->current_writer_->ins0(LIR_label);
-        LIns* true_imm = this->current_writer_->insImmI(1); // TRUE
-        LIns* false_label = this->current_writer_->ins0(LIR_label);
-        LIns* false_imm = this->current_writer_->insImmI(0); // FALSE
-        LIns* end_label = this->current_writer_->ins0(LIR_label);
-
-        if (result.branch_target() == BranchTarget::FALSE_LABEL) {
-            result.ins()->setTarget(false_label);
-        }
-        else if (result.branch_target() == BranchTarget::END_LABEL) {
-            result.ins()->setTarget(end_label);
-        }
-
-        return LirGenResult(TYPE_BOOL, true_imm);
+        this->current_writer_->insComment("Resolve");
+        return LirGenResult(
+            TYPE_BOOL,
+            BackpatchJump(
+                result,
+                [](LirBufWriter* writer) { return writer->insImmI(1); },
+                [](LirBufWriter* writer) { return writer->insImmI(0); }));
     }
 
     return result;
@@ -1186,6 +1162,48 @@ LIns* LIRGenAstWalker::GenerateLoad(const Type& type, LIns* base) {
     default:
         THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
     }
+}
+
+// Acepts a LirGenResult containing a jump instruction from a branch and two writer functions.
+// Backpatches the jump and calls the writers in the proper order to generate code for the
+// true or false cases.
+LIns* LIRGenAstWalker::BackpatchJump(
+    LirGenResult bool_jump_result,
+    std::function<LIns* (LirBufWriter* writer)> true_func,
+    std::function<LIns* (LirBufWriter* writer)> false_func) {
+
+    // ----------- True Body -----------
+    LIns* true_inst = true_func(this->current_writer_); // Emit true body.
+    LIns* end_jump = this->current_writer_->insBranch(LIR_j, NULL, NULL); // Jump to end.
+
+    // ----------- False Body ----------
+    LIns* false_label = this->current_writer_->ins0(LIR_label);
+    LIns* false_inst = false_func(this->current_writer_); // Emit false body.
+
+    // -------------- End --------------
+    LIns* end_label = this->current_writer_->ins0(LIR_label);
+
+    // Backpatch the jump to end instruction in the true body.
+    end_jump->setTarget(end_label);
+
+    // HACK: set both instructions to use the same result register
+    // and set false_imm result live so that it isn't optimized out.
+    // That way, regardless of which branch is taken the result is updated in the same machine reg.
+    // TODO: there may be a better way of doing this??
+    if (false_inst != NULL) {
+        false_inst->setResultLive();
+
+        if (true_inst != NULL) {
+            false_inst->setReg(true_inst->getReg());
+        }
+    }
+
+    // Back patch the given jump instruction for the condition itself.
+    if (bool_jump_result.ins() != NULL) {
+        bool_jump_result.ins()->setTarget(false_label);
+    }
+
+    return true_inst;
 }
 
 } // namespace compiler
