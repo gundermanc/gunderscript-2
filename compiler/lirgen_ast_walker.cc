@@ -75,7 +75,7 @@ void LIRGenAstWalker::WalkSpecDeclaration(
 }
 
 // Walks a single function declaration inside of a SPEC and generates the code for it.
-void LIRGenAstWalker::WalkSpecFunctionDeclaration(
+void LIRGenAstWalker::WalkFunctionDeclaration(
     Node* spec_node,
     Node* function_node,
     Node* access_modifier_node,
@@ -1022,7 +1022,7 @@ LirGenResult LIRGenAstWalker::WalkAnyType(
 // Optional implemented function that overrides base class implementation.
 // In LIRGenAstWalker, this function allocates a NanoJIT fragment to contain
 // LIR for the function.
-void LIRGenAstWalker::WalkSpecFunctionChildren(
+void LIRGenAstWalker::WalkFunctionChildren(
     Node* spec_node,
     Node* function_node,
     bool prescan) {
@@ -1051,7 +1051,7 @@ void LIRGenAstWalker::WalkSpecFunctionChildren(
     this->register_table_.Push();
 
     // Walk the function and insert function body instructions:
-    AstWalker::WalkSpecFunctionChildren(spec_node, function_node, prescan);
+    AstWalker::WalkFunctionChildren(spec_node, function_node, prescan);
 
     this->register_table_.Pop();
 

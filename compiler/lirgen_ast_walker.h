@@ -61,7 +61,7 @@ protected:
         Node* spec_node,
         Node* access_modifier_node,
         Node* name_node);
-    void WalkSpecFunctionDeclaration(
+    void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,
         Node* access_modifier_node,
@@ -250,7 +250,7 @@ protected:
         PropertyFunction property_function,
         Node* any_type_node);
 
-    void WalkSpecFunctionChildren(
+    void WalkFunctionChildren(
         Node* spec_node,
         Node* function_node,
         bool prescan);

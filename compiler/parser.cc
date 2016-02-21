@@ -44,8 +44,13 @@ Node* Parser::ParseModule() {
         NodeRule::SPECS,
         this->lexer_.current_line_number(),
         this->lexer_.current_column_number());
+    Node* functions_node = new Node(
+        NodeRule::FUNCTIONS,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
     module_node_->AddChild(depends_node);
     module_node_->AddChild(specs_node);
+    module_node_->AddChild(functions_node);
 
     // Allow end of file after package.
     if (has_next()) {
@@ -55,7 +60,7 @@ Node* Parser::ParseModule() {
 
     // Allow end of file after depends.
     if (has_next()) {
-        ParseSpecDefinitions(specs_node);
+        ParseModuleBody(specs_node, functions_node);
     }
 
     return module_node_;
@@ -160,12 +165,26 @@ void Parser::ParseSemicolon(Node* node) {
 }
 
 // Parses all spec definitions (similar to a class definition, but currently without
-// inheritance).
+// inheritance) or static function definitions (non-class functions).
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParseSpecDefinitions(Node* node) {
+void Parser::ParseModuleBody(Node* specs_node, Node* functions_node) {
     while (has_next()) {
-        ParseSpecDefinition(node);
+
+        // Check if current token is an access modifier. If not, this is malformed syntax.
+        if (CurrentToken()->type != LexerTokenType::ACCESS_MODIFIER) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_MALFORMED_SPEC_OR_FUNC_ACCESS_MODIFIER_MISSING);
+        }
+
+        if (NextKeyword(LexerSymbol::SPEC)) {
+            ParseSpecDefinition(specs_node);
+        }
+        else {
+            ParseFunction(functions_node);
+        }
 
         if (has_next()) {
             AdvanceNext();
@@ -190,7 +209,7 @@ void Parser::ParseSpecDefinition(Node* node) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
-            STATUS_PARSER_MALFORMED_SPEC_ACCESS_MODIFIER_MISSING);
+            STATUS_PARSER_MALFORMED_SPEC_OR_FUNC_ACCESS_MODIFIER_MISSING);
     }
 
     spec_node->AddChild(new Node(
@@ -1582,6 +1601,11 @@ bool Parser::AdvanceKeyword(LexerSymbol keyword) {
 bool Parser::CurrentKeyword(LexerSymbol keyword) {
     return CurrentToken()->type == LexerTokenType::KEYWORD &&
         CurrentToken()->symbol == keyword;
+}
+
+bool Parser::NextKeyword(LexerSymbol symbol) {
+    return NextToken()->type == LexerTokenType::KEYWORD &&
+        NextToken()->symbol == symbol;
 }
 
 bool Parser::AdvanceAccessModifier(LexerSymbol am) {

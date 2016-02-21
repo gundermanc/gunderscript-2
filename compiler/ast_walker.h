@@ -35,7 +35,7 @@ protected:
         Node* spec_node,
         Node* access_modifier_node,
         Node* name_node) = 0;
-    virtual void WalkSpecFunctionDeclaration(
+    virtual void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,
         Node* access_modifier_node,
@@ -223,7 +223,7 @@ protected:
     // of ASTWalker that MAY be optionally overridden by subclasses for increased
     // customization.
 
-    virtual void WalkSpecFunctionChildren(
+    virtual void WalkFunctionChildren(
         Node* spec_node,
         Node* function_node,
         bool prescan);
@@ -248,14 +248,14 @@ private:
     void WalkModuleDependsChildren(Node* depends_node);
     void WalkModuleSpecsChildren(Node* specs_node);
     void WalkSpec(Node* spec_node);
-    void WalkSpecFunctionsChildren(Node* spec_node, Node* functions_node);
-    void WalkSpecFunctionDeclarationParametersChildren(
+    void WalkFunctionsChildren(Node* spec_node, Node* functions_node);
+    void WalkFunctionDeclarationParametersChildren(
         Node* spec_node,
         Node* function_node,
         Node* params_node,
         std::vector<ReturnType>& argument_result,
         bool prescan);
-    void WalkSpecPropertiesFunctionsPrescanChildren(
+    void WalkPropertiesFunctionsPrescanChildren(
         Node* spec_node,
         Node* functions_node,
         Node* properties_node);

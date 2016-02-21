@@ -30,7 +30,7 @@ TEST(Parser, PackageOnly) {
 
     Node* root = parser.Parse();
     EXPECT_EQ(NodeRule::MODULE, root->rule());
-    ASSERT_EQ(3, root->child_count());
+    ASSERT_EQ(4, root->child_count());
 
     Node* name_node = root->child(0);
     EXPECT_EQ(NodeRule::NAME, name_node->rule());
@@ -131,7 +131,7 @@ TEST(Parser, PackageDependsOnly) {
 
     Node* root = parser.Parse();
     EXPECT_EQ(NodeRule::MODULE, root->rule());
-    ASSERT_EQ(3, root->child_count());
+    ASSERT_EQ(4, root->child_count());
 
     Node* name_node = root->child(0);
     EXPECT_EQ(NodeRule::NAME, name_node->rule());
@@ -169,7 +169,7 @@ TEST(Parser, MalformedSpec) {
         Parser parser(lexer);
 
         // TODO: Fix: This test causes a memory leak in lexer.cc
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_ACCESS_MODIFIER_MISSING);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_OR_FUNC_ACCESS_MODIFIER_MISSING);
     }
 
     // Case 2: missing spec keyword.
@@ -229,7 +229,7 @@ TEST(Parser, EmptySpec) {
 
     Node* root = parser.Parse();
     EXPECT_EQ(NodeRule::MODULE, root->rule());
-    ASSERT_EQ(3, root->child_count());
+    ASSERT_EQ(4, root->child_count());
 
     Node* name_node = root->child(0);
     EXPECT_EQ(NodeRule::NAME, name_node->rule());
@@ -436,7 +436,7 @@ TEST(Parser, ParsePropertyAuto) {
         Parser parser(lexer);
 
         Node* root = parser.Parse();
-        ASSERT_EQ(3, root->child_count());
+        ASSERT_EQ(4, root->child_count());
 
         Node* specs_node = root->child(2);
         ASSERT_EQ(1, specs_node->child_count());
@@ -2197,6 +2197,42 @@ TEST(Parser, ParseMalformedComparisonExpression) {
 
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_MISSING_RPAREN);
     }
+}
+
+// Checks that we can correctly parse a module with a specs and static functions.
+// Although we don't check the entire structure of the tree, presumably the implementation
+// uses the same subparsers everywhere so if our earlier function and spec tests pass, this
+// one should imply correctness for these as well.
+TEST(Parser, ParseModule) {
+
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec { } "
+        "public int32 main() { } "
+        "public spec MySpec2{ } "
+        "public int32 main2() { } "
+        "public int32 main3() { } ");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    EXPECT_EQ(4, root->child_count());
+
+    Node* specs_node = root->child(2);
+    EXPECT_EQ(NodeRule::SPECS, specs_node->rule());
+    EXPECT_EQ(2, specs_node->child_count());
+    EXPECT_STREQ("MySpec", specs_node->child(0)->child(1)->string_value()->c_str());
+    EXPECT_STREQ("MySpec2", specs_node->child(1)->child(1)->string_value()->c_str());
+
+    Node* functions_node = root->child(3);
+    EXPECT_EQ(NodeRule::FUNCTIONS, functions_node->rule());
+    EXPECT_EQ(3, functions_node->child_count());
+    EXPECT_STREQ("main", functions_node->child(0)->child(3)->string_value()->c_str());
+    EXPECT_STREQ("main2", functions_node->child(1)->child(3)->string_value()->c_str());
+    EXPECT_STREQ("main3", functions_node->child(2)->child(3)->string_value()->c_str());
+
+    delete root;
 }
 
 } // namespace compiler

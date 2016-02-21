@@ -22,12 +22,13 @@ static const std::string MangleFunctionSymbolName(
     Node* name_node,
     std::vector<Type>& arguments_result) {
 
-    Node* spec_name_node = spec_node->child(1);
-
-    // Format the symbol name {class}::{function}$arg1$arg2...
+    // Format the symbol name {spec}::{function}$arg1$arg2...
+    // or {function}$arg1$arg2... if there is no spec.
     std::ostringstream name_buf;
-    name_buf << *spec_name_node->string_value();
-    name_buf << "::";
+    if (spec_node != NULL) {
+        name_buf << *(spec_node->child(1)->string_value());
+        name_buf << "::";
+    }
     name_buf << *name_node->string_value();
 
     // Append arguments to the symbol name.
@@ -166,7 +167,7 @@ void SemanticAstWalker::WalkSpecDeclaration(
 
 // Walks a single function declaration inside of a SPEC.
 // Throws if the function already exists in the symbol table.
-void SemanticAstWalker::WalkSpecFunctionDeclaration(
+void SemanticAstWalker::WalkFunctionDeclaration(
     Node* spec_node,
     Node* function_node,
     Node* access_modifier_node,
@@ -177,7 +178,7 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
     std::vector<Type>& arguments_result,
     bool prescan) {
 
-    Node* spec_name_node = spec_node->child(1);
+    const std::string spec_name = spec_node != NULL ? *(spec_node->child(1)->string_value()) : "";
 
     // Only define the symbol during the prescan portion of the walking process.
     // The prescan allows for us to iterate and define symbols for all functions
@@ -192,7 +193,7 @@ void SemanticAstWalker::WalkSpecFunctionDeclaration(
                 access_modifier_node->symbol_value(),
                 native_node->bool_value(),
                 ResolveTypeNode(type_node),
-                *spec_name_node->string_value(),
+                spec_name,
                 symbol_name);
 
             // Node will destroy symbol on cleanup.
@@ -228,7 +229,7 @@ Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* name_node,
     bool prescan) {
 
-    Node* spec_name_node = spec_node->child(1);
+    const std::string spec_name = spec_node != NULL ? *(spec_node->child(1)->string_value()) : "";    
 
     // Create a new symbol for the parameter.
     // Extraneous values are arbitrary.
@@ -237,7 +238,7 @@ Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
         LexerSymbol::CONCEALED,
         false,
         ResolveTypeNode(type_node),
-        *spec_name_node->string_value(),
+        spec_name,
         *name_node->string_value());
     function_param_node->set_symbol(param_symbol);
 
@@ -285,7 +286,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         return;
     }
 
-    Node* spec_name_node = spec_node->child(1);
+    const std::string spec_name = spec_node != NULL ? *(spec_node->child(1)->string_value()) : "";
 
     // Determine the getter function symbol name.
     std::string get_function_symbol_name
@@ -297,7 +298,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         get_access_modifier_node->symbol_value(),
         false,
         ResolveTypeNode(type_node),
-        *spec_name_node->string_value(),
+        spec_name,
         get_function_symbol_name);
 
     get_property_function_node->set_symbol(get_function_symbol);
@@ -312,7 +313,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         set_access_modifier_node->symbol_value(),
         false,
         ResolveTypeNode(type_node),
-        *spec_name_node->string_value(),
+        spec_name,
         set_function_symbol_name);
 
     set_property_function_node->set_symbol(set_function_symbol);
@@ -346,51 +347,64 @@ Type SemanticAstWalker::WalkFunctionCall(
     Node* call_node,
     std::vector<Type>& arguments_result) {
 
-    Node* spec_name_node = spec_node->child(1);
+    const std::string spec_name = spec_node != NULL ? *(spec_node->child(1)->string_value()) : "";
+    Symbol* symbol = NULL;
 
+    // Lookup the function in this class. Throws if there isn't a function with the correct arguments.
     try {
-        // Lookup the function. Throws if there isn't a function with the correct arguments.
-        Symbol* symbol = this->symbol_table_.Get(
+        symbol = this->symbol_table_.Get(
             MangleFunctionSymbolName(spec_node, name_node, arguments_result));
-
-        // Copied symbol because ~Node() destroys symbol on exit.
-        call_node->set_symbol(new Symbol(symbol));
-
-        // Check for access to the callee function.
-        // TODO: as of the moment this does nothing because we don't support calls between classes
-        // yet. Implement calls between classes.
-        CheckAccessModifier(
-            *spec_name_node->string_value(),
-            symbol->spec_name(),
-            symbol->access_modifier(),
-            name_node->line(),
-            name_node->column());
-
-        return symbol->type();
     }
     catch (const Exception& ex) {
 
-        // The symbol for this function is unknown. Either a typo or a function-like typecast.
-        if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
-
-            // Check if we have exactly one param. If so, it might be a typecast.
-            if (arguments_result.size() != 1) {
-                THROW_EXCEPTION(
-                    name_node->line(),
-                    name_node->column(),
-                    STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
-            }
-
-            // Try walking it as if it were a typecast.
-            return WalkFunctionLikeTypecast(
-                spec_node,
-                name_node,
-                call_node,
-                arguments_result.at(0));
+        // The symbol for this function is unknown. Let's try an out of spec (static) function.
+        if (ex.status().code() != STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+            throw;
         }
 
-        throw;
+        try {
+            symbol = this->symbol_table_.Get(
+                MangleFunctionSymbolName(NULL, name_node, arguments_result));
+        }
+        catch (const Exception& ex) {
+
+            // The symbol for this function is unknown. Either a typo or a function-like typecast.
+            if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+
+                // Check if we have exactly one param. If so, it might be a typecast.
+                if (arguments_result.size() != 1) {
+                    THROW_EXCEPTION(
+                        name_node->line(),
+                        name_node->column(),
+                        STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
+                }
+
+                // Try walking it as if it were a typecast.
+                return WalkFunctionLikeTypecast(
+                    spec_node,
+                    name_node,
+                    call_node,
+                    arguments_result.at(0));
+            }
+
+            throw;
+        }
     }
+
+    // Copied symbol because ~Node() destroys symbol on exit.
+    call_node->set_symbol(new Symbol(symbol));
+
+    // Check for access to the callee function.
+    // TODO: as of the moment this does nothing because we don't support calls between classes
+    // yet. Implement calls between classes.
+    CheckAccessModifier(
+        spec_name,
+        symbol->spec_name(),
+        symbol->access_modifier(),
+        name_node->line(),
+        name_node->column());
+
+    return symbol->type();
 }
 
 // Walks a function-like type cast and performs the typecast operation and resolves the types.
@@ -1067,7 +1081,7 @@ void SemanticAstWalker::CheckAccessModifier(
 // In SemanticAstWalker, this function pushes a new table to the SymbolTable
 // to introduce new context for each FUNCTION entered, limiting the
 // scope of function arguments.
-void SemanticAstWalker::WalkSpecFunctionChildren(
+void SemanticAstWalker::WalkFunctionChildren(
     Node* spec_node,
     Node* function_node,
     bool prescan) {
@@ -1076,7 +1090,7 @@ void SemanticAstWalker::WalkSpecFunctionChildren(
     this->symbol_table_.Push();
 
     // Walk the Node via parent class.
-    AstWalker::WalkSpecFunctionChildren(spec_node, function_node, prescan);
+    AstWalker::WalkFunctionChildren(spec_node, function_node, prescan);
 
     // Pop the scope.
     this->symbol_table_.Pop();

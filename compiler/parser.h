@@ -32,6 +32,7 @@ private:
     bool CurrentType(LexerSymbol type);
     bool AdvanceKeyword(LexerSymbol keyword);
     bool CurrentKeyword(LexerSymbol keyword);
+    bool NextKeyword(LexerSymbol keyword);
     bool AdvanceAccessModifier(LexerSymbol am);
     bool CurrentAccessModifier(LexerSymbol am);
     void ThrowEOFIfNull(const LexerToken* token);
@@ -42,7 +43,7 @@ private:
     void ParseDependsStatements(Node* node);
     void ParseDependsStatement(Node* node);
     void ParseSemicolon(Node* node);
-    void ParseSpecDefinitions(Node* node);
+    void ParseModuleBody(Node* specs_node, Node* functions_node);
     void ParseSpecDefinition(Node* node);
     void ParseSpecBody(Node* node);
     void ParseProperty(Node* node);

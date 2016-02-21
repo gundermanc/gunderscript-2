@@ -93,8 +93,8 @@ const ExceptionStatus STATUS_PARSER_MISSING_PACKAGE= ExceptionStatus(200, "Expec
 const ExceptionStatus STATUS_PARSER_INVALID_PACKAGE = ExceptionStatus(201, "Invalid package name at top of file");
 const ExceptionStatus STATUS_PARSER_MALFORMED_DEPENDS = ExceptionStatus(202, "Malformed depends statement");
 const ExceptionStatus STATUS_PARSER_EXPECTED_SEMICOLON = ExceptionStatus(203, "Expected but did not find a semicolon");
-const ExceptionStatus STATUS_PARSER_MALFORMED_SPEC_ACCESS_MODIFIER_MISSING 
-    = ExceptionStatus(204, "Trying to parse Spec definition, expected but did not find an access modifier");
+const ExceptionStatus STATUS_PARSER_MALFORMED_SPEC_OR_FUNC_ACCESS_MODIFIER_MISSING 
+    = ExceptionStatus(204, "Trying to parse Spec or static Function definition, expected but did not find an access modifier");
 const ExceptionStatus STATUS_PARSER_MALFORMED_SPEC_SPEC_KEYWORD_MISSING
     = ExceptionStatus(205, "Trying to parse Spec definition, expected but did not find spec keyword");
 const ExceptionStatus STATUS_PARSER_MALFORMED_SPEC_NAME_MISSING
@@ -200,7 +200,7 @@ const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_EQUALS
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_NOT_EQUALS
     = ExceptionStatus(320, "Non-matching types in '!=' expression");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_FUNCTION
-    = ExceptionStatus(321, "A function with the same name parameters has already been declared in this Spec");
+    = ExceptionStatus(321, "A function with the same name and parameters has already been declared in this Spec");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_PROPERTY
     = ExceptionStatus(322, "A property with the same name has already been declared in this Spec");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_FUNCTION_PARAM
