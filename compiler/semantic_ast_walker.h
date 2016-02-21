@@ -70,6 +70,7 @@ protected:
     Type WalkAssign(
         Node* spec_node,
         Node* name_node,
+        Node* symbol_node,
         Node* assign_node,
         Type operations_result);
     Type WalkReturn(

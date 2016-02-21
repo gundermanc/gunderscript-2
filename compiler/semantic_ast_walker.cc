@@ -460,6 +460,7 @@ Type SemanticAstWalker::WalkFunctionLikeTypecast(
 Type SemanticAstWalker::WalkAssign(
     Node* spec_node,
     Node* name_node,
+    Node* symbol_node,
     Node* assign_node,
     Type operations_result) {
 
@@ -481,8 +482,9 @@ Type SemanticAstWalker::WalkAssign(
         this->symbol_table_.Put(
             symbol_name,
             assign_symbol);
-
-        assign_node->set_symbol(assign_symbol);
+        
+        assign_node->set_symbol(new Symbol(assign_symbol));
+        symbol_node->set_symbol(new Symbol(assign_symbol));
 
         return operations_result;
     }
@@ -502,6 +504,8 @@ Type SemanticAstWalker::WalkAssign(
         // matches the existing type.
 
         const Symbol* variable_symbol = this->symbol_table_.Get(symbol_name);
+        assign_node->set_symbol(new Symbol(variable_symbol));
+        symbol_node->set_symbol(new Symbol(variable_symbol));
 
         // Check to make sure that type of new assignment matches original declared type.
         if (variable_symbol->type() != operations_result) {

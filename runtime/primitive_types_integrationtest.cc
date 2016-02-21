@@ -106,6 +106,25 @@ TEST(PrimitiveTypesIntegration, StoreLoadBool) {
     EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("bval <- true; return bval;"));
 }
 
+TEST(PrimitiveTypesIntegration, StoreUpdate) {
+    EXPECT_EQ(2, COMPILE_AND_RUN_INT_MAIN_LINES("x <- 1; x <- x + 1; return x;"));
+}
+
+// Since first time assignment and variable declaration are the same thing in
+// Gunderscript, the only real scoping provided by blocks is that of variable lifetime
+// and masking of different types.
+// In the second to last test, x is initially of value bool but is masked by an integer of
+// the same name in the inner scope. When that scope is popped, x is an integer again.
+// In the last test, x is of type true in the inner block which goes out of scope, allowing
+// it to be reassigned to integer, which is not normally allowed.
+TEST(PrimitiveTypesIntegration, EndToEndScoping) {
+    EXPECT_EQ(3, COMPILE_AND_RUN_INT_MAIN_LINES("return 3; { }"));
+    EXPECT_EQ(3, COMPILE_AND_RUN_INT_MAIN_LINES("{ } return 3;"));
+    EXPECT_EQ(2, COMPILE_AND_RUN_INT_MAIN_LINES("x <- 1; { x <- 2; return x; } return x;"));
+    EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("x <- true; { x <- 0; } return x;"));
+    EXPECT_EQ(1, COMPILE_AND_RUN_INT_MAIN_LINES("{ x <- true; } x <- 1; return x;"));
+}
+
 TEST(PrimitiveTypesIntegration, GreaterInt) {
     EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 1 > 0;"));
     EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return 0 > 0;"));

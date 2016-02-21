@@ -466,6 +466,7 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
     return WalkAssign(
         spec_node,
         name_node,
+        symbol_node,
         assign_node,
         binary_operation_result);
 }

@@ -100,6 +100,7 @@ protected:
     LirGenResult WalkAssign(
         Node* spec_node,
         Node* name_node,
+        Node* symbol_node,
         Node* assign_node,
         LirGenResult operations_result);
     LirGenResult WalkReturn(
@@ -271,7 +272,7 @@ private:
     LIns* GenerateLoad(const Type& type, nanojit::LIns* base);
 
     const std::string* module_name_;
-    SymbolTable<nanojit::LIns*> register_table_;
+    SymbolTable<std::tuple<Type, nanojit::LIns*>> register_table_;
     std::vector<ModuleImplSymbol>* symbols_vector_;
     nanojit::Allocator& alloc_;
     nanojit::Fragment* current_fragment_;

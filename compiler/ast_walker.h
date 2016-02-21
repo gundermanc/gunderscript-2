@@ -69,6 +69,7 @@ protected:
     virtual ReturnType WalkAssign(
         Node* spec_node,
         Node* name_node,
+        Node* symbol_node,
         Node* assign_node,
         ReturnType operations_result) = 0;
     virtual ReturnType WalkReturn(

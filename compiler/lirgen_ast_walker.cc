@@ -216,28 +216,45 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
 LirGenResult LIRGenAstWalker::WalkAssign(
     Node* spec_node,
     Node* name_node,
+    Node* symbol_node,
     Node* assign_node,
     LirGenResult operations_result) {
 
     LIns* variable_ptr = NULL;
 
-    // Look in the table to see if we have already alloc-ed space for this variable.
+    // Check if the variable name was bound in the current scope. If it was, it is a local
+    // and we can use the NanoJIT register for it.
     try {
-        variable_ptr = this->register_table_.Get(*name_node->string_value());
+        variable_ptr = std::get<1>(this->register_table_.GetTopOnly(*name_node->string_value()));
+        goto emit_assign_ins;
     }
     catch (const Exception& ex) {
 
-        // Check to see if the exception thrown is a SYMBOL_UNDEFINED, if so, alloc it.
-        if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
-            variable_ptr = this->current_writer_->insAlloc(operations_result.type().size());
-            this->register_table_.Put(*name_node->string_value(), variable_ptr);
+        // Variable was not bound in the current scope, check if it was bound in any scope.
+        // If so, if it is the same type as our expression then we are assigning to the already
+        // declared variable.
+        // If not, this variable is a narrower scope variable of the same name and a different
+        // type that is masking the old one.
+        try {
+            std::tuple<Type, LIns*> variable_reg = this->register_table_.Get(*name_node->string_value());
+
+            if (std::get<0>(variable_reg) == operations_result.type()) {
+                variable_ptr = std::get<1>(variable_reg);
+                goto emit_assign_ins;
+            }
+            /* else: Fall into new alloc */
         }
-        else {
-            // Unrecognized exception, rethrow.
-            throw;
-        }
+        catch (const Exception&) { /* Fall into new alloc */ }
     }
 
+    // New Alloc: Allocate a new register (NanoJIT register) for this variable name,
+    // it has either never been seen before or is a new var of a different type masking
+    // the original definition in an enclosing scope.
+    variable_ptr = this->current_writer_->insAlloc(operations_result.type().size());
+    this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.type(), variable_ptr));
+
+    // Emit the assignment instruction. Dijkstra doesn't have to agree with me, gotos can be useful.
+emit_assign_ins:
     LIns* store_ins;
     switch (operations_result.type().type_format())
     {
@@ -984,7 +1001,7 @@ LirGenResult LIRGenAstWalker::WalkVariable(
     const Type& variable_type = variable_node->symbol()->type();
     LIns* load = GenerateLoad(
         variable_type,
-        this->register_table_.Get(*name_node->string_value()));
+        std::get<1>(this->register_table_.Get(*name_node->string_value())));
 
     return LirGenResult(variable_type, load);
 }
