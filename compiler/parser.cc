@@ -58,10 +58,7 @@ Node* Parser::ParseModule() {
         ParseDependsStatements(depends_node);
     }
 
-    // Allow end of file after depends.
-    if (has_next()) {
-        ParseModuleBody(specs_node, functions_node);
-    }
+    ParseModuleBody(specs_node, functions_node);
 
     return module_node_;
 }
@@ -169,6 +166,15 @@ void Parser::ParseSemicolon(Node* node) {
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
 void Parser::ParseModuleBody(Node* specs_node, Node* functions_node) {
+
+    // Addresses Github issue #64.
+    if (CurrentToken()->type == LexerTokenType::ACCESS_MODIFIER && !has_next()) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_EOF);
+    }
+
     while (has_next()) {
 
         // Check if current token is an access modifier. If not, this is malformed syntax.

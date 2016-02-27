@@ -158,6 +158,17 @@ TEST(Parser, PackageDependsOnly) {
     delete root;
 }
 
+// In response to Github issue #64 to prevent regression.
+TEST(Parser, SingleTokenIncompleteDecl) {
+    std::string input("package \"FooPackage\"; public");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
+}
+
 TEST(Parser, MalformedSpec) {
 
     // Case 1: missing access modifier.
