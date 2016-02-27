@@ -846,17 +846,17 @@ void Parser::ParseExpression(Node* node) {
 }
 
 Node* Parser::ParseAssignExpressionA() {
-    Node* left_operand_node = ParseOrExpressionA();
 
-    return ParseAssignExpressionB(left_operand_node);
+    if (CurrentToken()->type == LexerTokenType::NAME &&
+        NextSymbol(LexerSymbol::ASSIGN)) {
+        return ParseAssignExpressionB(ParseVariableExpression());
+    }
+    else {
+        return ParseOrExpressionA();
+    }
 }
 
 Node* Parser::ParseAssignExpressionB(Node* left_operand_node) {
-
-    // Return left operand if this isn't an operation.
-    if (CurrentToken()->type != LexerTokenType::SYMBOL) {
-        return left_operand_node;
-    }
 
     if (CurrentToken()->symbol != LexerSymbol::ASSIGN) {
         return left_operand_node;
@@ -866,19 +866,17 @@ Node* Parser::ParseAssignExpressionB(Node* left_operand_node) {
         NodeRule::ASSIGN,
         this->lexer_.current_line_number(),
         this->lexer_.current_column_number());
-    Node* parent_node = NULL;
     try {
         AdvanceNext();
         operation_node->AddChild(left_operand_node);
-        operation_node->AddChild(ParseOrExpressionA());
-        parent_node = ParseAssignExpressionB(operation_node);
+        operation_node->AddChild(ParseAssignExpressionA());
     }
     catch (const Exception&) {
         delete operation_node;
         throw;
     }
 
-    return parent_node;
+    return operation_node;
 }
 
 Node* Parser::ParseOrExpressionA() {
