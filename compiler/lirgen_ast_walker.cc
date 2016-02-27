@@ -2,7 +2,6 @@
 // (C) 2016 Christian Gunderman
 
 #include <cmath>
-#include <functional>
 
 #include "gunderscript/exceptions.h"
 
@@ -44,6 +43,9 @@ const CallInfo CI_FCALLI = {
     CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_P, ARGTYPE_P),
     ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_float32" )};
 
+// Generates IR code for the given module and stores it within the module.
+// Throws: If this module has failed compilation once or is already compiled
+// or a code generation step fails.
 void LIRGenAstWalker::Generate(Module& module) {
     
     // Check if a module has already been compiled into this module file.
@@ -59,6 +61,10 @@ void LIRGenAstWalker::Generate(Module& module) {
     this->symbols_vector_ = &module.pimpl()->symbols_vector();
 
     // Allocate function lookup table for the module.
+    // Function look up table allows us to simplify compilation by assigning every yet-to-be compiled
+    // function a place in memory in which its function pointer will be stored. At compilation rather
+    // than jumping to the function's address, the function loads the pointer to the function from this
+    // table. It knows where the function's POINTER is even if it doesn't know where the function is.
     int functions_count = this->CountFunctions();
     this->func_table_ = new ModuleFunc[functions_count];
     this->current_function_index_ = 0;
@@ -75,57 +81,14 @@ void LIRGenAstWalker::Generate(Module& module) {
     module.pimpl()->set_func_table(this->func_table_);
 }
 
-// Walks the MODULE node in the abstract syntax tree.
-// Since there is no code gen information we can ignore it.
-void LIRGenAstWalker::WalkModule(Node* module_node) {
-    // Module itself has no properties to check.
-    // We instead check its child elements individually.
-}
-
-// Walks the MODULE node's NAME node. This node defines the module name
-// (analogous to the Java package name) of a script file.
-// We save a reference to the name for later.
-void LIRGenAstWalker::WalkModuleName(Node* name_node) {
-    this->module_name_ = name_node->string_value();
-}
-
 // Handles depends statements.
 void LIRGenAstWalker::WalkModuleDependsName(Node* name_node) {
     // TODO: implement support for depends statements.
-    THROW_EXCEPTION(
-        name_node->line(),
-        name_node->column(),
-        STATUS_ILLEGAL_STATE);
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Attempts to declare a new spec in the given scope. Throws if spec
-// name is taken in this context.
-void LIRGenAstWalker::WalkSpecDeclaration(
-    Node* spec_node,
-    Node* access_modifier_node,
-    Node* name_node) {
-
-    // TODO: do we need to export anything for a spec, or just for the elements of the spec?
-}
-
-// There is currently 1 fragment per function. You can find the code for generation and
-// storage of the fragments in the WalkFunctionChildren() method.
-void LIRGenAstWalker::WalkFunctionDeclaration(
-    Node* spec_node,
-    Node* function_node,
-    Node* access_modifier_node,
-    Node* native_node,
-    Node* type_node,
-    Node* name_node,
-    Node* block_node,
-    std::vector<LirGenResult>& arguments_result,
-    bool prescan) {
-
-    // TODO: do we need anything else here?
-}
-
-// Walks a single parameter in a spec function declaration.
-// Returns it to the Function Declaration walker.
+// Walks a single parameter in a spec function declaration and generates
+// addressing code for it and stores it in the registers_table_.
 LirGenResult LIRGenAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* spec_node,
     Node* function_node,
@@ -138,22 +101,7 @@ LirGenResult LIRGenAstWalker::WalkSpecFunctionDeclarationParameter(
     if (!prescan) {
 
         // Determine argument size.
-        int arg_size = sizeof(int32_t);
-        switch (function_param_node->symbol()->type().type_format()) 
-        {
-        case TypeFormat::INT:
-            if (function_param_node->symbol()->type().size() == 1) {
-                arg_size = sizeof(int8_t);
-                break;
-            }
-            // else: fall through to BOOL (4 byte integer).
-        case TypeFormat::BOOL:
-        case TypeFormat::FLOAT:
-            arg_size = sizeof(int32_t);
-            break;
-        default:
-            GS_ASSERT_FAIL("Unknown argument type size in function declaration codegen");
-        }
+        int arg_size = function_param_node->symbol()->type().size();
 
         // Store the param load address in the register_table_
         // TODO: make address calculation at compile instead of runtime.
@@ -172,8 +120,7 @@ LirGenResult LIRGenAstWalker::WalkSpecFunctionDeclarationParameter(
     return LirGenResult(function_param_node->symbol()->type(), NULL);
 }
 
-// Walks a single property in a spec property declaration.
-// Defines it in the symbol table.
+// Walks a single property in a spec property declaration and emits code.
 void LIRGenAstWalker::WalkSpecPropertyDeclaration(
     Node* spec_node,
     Node* type_node,
@@ -183,7 +130,7 @@ void LIRGenAstWalker::WalkSpecPropertyDeclaration(
     Node* get_access_modifier_node,
     Node* set_access_modifier_node,
     bool prescan) {
-
+    // TODO: declare spec properties code.
 }
 
 // Walks a function call and function-like typecasts and emits code.
@@ -247,20 +194,8 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
         for (size_t i = 0; i < arguments_result.size(); i++) {
             LirGenResult& argument = arguments_result.at(i);
 
-            switch (argument.type().type_format())
-            {
-            case TypeFormat::BOOL:
-            case TypeFormat::INT:
-                this->current_writer_->insStore(LIR_sti, argument.ins(), arguments_vector, arg_offset, ACCSET_ALL);
-                arg_offset += sizeof(int32_t);
-                break;
-            case TypeFormat::FLOAT:
-                this->current_writer_->insStore(LIR_stf, argument.ins(), arguments_vector, arg_offset, ACCSET_ALL);
-                arg_offset += sizeof(float);
-                break;
-            default:
-                GS_ASSERT_FAIL("Unknown type argument in function call codegen");
-            }
+            EmitStore(argument.type(), arguments_vector, arg_offset, argument.ins());
+            arg_offset += argument.type().size();
         }
 
         // Backpatch the size of the arguments vector to the sum of the sizes of the
@@ -359,11 +294,10 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
     }
 
     // Not implemented.
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks an assignment statement or expression and checks to make sure
-// that the types match the context in which it was used.
+// Walks an assignment statement and generates code for it.
 LirGenResult LIRGenAstWalker::WalkAssign(
     Node* spec_node,
     Node* name_node,
@@ -406,57 +340,17 @@ LirGenResult LIRGenAstWalker::WalkAssign(
 
     // Emit the assignment instruction. Dijkstra doesn't have to agree with me, gotos can be useful.
 emit_assign_ins:
-    LIns* store_ins;
-    switch (operations_result.type().type_format())
-    {
-    case TypeFormat::BOOL:
-    case TypeFormat::INT:
-        // BOOL types are simply INT values that are either 1 or 0.
-        switch (operations_result.type().size())
-        {
-        case 4:
-            // TODO: tighter access sets.
-            store_ins = this->current_writer_->insStore(LIR_sti, operations_result.ins(), variable_ptr, 0, ACCSET_ALL);
-            break;
-        case 1:
-            // Although 1 byte INT8/CHAR data type is treated like an INT32/INT in the
-            // other operations storage is where the differences in its size come to view.
-            // It is stored in a 1 byte footprint and extended to an INT32/INT only for purposes
-            // of filling a 32 bit register.
-            store_ins = this->current_writer_->insStore(LIR_sti2c, operations_result.ins(), variable_ptr, 0, ACCSET_ALL);
-            break;
-        default:
-            // Unknown integer size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
-        }
-        break;
-    case TypeFormat::FLOAT:
-        switch (operations_result.type().size())
-        {
-        case 4:
-            // TODO: tighter access sets.
-            store_ins = this->current_writer_->insStore(LIR_stf, operations_result.ins(), variable_ptr, 0, ACCSET_ALL);
-            break;
-        default:
-            // Unknown double size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
-        }
-        break;
-
-    default:
-        // Unknown type format size.
-        THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
-    }
+    EmitStore(operations_result.type(), variable_ptr, 0, operations_result.ins());
 
     // HACK: in order to support nesting of assign statements like this:
     // y <- (x <- 3 + 2)
     // we generate a load instruction right after our assign and return it
     // to the caller.
     return LirGenResult(operations_result.type(),
-        GenerateLoad(operations_result.type(), variable_ptr));
+        EmitLoad(operations_result.type(), variable_ptr, 0));
 }
 
-// Walks and validates a return value type for a function or property.
+// Walks a return statement and generates code for it.
 // TODO: make this work for properties.
 LirGenResult LIRGenAstWalker::WalkReturn(
     Node* spec_node,
@@ -478,9 +372,6 @@ LirGenResult LIRGenAstWalker::WalkReturn(
             // operation occurs in a standard >= 32 bit register on many systems.
             return LirGenResult(expression_result.type(), 
                 this->current_writer_->ins1(LIR_reti, expression_result.ins()));
-        default:
-            // Unknown integer size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
     case TypeFormat::FLOAT:
@@ -491,18 +382,15 @@ LirGenResult LIRGenAstWalker::WalkReturn(
             // operation occurs in a standard >= 32 bit register on many systems.
             return LirGenResult(expression_result.type(),
                 this->current_writer_->ins1(LIR_retf, expression_result.ins()));
-        default:
-            // Unknown integer size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
-    default:
-        // Unknown return type.
-        THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
     }
+
+    // Unknown return type.
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the ADD node and calculates it's return type.
+// Walks the ADD node and generates code for it and its children.
 LirGenResult LIRGenAstWalker::WalkAdd(
     Node* spec_node,
     Node* add_node,
@@ -525,9 +413,6 @@ LirGenResult LIRGenAstWalker::WalkAdd(
             return LirGenResult(
                 left_result.type(),
                 this->current_writer_->ins2(LIR_addi, left_result.ins(), right_result.ins()));
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
     case TypeFormat::FLOAT:
@@ -537,18 +422,15 @@ LirGenResult LIRGenAstWalker::WalkAdd(
             return LirGenResult(
                 left_result.type(),
                 this->current_writer_->ins2(LIR_addf, left_result.ins(), right_result.ins()));
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
-    default:
-        // Unhandled type format.
-        THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
     }
+    
+    // Unhandled type format.
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the SUB node and calculates it's return type.
+// Walks the SUB node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkSub(
     Node* spec_node,
     Node* sub_node,
@@ -567,6 +449,7 @@ LirGenResult LIRGenAstWalker::WalkSub(
     // HACK: For the WalkSub case in particular we MUST use ONLY the RIGHT node's type because
     // the SemanticAstWalker returns ANY_TYPE for the left operand to get around the explict
     // typecast requirement for all operands with negative numbers.
+    // TODO: see Github Issue #101 for fix for this.
     switch (right_result.type().type_format())
     {
     case TypeFormat::INT:
@@ -579,9 +462,6 @@ LirGenResult LIRGenAstWalker::WalkSub(
             return LirGenResult(
                 right_result.type(),
                 this->current_writer_->ins2(LIR_subi, left_ins, right_result.ins()));
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
     case TypeFormat::FLOAT:
@@ -591,18 +471,15 @@ LirGenResult LIRGenAstWalker::WalkSub(
             return LirGenResult(
                 right_result.type(),
                 this->current_writer_->ins2(LIR_subf, left_ins, right_result.ins()));
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
-    default:
-        // Unhandled type format.
-        THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
     }
+
+    // Unhandled type format.
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the MUL node and calculates it's return type.
+// Walks the MUL node and generates code for it and its children.
 LirGenResult LIRGenAstWalker::WalkMul(
     Node* spec_node,
     Node* mul_node,
@@ -625,9 +502,6 @@ LirGenResult LIRGenAstWalker::WalkMul(
             return LirGenResult(
                 left_result.type(),
                 this->current_writer_->ins2(LIR_muli, left_result.ins(), right_result.ins()));
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
     case TypeFormat::FLOAT:
@@ -637,18 +511,15 @@ LirGenResult LIRGenAstWalker::WalkMul(
             return LirGenResult(
                 left_result.type(),
                 this->current_writer_->ins2(LIR_mulf, left_result.ins(), right_result.ins()));
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
-    default:
-        // Unhandled type format.
-        THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
     }
+
+    // Unhandled type format.
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the DIV node and calculates it's return type.
+// Walks the DIV node and generates code for it and its children.
 LirGenResult LIRGenAstWalker::WalkDiv(
     Node* spec_node,
     Node* div_node,
@@ -671,9 +542,6 @@ LirGenResult LIRGenAstWalker::WalkDiv(
             return LirGenResult(
                 left_result.type(),
                 this->current_writer_->ins2(LIR_divi, left_result.ins(), right_result.ins()));
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
     case TypeFormat::FLOAT:
@@ -683,18 +551,16 @@ LirGenResult LIRGenAstWalker::WalkDiv(
             return LirGenResult(
                 left_result.type(),
                 this->current_writer_->ins2(LIR_divf, left_result.ins(), right_result.ins()));
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
-    default:
-        // Unhandled type format.
-        THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+
     }
+    
+    // Unhandled type format.
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the MOD node and calculates it's return type.
+// Walks the MOD node and generates code for it and its children.
 LirGenResult LIRGenAstWalker::WalkMod(
     Node* spec_node,
     Node* mul_node,
@@ -724,11 +590,8 @@ LirGenResult LIRGenAstWalker::WalkMod(
             // TODO: If porting to ARM, SPARC, etc, be sure to fix this. We can probably use the
             // same strategy as below with the FloatMod function but I have no way to test it
             // so I'm gonna hold off until there is an official ARM port.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+            THROW_NOT_IMPLEMENTED();
 #endif
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
         break;
     case TypeFormat::FLOAT:
@@ -745,17 +608,15 @@ LirGenResult LIRGenAstWalker::WalkMod(
                 left_result.type(),
                 this->current_writer_->insCall(&CI_FLOAT_MOD, float_args));
         }
-        default:
-            // Unhandled size.
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
-    default:
-        // Unhandled type format.
-        THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+        break;
     }
+
+    // Unhandled type format.
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the LOGNOT node and calculates it's return type.
+// Walks the LOGNOT node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkLogNot(
     Node* spec_node,
     Node* log_not_node,
@@ -773,7 +634,7 @@ LirGenResult LIRGenAstWalker::WalkLogNot(
             child_result.ins()));
 }
 
-// Walks the LOGAND node and calculates it's return type.
+// Walks the LOGAND node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkLogAnd(
     Node* spec_node,
     Node* log_and_node,
@@ -805,11 +666,9 @@ LirGenResult LIRGenAstWalker::WalkLogAnd(
             this->current_writer_->insImmI(0),
             right_result.ins(),
             false));
-
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
-// Walks the LOGOR node and calculates it's return type.
+// Walks the LOGOR node and generates code for it and its children.
 LirGenResult LIRGenAstWalker::WalkLogOr(
     Node* spec_node,
     Node* log_or_node,
@@ -833,7 +692,7 @@ LirGenResult LIRGenAstWalker::WalkLogOr(
             false));
 }
 
-// Walks the GREATER node and calculates it's return type.
+// Walks the GREATER node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkGreater(
     Node* spec_node,
     Node* greater_node,
@@ -867,11 +726,10 @@ LirGenResult LIRGenAstWalker::WalkGreater(
         break;
     }
 
-    // Unhandled type.
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the EQUALS node and calculates it's return type.
+// Walks the EQUALS node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkEquals(
     Node* spec_node,
     Node* equals_node,
@@ -906,10 +764,10 @@ LirGenResult LIRGenAstWalker::WalkEquals(
     }
 
     // Unhandled type.
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the NOT_EQUALS node and calculates it's return type.
+// Walks the NOT_EQUALS node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkNotEquals(
     Node* spec_node,
     Node* not_equals_node,
@@ -956,10 +814,10 @@ LirGenResult LIRGenAstWalker::WalkNotEquals(
     }
 
     // Unhandled type.
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the LESS node and calculates it's return type.
+// Walks the LESS node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkLess(
     Node* spec_node,
     Node* less_node,
@@ -994,10 +852,10 @@ LirGenResult LIRGenAstWalker::WalkLess(
     }
 
     // Unhandled type.
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the GREATER_EQUALS node and calculates it's return type.
+// Walks the GREATER_EQUALS node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkGreaterEquals(
     Node* spec_node,
     Node* greater_equals_node,
@@ -1032,10 +890,10 @@ LirGenResult LIRGenAstWalker::WalkGreaterEquals(
     }
 
     // Unhandled type.
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the LESS_EQUALS node and calculates it's return type.
+// Walks the LESS_EQUALS node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkLessEquals(
     Node* spec_node,
     Node* less_equals,
@@ -1070,10 +928,10 @@ LirGenResult LIRGenAstWalker::WalkLessEquals(
     }
 
     // Unhandled type.
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    THROW_NOT_IMPLEMENTED();
 }
 
-// Walks the TYPE_BOOL node and returns the type for it.
+// Walks the TYPE_BOOL node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkBool(
     Node* spec_node,
     Node* function_node,
@@ -1088,7 +946,7 @@ LirGenResult LIRGenAstWalker::WalkBool(
             bool_node->bool_value() ? 1 : 0));
 }
 
-// Walks the TYPE_INT node and returns the type for it.
+// Walks the TYPE_INT node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkInt(
     Node* spec_node,
     Node* function_node,
@@ -1100,7 +958,7 @@ LirGenResult LIRGenAstWalker::WalkInt(
         this->current_writer_->insImmI((int32_t)int_node->int_value()));
 }
 
-// Walks the FLOAT node and returns the type for it.
+// Walks the FLOAT node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkFloat(
     Node* spec_node,
     Node* function_node,
@@ -1112,7 +970,7 @@ LirGenResult LIRGenAstWalker::WalkFloat(
         this->current_writer_->insImmF((float)float_node->float_value()));
 }
 
-// Walks the STRING node and returns the type for it.
+// Walks the STRING node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkString(
     Node* spec_node,
     Node* function_node,
@@ -1123,7 +981,7 @@ LirGenResult LIRGenAstWalker::WalkString(
     THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
 }
 
-// Walks the CHAR node and returns the type for it.
+// Walks the CHAR node and generates code for it.
 LirGenResult LIRGenAstWalker::WalkChar(
     Node* spec_node,
     Node* function_node,
@@ -1138,7 +996,7 @@ LirGenResult LIRGenAstWalker::WalkChar(
 }
 
 // Walks the SYMBOL->NAME subtree that represents a variable reference
-// and returns the type for it.
+// and generates code for it.
 LirGenResult LIRGenAstWalker::WalkVariable(
     Node* spec_node,
     Node* function_node,
@@ -1150,9 +1008,10 @@ LirGenResult LIRGenAstWalker::WalkVariable(
     // No try/catch here, if register_table_ throws then the type checker made
     // a boo boo and didn't notice the missing variable initialization.
     const Type& variable_type = variable_node->symbol()->type();
-    LIns* load = GenerateLoad(
+    LIns* load = EmitLoad(
         variable_type,
-        std::get<1>(this->register_table_.Get(*name_node->string_value())).ins_);
+        std::get<1>(this->register_table_.Get(*name_node->string_value())).ins_,
+        0);
 
     return LirGenResult(variable_type, load);
 }
@@ -1167,6 +1026,7 @@ LirGenResult LIRGenAstWalker::WalkAnyType(
     Node* any_type_node) {
 
     // TODO: Get rid of the ANY/NONE type.
+    // this is a hack associated with Github issue #101 that needs to be fixed.
     return LirGenResult(TYPE_NONE, NULL);
 }
 
@@ -1186,12 +1046,8 @@ void LIRGenAstWalker::WalkFunctionChildren(
         LirBuffer* buf = new (alloc_) LirBuffer(alloc_);
         buf->abi = ABI_CDECL;
 
-        // Allocate a fragment for the function.
-#ifdef NJ_VERBOSE
+        // Allocate a fragment for the function
         this->current_fragment_ = new Fragment(NULL verbose_only(,0));
-#else
-        this->current_fragment_ = new Fragment(NULL);
-#endif
         this->current_fragment_->lirbuf = buf;
         this->current_writer_ = new LirBufWriter(buf, this->config_);
 
@@ -1299,26 +1155,8 @@ void LIRGenAstWalker::WalkBlockChildren(
     this->register_table_.Pop();
 }
 
-// Optional implemented function that overrides base class implementation.
-// In LIRGenAstWalker this function creates a jump instruction for short-circuiting
-// boolean expressions.
-LirGenResult LIRGenAstWalker::WalkExpressionChildren(
-    Node* spec_node,
-    Node* function_node,
-    Node* property_node,
-    PropertyFunction property_function,
-    Node* expression_node) {
-
-    return AstWalker::WalkExpressionChildren(
-        spec_node,
-        function_node,
-        property_node,
-        property_function,
-        expression_node);
-}
-
-// Generates a load instruction.
-LIns* LIRGenAstWalker::GenerateLoad(const Type& type, LIns* base) {
+// Emits a load instruction.
+LIns* LIRGenAstWalker::EmitLoad(const Type& type, LIns* base, int offset) {
 
     switch (type.type_format()) {
     case TypeFormat::BOOL:
@@ -1327,14 +1165,14 @@ LIns* LIRGenAstWalker::GenerateLoad(const Type& type, LIns* base) {
         switch (type.size()) {
         case 4:
             // TODO: tighter access sets.
-            return this->current_writer_->insLoad(LIR_ldi, base, 0, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+            return this->current_writer_->insLoad(LIR_ldi, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
         case 1:
             // Load 1 byte INT8/CHAR value and sign extend to fill the 32 bit register.
             // For those unfamilar with low level ops, all registers are >= 32 bit on our target
             // machines. There are no 1 byte registers.
-            return this->current_writer_->insLoad(LIR_ldc2i, base, 0, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+            return this->current_writer_->insLoad(LIR_ldc2i, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
         default:
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+            THROW_NOT_IMPLEMENTED();
         }
         break;
     case TypeFormat::FLOAT:
@@ -1343,12 +1181,45 @@ LIns* LIRGenAstWalker::GenerateLoad(const Type& type, LIns* base) {
             // TODO: tighter access sets.
             return this->current_writer_->insLoad(LIR_ldf, base, 0, ACCSET_ALL, LoadQual::LOAD_NORMAL);
         default:
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+            THROW_NOT_IMPLEMENTED();
         }
         break;
 
     default:
-        THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+        THROW_NOT_IMPLEMENTED();
+    }
+}
+
+// Emits a store instruction.
+LIns* LIRGenAstWalker::EmitStore(const Type& type, LIns* base, int offset, LIns* value) {
+
+    switch (type.type_format()) {
+    case TypeFormat::BOOL:
+    case TypeFormat::INT:
+        // BOOL types are simply integers that contain either 1 or 0.
+        switch (type.size()) {
+        case 4:
+            // TODO: tighter access sets.
+            return this->current_writer_->insStore(LIR_sti, value, base, offset, ACCSET_ALL);
+        case 1:
+            // Store 4 byte INT32/INT value and truncate to the 1 byte buffer.
+            return this->current_writer_->insStore(LIR_sti2c, value, base, offset, ACCSET_ALL);
+        default:
+            THROW_NOT_IMPLEMENTED();
+        }
+        break;
+    case TypeFormat::FLOAT:
+        switch (type.size()) {
+        case 4:
+            // TODO: tighter access sets.
+            return this->current_writer_->insStore(LIR_stf, value, base, offset, ACCSET_ALL);
+        default:
+            THROW_NOT_IMPLEMENTED();
+        }
+        break;
+
+    default:
+        THROW_NOT_IMPLEMENTED();
     }
 }
 

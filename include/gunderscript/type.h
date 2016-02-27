@@ -34,7 +34,7 @@ private:
 // Default types.
 const Type TYPE_NONE("none", TypeFormat::POINTER, -1);
 const Type TYPE_FUNCTION("function", TypeFormat::POINTER, sizeof(void*));
-const Type TYPE_BOOL("bool", TypeFormat::BOOL, 1);
+const Type TYPE_BOOL("bool", TypeFormat::BOOL, 4);
 const Type TYPE_INT("int32", TypeFormat::INT, 4);
 const Type TYPE_FLOAT("float32", TypeFormat::FLOAT, 4);
 const Type TYPE_STRING("string", TypeFormat::POINTER);

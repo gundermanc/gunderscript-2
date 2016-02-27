@@ -68,6 +68,8 @@ private:
 #define THROW_EXCEPTION(line, column, status)     throw Exception(line, column, status)
 #endif
 
+#define THROW_NOT_IMPLEMENTED()                   THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE) 
+
 // Status definitions indicating the compile errors.
 // Officially status codes are identified by GS[code] but we leave this out so we can use INT comparisons.
 // None of the first group should ever be thrown in normal operation but they're here for completeness.

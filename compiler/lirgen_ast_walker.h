@@ -62,13 +62,13 @@ public:
     void Generate(Module& generated_module);
 
 protected:
-    void WalkModule(Node* module_node);
-    void WalkModuleName(Node* name_node);
+    void WalkModule(Node* module_node) { }
+    void WalkModuleName(Node* name_node) { this->module_name_ = name_node->string_value(); }
     void WalkModuleDependsName(Node* name_node);
     void WalkSpecDeclaration(
         Node* spec_node,
         Node* access_modifier_node,
-        Node* name_node);
+        Node* name_node) { }
     void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,
@@ -78,7 +78,7 @@ protected:
         Node* name_node,
         Node* block_node,
         std::vector<LirGenResult>& arguments_result,
-        bool prescan);
+        bool prescan) { }
     LirGenResult WalkSpecFunctionDeclarationParameter(
         Node* spec_node,
         Node* function_node,
@@ -269,15 +269,10 @@ protected:
         PropertyFunction property_function,
         Node* block,
         std::vector<LirGenResult>* arguments_result);
-    LirGenResult WalkExpressionChildren(
-        Node* spec_node,
-        Node* function_node,
-        Node* property_node,
-        PropertyFunction property_function,
-        Node* expression_node);
 
 private:
-    LIns* GenerateLoad(const Type& type, nanojit::LIns* base);
+    LIns* EmitLoad(const Type& type, nanojit::LIns* base, int offset);
+    LIns* EmitStore(const Type& type, nanojit::LIns* base, int offset, LIns* value);
     int CountFunctions();
 
     ModuleFunc* func_table_;
