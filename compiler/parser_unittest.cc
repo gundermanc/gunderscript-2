@@ -2246,5 +2246,21 @@ TEST(Parser, ParseModule) {
     delete root;
 }
 
+// Addresses issue #105
+TEST(Parser, IncompleteNameExpr) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    foo"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
+}
+
 } // namespace compiler
 } // namespace gunderscript

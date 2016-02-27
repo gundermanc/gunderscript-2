@@ -788,7 +788,7 @@ void Parser::ParseNameStatement(Node* node) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
+            STATUS_PARSER_EOF);
     }
 }
 
