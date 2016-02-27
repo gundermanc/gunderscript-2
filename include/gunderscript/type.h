@@ -12,7 +12,7 @@ enum class TypeFormat {
     BOOL,
     INT,
     FLOAT,
-    OBJECT
+    POINTER
 };
 
 class Type {
@@ -32,12 +32,13 @@ private:
 };
 
 // Default types.
-const Type TYPE_NONE("none", TypeFormat::OBJECT, -1);
-const Type TYPE_BOOL("bool", TypeFormat::BOOL, 8);
-const Type TYPE_INT("int", TypeFormat::INT, 8);
-const Type TYPE_FLOAT("float", TypeFormat::FLOAT, 8);
-const Type TYPE_STRING("string", TypeFormat::OBJECT);
-const Type TYPE_CHAR("char", TypeFormat::INT, 1);
+const Type TYPE_NONE("none", TypeFormat::POINTER, -1);
+const Type TYPE_FUNCTION("function", TypeFormat::POINTER, sizeof(void*));
+const Type TYPE_BOOL("bool", TypeFormat::BOOL, 4);
+const Type TYPE_INT("int32", TypeFormat::INT, 4);
+const Type TYPE_FLOAT("float32", TypeFormat::FLOAT, 4);
+const Type TYPE_STRING("string", TypeFormat::POINTER);
+const Type TYPE_INT8("int8", TypeFormat::INT, 1);
 
 // Vector of all default types.
 const std::vector<Type> TYPES = {
@@ -45,7 +46,7 @@ const std::vector<Type> TYPES = {
     TYPE_INT,
     TYPE_FLOAT,
     TYPE_STRING,
-    TYPE_CHAR
+    TYPE_INT8
 };
 
 } // namespace gunderscript

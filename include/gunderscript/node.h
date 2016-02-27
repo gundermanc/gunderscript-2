@@ -4,10 +4,12 @@
 #ifndef GUNDERSCRIPT_NODE__H__
 #define GUNDERSCRIPT_NODE__H__
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
 #include "lexer_resources.h"
+#include "symbol.h"
 
 namespace gunderscript {
 
@@ -81,9 +83,10 @@ public:
     Node(NodeRule rule, int line, int column, LexerSymbol symbol);
     Node(NodeRule rule, int line, int column, const std::string* value);
     ~Node();
+
     void AddChild(Node* child);
-    Node* child(int child) const;
-    int child_count() const { return this->children_.size(); }
+    Node* child(size_t child) const;
+    size_t child_count() const { return this->children_.size(); }
     bool bool_value() const { return num_value_.bool_value; }
     long int_value() const { return num_value_.int_value; }
     double float_value() const { return num_value_.float_value; }
@@ -92,6 +95,11 @@ public:
     NodeRule rule() const { return rule_; }
     int line() { return line_; }
     int column() { return column_; }
+
+    void set_symbol(Symbol* symbol) {
+        symbol_ = symbol;
+    }
+    const Symbol* symbol() const { return symbol_; }
 
 private:
     std::vector<Node*> children_;
@@ -106,6 +114,10 @@ private:
         LexerSymbol symbol_value;
     } num_value_;
     NodeRule rule_;
+
+    // Mutable Properties:
+
+    Symbol* symbol_;
 };
 
 } // namespace gunderscript

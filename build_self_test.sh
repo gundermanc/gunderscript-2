@@ -9,4 +9,5 @@ git submodule init
 git submodule update
 cmake .
 make
-./library/gunderscript_tests
+./compiler/gunderscript_compiler_tests
+./runtime/gunderscript_runtime_tests

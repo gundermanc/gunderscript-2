@@ -7,6 +7,7 @@
 #include "gunderscript/compiler.h"
 
 namespace gunderscript {
+namespace cli {
 
 // Prints the debug representation of a lexer token to the console.
 void DebugPrintLexerToken(const LexerToken& token);
@@ -15,6 +16,7 @@ void DebugPrintLexerToken(const LexerToken& token);
 // to the console.
 void DebugPrintNode(const Node* node);
 
+} // namespace cli
 } // namespace gunderscript
 
 #endif // GUNDERSCRIPT_DEBUG__H__

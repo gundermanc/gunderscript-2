@@ -5,4 +5,7 @@
 
 include_directories(../include)
 add_executable (gunderscript_cli cli.cc debug.cc entry.cc)
-target_link_libraries(gunderscript_cli gunderscript)
+target_link_libraries(
+    gunderscript_cli
+    gunderscript_compiler
+    gunderscript_runtime)

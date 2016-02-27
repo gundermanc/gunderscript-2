@@ -3,7 +3,10 @@
 # (C) 2015 Christian Gunderman
 #
 
-option(gunderscript_tests "Gunderscript Tests" ON)
+option(gunderscript_cli "Gunderscript Command Line Application" ON)
+option(gunderscript_compiler "Gunderscript Compiler Library" ON)
+option(gunderscript_compiler_tests "Gunderscript Compiler Library Tests" ON)
+option(gunderscript_runtime_tests "Gunderscript Runtime Library Tests" ON)
 
 cmake_minimum_required (VERSION 2.8.7)
 project (GUNDERSCRIPT)
@@ -12,6 +15,11 @@ project (GUNDERSCRIPT)
 # MSVC DLLs on Windows. Also required for GoogleTest linkage.
 include(cmake/msvc_macros.cmake)
 configure_msvc_runtime ()
+
+# TODO: this is pretty jank, reconsider.
+# Define platform constants for NanoJIT
+include(nanojit/cmake_macros.cmake)
+define_nanojit_platform()
 
 # Travis CI Compatible C++11 Support
 # CXX_STANDARD proeprty doesn't work on Travis CI because
@@ -28,12 +36,25 @@ else ()
 endif ()
 
 # Import Google Test if option enabled.
-if (gunderscript_tests)
+if (gunderscript_compiler_tests)
     add_subdirectory (googletest)
 endif ()
-  
-# Compile libgunderscript.
-add_subdirectory (library)
 
-# Compile command line components.
-add_subdirectory (cli)
+# Compile NanoJIT dependency.
+add_subdirectory (nanojit)
+
+# Compile libgunderscript common library.
+add_subdirectory (common)
+
+# Compile libgunderscript compiler if option enabled.
+if (gunderscript_compiler)
+    add_subdirectory (compiler)
+endif ()
+
+# Compile libgunderscript runtime if option enabled.
+add_subdirectory (runtime)
+
+# Compile command line components if option enabled.
+if (gunderscript_cli)
+    add_subdirectory (cli)
+endif ()

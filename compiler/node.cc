@@ -4,6 +4,8 @@
 #include "gunderscript/exceptions.h"
 #include "gunderscript/node.h"
 
+#include "gs_assert.h"
+
 namespace gunderscript {
 
 // POTENTIAL BUG BUG BUG: If you update this array you must also update NodeRule
@@ -26,42 +28,42 @@ const std::string NodeRuleString(NodeRule rule) {
 }
 
 // Constructs a new node with no children and the specified NodeRule.
-Node::Node(NodeRule rule, int line, int column) : line_(line), column_(column) {
+Node::Node(NodeRule rule, int line, int column) : line_(line), column_(column), symbol_(NULL) {
     rule_ = rule;
     num_value_.int_value = 0;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a boolean value.
-Node::Node(NodeRule rule, int line, int column, bool value) : line_(line), column_(column) {
+Node::Node(NodeRule rule, int line, int column, bool value) : line_(line), column_(column), symbol_(NULL) {
     rule_ = rule;
     num_value_.bool_value = value;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a long value.
-Node::Node(NodeRule rule, int line, int column, long value) : line_(line), column_(column) {
+Node::Node(NodeRule rule, int line, int column, long value) : line_(line), column_(column), symbol_(NULL) {
     rule_ = rule;
     num_value_.int_value = value;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a double value.
-Node::Node(NodeRule rule, int line, int column, double value) : line_(line), column_(column) {
+Node::Node(NodeRule rule, int line, int column, double value) : line_(line), column_(column), symbol_(NULL) {
     rule_ = rule;
     num_value_.float_value = value;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a LexerSymbol.
-Node::Node(NodeRule rule, int line, int column, LexerSymbol symbol) : line_(line), column_(column) {
+Node::Node(NodeRule rule, int line, int column, LexerSymbol symbol) : line_(line), column_(column), symbol_(NULL) {
     rule_ = rule;
     num_value_.symbol_value = symbol;
     string_value_ = NULL;
 }
 
 // Constructs a new node with no children, the specified NodeRule, and a string value.
-Node::Node(NodeRule rule, int line, int column, const std::string* value) : line_(line), column_(column) {
+Node::Node(NodeRule rule, int line, int column, const std::string* value) : line_(line), column_(column), symbol_(NULL) {
     rule_ = rule;
     num_value_.int_value = 0;
     string_value_ = new std::string(*value);
@@ -74,7 +76,11 @@ Node::~Node() {
         delete string_value_;
     }
 
-    for (unsigned int i = 0; i < children_.size(); i++) {
+    if (symbol_ != NULL) {
+        delete symbol_;
+    }
+
+    for (size_t i = 0; i < children_.size(); i++) {
         delete children_[i];
     }
 }
@@ -85,17 +91,9 @@ void Node::AddChild(Node* child) {
 }
 
 // Gets a child from this node by its index (added order).
-Node* Node::child(int child) const {
-    if (this->child_count() > child) {
-        return this->children_[child];
-    }
-
-    // Line and column are arbritrary since this is never thrown in
-    // normal operation.
-    THROW_EXCEPTION(
-        1,
-        1,
-        STATUS_ILLEGAL_STATE);
+Node* Node::child(size_t child) const {
+    GS_ASSERT_TRUE(child_count() > child, "Child index is out of bounds in Node");
+    return this->children_[child];
 }
 
 } // namespace gunderscript

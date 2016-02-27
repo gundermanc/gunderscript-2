@@ -22,36 +22,53 @@ private:
     const std::string what_;
 };
 
-// The class for all Gunderscript engine exceptions.
+// The class for all Gunderscript engine exceptions. Use THROW_EXCEPTION instead
+// of concrete constructor calls. In DEBUG configuration exception defines a file
+// and line number field that show the implementation file where an exception
+// originated.
 class Exception : public std::exception {
 public:
     Exception(
+#ifdef _DEBUG
         int impl_line,
         const char* impl_file,
+#endif
         int line,
         int column,
-        const ExceptionStatus& status) throw()
-        : impl_line_(impl_line), impl_file_(impl_file),
+        const ExceptionStatus& status) throw() :
+#ifdef _DEBUG
+        impl_line_(impl_line), impl_file_(impl_file),
+#endif
         line_(line), column_(column), status_(status) { }
 
+#ifdef _DEBUG
     int impl_line() const { return impl_line_; }
     const char * impl_file() const { return impl_file_; }
+#endif
     int line() const { return line_; }
     int column() const { return column_; }
     ExceptionStatus status() const { return status_; }
     virtual const char* what() const throw() { return status_.what().c_str(); }
 
 private:
+#ifdef _DEBUG
     const int impl_line_;
     const char * impl_file_;
+#endif
     const int line_;
     const int column_;
     const ExceptionStatus status_;
 };
 
 // Used to throw all exceptions within Gunderscript engine so that implementation
-// file and line are saved.
+// file and line are saved when in DEBUG configuration.
+#ifdef _DEBUG
 #define THROW_EXCEPTION(line, column, status)     throw Exception(__LINE__, __FILE__, line, column, status)
+#else
+#define THROW_EXCEPTION(line, column, status)     throw Exception(line, column, status)
+#endif
+
+#define THROW_NOT_IMPLEMENTED()                   THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE) 
 
 // Status definitions indicating the compile errors.
 // Officially status codes are identified by GS[code] but we leave this out so we can use INT comparisons.
@@ -62,6 +79,8 @@ const ExceptionStatus STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL = ExceptionStatus(-2, 
 const ExceptionStatus STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL = ExceptionStatus(-3, "No symbol in symbol table with given key");
 const ExceptionStatus STATUS_SYMBOLTABLE_BOTTOM_OF_STACK = ExceptionStatus(-4, "Reached bottom of stack while popping Symbol table scope");
 const ExceptionStatus STATUS_FILESOURCE_FILE_READ_ERROR = ExceptionStatus(-5, "Unable to read file");
+const ExceptionStatus STATUS_INVALID_CALL = ExceptionStatus(-6, "Caller performed invalid call on Gunderscript library");
+const ExceptionStatus STATUS_ASSEMBLER_DIED = ExceptionStatus(-7, "Assembler was unable to assemble code");
 
 // Lexer Exceptions 100-199:
 const ExceptionStatus STATUS_LEXER_UNTERMINATED_COMMENT = ExceptionStatus(100, "Unterminated comment");
@@ -77,8 +96,8 @@ const ExceptionStatus STATUS_PARSER_MISSING_PACKAGE= ExceptionStatus(200, "Expec
 const ExceptionStatus STATUS_PARSER_INVALID_PACKAGE = ExceptionStatus(201, "Invalid package name at top of file");
 const ExceptionStatus STATUS_PARSER_MALFORMED_DEPENDS = ExceptionStatus(202, "Malformed depends statement");
 const ExceptionStatus STATUS_PARSER_EXPECTED_SEMICOLON = ExceptionStatus(203, "Expected but did not find a semicolon");
-const ExceptionStatus STATUS_PARSER_MALFORMED_SPEC_ACCESS_MODIFIER_MISSING 
-    = ExceptionStatus(204, "Trying to parse Spec definition, expected but did not find an access modifier");
+const ExceptionStatus STATUS_PARSER_MALFORMED_SPEC_OR_FUNC_ACCESS_MODIFIER_MISSING 
+    = ExceptionStatus(204, "Trying to parse Spec or static Function definition, expected but did not find an access modifier");
 const ExceptionStatus STATUS_PARSER_MALFORMED_SPEC_SPEC_KEYWORD_MISSING
     = ExceptionStatus(205, "Trying to parse Spec definition, expected but did not find spec keyword");
 const ExceptionStatus STATUS_PARSER_MALFORMED_SPEC_NAME_MISSING
@@ -184,19 +203,21 @@ const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_EQUALS
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_NOT_EQUALS
     = ExceptionStatus(320, "Non-matching types in '!=' expression");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_FUNCTION
-    = ExceptionStatus(321, "A function with the same name parameters has already been declared in this Spec");
+    = ExceptionStatus(321, "A function with the same name and parameters has already been declared in this Spec");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_PROPERTY
     = ExceptionStatus(322, "A property with the same name has already been declared in this Spec");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_FUNCTION_PARAM
     = ExceptionStatus(323, "A function param with the same name has already been declared in this function");
 const ExceptionStatus STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND
-    = ExceptionStatus(324, "Cannot find a function overload with that name that accepts the specified param types");
+    = ExceptionStatus(324, "Cannot find a function overload or typecast with that name that accepts the specified param types");
 const ExceptionStatus STATUS_SEMANTIC_INVALID_TYPE_IN_ADD
     = ExceptionStatus(325, "'+' operator supports only string and numeric types");
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_SPEC
     = ExceptionStatus(326, "A Spec with that name already exists");
 const ExceptionStatus STATUS_SEMANTIC_UNDEFINED_TYPE
     = ExceptionStatus(327, "Undefined type");
+const ExceptionStatus STATUS_SEMANTIC_UNSUPPORTED_TYPECAST
+    = ExceptionStatus(328, "This typecast is not supported");
 
 } // namespace gunderscript
 

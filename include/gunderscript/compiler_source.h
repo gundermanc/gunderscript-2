@@ -4,7 +4,7 @@
 #ifndef GUNDERSCRIPT_COMPILER_SOURCE__H__
 #define GUNDERSCRIPT_COMPILER_SOURCE__H__
 
-#include "exceptions.h"
+#include <string>
 
 namespace gunderscript {
 
