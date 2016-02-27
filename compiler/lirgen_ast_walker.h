@@ -21,6 +21,14 @@
 namespace gunderscript {
 namespace compiler {
 
+union RegisterEntry {
+    LIns* ins_;
+    ModuleFunc* func_; // Pointer to a function pointer.
+
+    RegisterEntry(LIns* ins) { ins_ = ins; }
+    RegisterEntry(ModuleFunc* func) { func_ = func; }
+};
+
 // The result of a generation operation.
 class LirGenResult {
 public:
@@ -270,14 +278,23 @@ protected:
 
 private:
     LIns* GenerateLoad(const Type& type, nanojit::LIns* base);
+    int CountFunctions();
 
+    ModuleFunc* func_table_;
     const std::string* module_name_;
-    SymbolTable<std::tuple<Type, nanojit::LIns*>> register_table_;
+    SymbolTable<std::tuple<Type, RegisterEntry>> register_table_;
     std::vector<ModuleImplSymbol>* symbols_vector_;
     nanojit::Allocator& alloc_;
     nanojit::Fragment* current_fragment_;
     nanojit::Config& config_;
     nanojit::LirBufWriter* current_writer_;
+    int current_function_index_;
+    int param_offset_;
+
+    // Sanity check variables.
+#ifdef _DEBUG
+    int debug_functions_count_;
+#endif // _DEBUG
 };
 
 } // namespace compiler

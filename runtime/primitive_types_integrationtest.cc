@@ -251,3 +251,60 @@ TEST(PrimitiveTypesIntegration, NotBool) {
     EXPECT_FALSE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return !true;"));
     EXPECT_TRUE(COMPILE_AND_RUN_BOOL_MAIN_LINES("return !false;"));
 }
+
+TEST(PrimitiveTypesIntegration, LotsOfArgs) {
+    EXPECT_EQ(291, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() { return lots(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11); }"
+        "public int32 lots(int32 a, int32 b, int32 c, int32 d, int32 e, int32 f, int32 g, int32 h, int32 i, int32 j, int32 k) { return a + b - c * d * e + f * g * h - i + j + k; }"));
+}
+
+TEST(PrimitiveTypesIntegration, ParamsAndVars) {
+    EXPECT_EQ(20, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() { "
+        "   x <- 3 + 2;"
+        "   return y(x + 1) + 2;"
+        "}"
+        "public int32 y(int32 x) { y <- 3 * x; return y; }"));
+}
+
+TEST(PrimitiveTypesIntegration, ParamReassignment) {
+    EXPECT_EQ(20, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() { "
+        "   x <- 3 + 2;"
+        "   return y(x + 1) + 2;"
+        "}"
+        "public int32 y(int32 x) { x <- 3 * x; return x; }"));
+}
+
+TEST(PrimitiveTypesIntegration, CallBoolParamsAndReturns) {
+    EXPECT_EQ(0, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public bool x(bool x, bool z) { return !x && !z; }"
+        "public int32 main() { return int32(x(1 != 1, 2 > 1)); }"));
+}
+
+TEST(PrimitiveTypesIntegration, CallIntParamsAndReturns) {
+    EXPECT_EQ(8, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 x(int32 x, int32 z) { return 2 * z(x + z); }"
+        "public int32 main() { return x(1 + 1, 2 - 2); }"
+        "public int32 z(int32 z) { return z + z; }"));
+}
+
+TEST(PrimitiveTypesIntegration, CallFloatParamsAndReturns) {
+    EXPECT_EQ(8, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public float32 x(float32 x, float32 z) { return 2.0 * z(x + z); }"
+        "public int32 main() { return int32(x(1.0 + 1.0, 2.0 - 2.0)); }"
+        "public float32 z(float32 z) { return z + z; }"));
+}
+
+TEST(PrimitiveTypesIntegration, CallCharParamsAndReturns) {
+    EXPECT_EQ(8, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int8 x(int8 x, int8 z) { return int8(2) * z(x + z); }"
+        "public int32 main() { return int32(x(int8(1 + 1), int8(2 - 2))); }"
+        "public int8 z(int8 z) { return z + z; }"));
+}
+
+TEST(PrimitiveTypesIntegration, CallCombinedParams) {
+    EXPECT_EQ(0, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public bool x(bool a, float32 b, bool c, int32 d, bool e, int8 f, bool g) { return a && b = 1.0 && !c &&  d = 2 && e && f = int8(122) && !g; }"
+        "public int32 main() { return int32(x(true, 1.0, false, 2, true, int8(122), false)); }"));
+}

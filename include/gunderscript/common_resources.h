@@ -4,6 +4,8 @@
 #ifndef GUNDERSCRIPT_COMMON_RESOURCES__H__
 #define GUNDERSCRIPT_COMMON_RESOURCES__H__
 
+#include <memory>
+
 namespace gunderscript {
 
 // Forward declaration of private implementation class.
@@ -13,12 +15,11 @@ class CommonResourcesImpl;
 class CommonResources {
 public:
     CommonResources();
-    ~CommonResources();
 
-    CommonResourcesImpl& pimpl() { return *pimpl_; }
+    CommonResourcesImpl& pimpl() { return *(pimpl_.get()); }
 
 private:
-    CommonResourcesImpl* pimpl_;
+    std::shared_ptr<CommonResourcesImpl> pimpl_;
 };
 
 } // namespace gunderscript

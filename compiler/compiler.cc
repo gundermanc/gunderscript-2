@@ -172,9 +172,4 @@ void Compiler::Compile(CompilerSourceInterface& source, Module& compiled_module)
     return this->pimpl_->Compile(source, compiled_module);
 }
 
-// Destroy private implementation object when done.
-Compiler::~Compiler() {
-    delete pimpl_;
-}
-
 } // namespace gunderscript

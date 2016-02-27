@@ -10,13 +10,13 @@
 
 // HACK: required for explicit class instanatiation linking across libraries.
 #include "gunderscript/type.h"
-#include "nanojit.h"
+#include "lirgen_ast_walker.h"
 
 namespace gunderscript {
 namespace compiler {
 
 // Instantiate template so we can unit test and link from external modules.
-template class SymbolTable<std::tuple<Type, nanojit::LIns*>>;
+template class SymbolTable<std::tuple<Type, RegisterEntry>>;
 template class SymbolTable<std::string>;
 template class SymbolTable<Symbol*>;
 

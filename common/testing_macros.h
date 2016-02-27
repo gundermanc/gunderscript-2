@@ -34,9 +34,23 @@ FAIL();                                                         \
 // for Gunderscript in the future without changing hundreds of lines of code.
 
 // Runs the Testing::main() method that returns INT32 with no arguments.
+// Provides only a class and no methods. You must provide these yourself.
+#define COMPILE_AND_RUN_INT_MAIN_CLASS(class_members)            \
+([]() {                                                          \
+std::string input("package \"Foo\"; " class_members); \
+CommonResources common_resources;                               \
+CompilerStringSource string_source(input);                      \
+Compiler compiler(common_resources);                            \
+Module module;                                                  \
+compiler.Compile(string_source, module);                        \
+VirtualMachine vm(common_resources);                            \
+return vm.HackyRunScriptMainInt(module);                        \
+})()
+
+// Runs the Testing::main() method that returns INT32 with no arguments.
 #define COMPILE_AND_RUN_INT_MAIN_LINES(lines)                   \
 ([]() {                                                          \
-std::string input("package \"Foo\"; public spec Testing { public int32 main() { " lines " }}"); \
+std::string input("package \"Foo\"; public int32 main() { " lines " }"); \
 CommonResources common_resources;                               \
 CompilerStringSource string_source(input);                      \
 Compiler compiler(common_resources);                            \
@@ -49,7 +63,7 @@ return vm.HackyRunScriptMainInt(module);                        \
 // Runs the Testing::main() method that returns FLOAT32 with no arguments.
 #define COMPILE_AND_RUN_FLOAT_MAIN_LINES(lines)                   \
 ([]() {                                                          \
-std::string input("package \"Foo\"; public spec Testing { public float32 main() { " lines " }}"); \
+std::string input("package \"Foo\"; public float32 main() { " lines " }"); \
 CommonResources common_resources;                               \
 CompilerStringSource string_source(input);                      \
 Compiler compiler(common_resources);                            \
@@ -62,7 +76,7 @@ return vm.HackyRunScriptMainFloat(module);                      \
 // Runs the Testing::main() method that returns BOOL with no arguments.
 #define COMPILE_AND_RUN_BOOL_MAIN_LINES(lines)                   \
 ([]() {                                                          \
-std::string input("package \"Foo\"; public spec Testing { public bool main() { " lines " }}"); \
+std::string input("package \"Foo\"; public bool main() { " lines " }"); \
 CommonResources common_resources;                               \
 CompilerStringSource string_source(input);                      \
 Compiler compiler(common_resources);                            \
@@ -75,7 +89,7 @@ return vm.HackyRunScriptMainBool(module);                       \
 // Runs the Testing::main() method that returns int8 with no arguments.
 #define COMPILE_AND_RUN_INT8_MAIN_LINES(lines)                   \
 ([]() {                                                          \
-std::string input("package \"Foo\"; public spec Testing { public int8 main() { " lines " }}"); \
+std::string input("package \"Foo\"; public int8 main() { " lines " }"); \
 CommonResources common_resources;                               \
 CompilerStringSource string_source(input);                      \
 Compiler compiler(common_resources);                            \

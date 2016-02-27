@@ -78,6 +78,7 @@ const ExceptionStatus STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL = ExceptionStatus(-3, 
 const ExceptionStatus STATUS_SYMBOLTABLE_BOTTOM_OF_STACK = ExceptionStatus(-4, "Reached bottom of stack while popping Symbol table scope");
 const ExceptionStatus STATUS_FILESOURCE_FILE_READ_ERROR = ExceptionStatus(-5, "Unable to read file");
 const ExceptionStatus STATUS_INVALID_CALL = ExceptionStatus(-6, "Caller performed invalid call on Gunderscript library");
+const ExceptionStatus STATUS_ASSEMBLER_DIED = ExceptionStatus(-7, "Assembler was unable to assemble code");
 
 // Lexer Exceptions 100-199:
 const ExceptionStatus STATUS_LEXER_UNTERMINATED_COMMENT = ExceptionStatus(100, "Unterminated comment");

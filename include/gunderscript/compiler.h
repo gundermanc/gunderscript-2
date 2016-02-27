@@ -35,7 +35,6 @@ class CompilerImpl;
 class Compiler {
 public:
     Compiler(CommonResources& common_resources);
-    ~Compiler();
     void DebugCompilation(
         CompilerSourceInterface& source,
         CompilerStage stop_at,
@@ -45,7 +44,7 @@ public:
     void Compile(CompilerSourceInterface& source, Module& compiled_module);
 
 private:
-    CompilerImpl* pimpl_;
+    std::shared_ptr<CompilerImpl> pimpl_;
 };
 
 } // namespace gunderscript

@@ -26,7 +26,8 @@ enum class SymbolType {
     FUNCTION,
     PROPERTY,
     VARIABLE,
-    TYPE
+    TYPE,
+    PARAM
 };
 
 class Symbol {

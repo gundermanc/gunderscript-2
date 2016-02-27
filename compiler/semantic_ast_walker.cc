@@ -234,7 +234,7 @@ Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     // Create a new symbol for the parameter.
     // Extraneous values are arbitrary.
     Symbol* param_symbol = new Symbol(
-        SymbolType::FUNCTION,
+        SymbolType::PARAM,
         LexerSymbol::CONCEALED,
         false,
         ResolveTypeNode(type_node),
@@ -429,7 +429,7 @@ Type SemanticAstWalker::WalkFunctionLikeTypecast(
             // TODO: put exceptions in here if any.
             // For now, assume all types except string can be cast.
            
-            if (argument_result.type_format() != TypeFormat::OBJECT) {
+            if (argument_result.type_format() != TypeFormat::POINTER) {
                 return symbol->type();
             }
             break;
@@ -440,7 +440,7 @@ Type SemanticAstWalker::WalkFunctionLikeTypecast(
             // different floating point representations causing near-zero values to
             // be treated as zero and vice versa. If the user wants to cast they must
             // use an if statement.
-            if (argument_result.type_format() != TypeFormat::OBJECT &&
+            if (argument_result.type_format() != TypeFormat::POINTER &&
                 argument_result.type_format() != TypeFormat::FLOAT) {
                 return symbol->type();
             }

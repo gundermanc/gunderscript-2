@@ -4,6 +4,8 @@
 #include "gunderscript/exceptions.h"
 #include "gunderscript/node.h"
 
+#include "gs_assert.h"
+
 namespace gunderscript {
 
 // POTENTIAL BUG BUG BUG: If you update this array you must also update NodeRule
@@ -78,7 +80,7 @@ Node::~Node() {
         delete symbol_;
     }
 
-    for (unsigned int i = 0; i < children_.size(); i++) {
+    for (size_t i = 0; i < children_.size(); i++) {
         delete children_[i];
     }
 }
@@ -90,16 +92,8 @@ void Node::AddChild(Node* child) {
 
 // Gets a child from this node by its index (added order).
 Node* Node::child(size_t child) const {
-    if (this->child_count() > child) {
-        return this->children_[child];
-    }
-
-    // Line and column are arbritrary since this is never thrown in
-    // normal operation.
-    THROW_EXCEPTION(
-        1,
-        1,
-        STATUS_ILLEGAL_STATE);
+    GS_ASSERT_TRUE(child_count() > child, "Child index is out of bounds in Node");
+    return this->children_[child];
 }
 
 } // namespace gunderscript

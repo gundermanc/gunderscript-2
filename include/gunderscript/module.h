@@ -4,6 +4,7 @@
 #ifndef GUNDERSCRIPT_MODULE__H__
 #define GUNDERSCRIPT_MODULE__H__
 
+#include <memory>
 #include <string>
 
 namespace gunderscript {
@@ -15,14 +16,14 @@ class ModuleImpl;
 class Module {
 public:
     Module();
-    ~Module();
 
     bool compiled();
+    bool assembled();
     const std::string& module_name() const;
-    const ModuleImpl* pimpl() const { return pimpl_; }
+    ModuleImpl* pimpl() const { return pimpl_.get(); }
 
 private:
-    ModuleImpl* pimpl_;
+    std::shared_ptr<ModuleImpl> pimpl_;
 };
 
 } // namespace gunderscript

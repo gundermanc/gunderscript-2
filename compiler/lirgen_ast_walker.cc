@@ -2,9 +2,11 @@
 // (C) 2016 Christian Gunderman
 
 #include <cmath>
+#include <functional>
 
 #include "gunderscript/exceptions.h"
 
+#include "gs_assert.h"
 #include "lirgen_ast_walker.h"
 
 using namespace nanojit;
@@ -24,7 +26,23 @@ static float FloatMod(float a1, float a2) {
 // POTENTIAL BUG BUG BUG: be ABSOLUTELY certain that these match up or we're gonna have
 // BAD things happen.
 
-const CallInfo CI_FLOAT_MOD = { (uintptr_t)FloatMod, CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_F, ARGTYPE_F) };
+const CallInfo CI_FLOAT_MOD = {
+    (uintptr_t)FloatMod,
+    CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_F, ARGTYPE_F),
+    ABI_CDECL, 1, ACCSET_STORE_ANY verbose_only(, "fmod")};
+
+// Calling conventions for Gunderscript generated methods. One per machine level return type (int, float).
+// These methods all take two arguments: A function pointer and a pointer to a vector of arguments in the stack
+// and they return the function's return value. Admittedly this is weird but this is how arguments are passed in
+// Tamarin as well.
+const CallInfo CI_ICALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig2(ARGTYPE_I, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_int32")};
+const CallInfo CI_FCALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_float32" )};
 
 void LIRGenAstWalker::Generate(Module& module) {
     
@@ -33,12 +51,28 @@ void LIRGenAstWalker::Generate(Module& module) {
         THROW_EXCEPTION(1, 1, STATUS_INVALID_CALL);
     }
 
+    // Mark as compiled. Even if compilation fails we invalidate this module for future compilations.
+    module.pimpl()->set_compiled(true);
+
     // Set the output Module symbol vector as the current symbol vector.
     // This stores all exported symbols in the vector.
     this->symbols_vector_ = &module.pimpl()->symbols_vector();
 
+    // Allocate function lookup table for the module.
+    int functions_count = this->CountFunctions();
+    this->func_table_ = new ModuleFunc[functions_count];
+    this->current_function_index_ = 0;
+
+    // Debug sanity check prereq.
+#ifdef _DEBUG
+    this->debug_functions_count_ = functions_count;
+#endif // _DEBUG
+
     // Walk through the AST and find everything we need for our new Module.
     this->Walk();
+
+    // Store the function lookup table in the module.
+    module.pimpl()->set_func_table(this->func_table_);
 }
 
 // Walks the MODULE node in the abstract syntax tree.
@@ -74,7 +108,8 @@ void LIRGenAstWalker::WalkSpecDeclaration(
     // TODO: do we need to export anything for a spec, or just for the elements of the spec?
 }
 
-// Walks a single function declaration inside of a SPEC and generates the code for it.
+// There is currently 1 fragment per function. You can find the code for generation and
+// storage of the fragments in the WalkFunctionChildren() method.
 void LIRGenAstWalker::WalkFunctionDeclaration(
     Node* spec_node,
     Node* function_node,
@@ -99,7 +134,42 @@ LirGenResult LIRGenAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* name_node,
     bool prescan) {
 
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    // Only run during actual code generation, not during the prescan for out of order functions.
+    if (!prescan) {
+
+        // Determine argument size.
+        int arg_size = sizeof(int32_t);
+        switch (function_param_node->symbol()->type().type_format()) 
+        {
+        case TypeFormat::INT:
+            if (function_param_node->symbol()->type().size() == 1) {
+                arg_size = sizeof(int8_t);
+                break;
+            }
+            // else: fall through to BOOL (4 byte integer).
+        case TypeFormat::BOOL:
+        case TypeFormat::FLOAT:
+            arg_size = sizeof(int32_t);
+            break;
+        default:
+            GS_ASSERT_FAIL("Unknown argument type size in function declaration codegen");
+        }
+
+        // Store the param load address in the register_table_
+        // TODO: make address calculation at compile instead of runtime.
+        // I haven't done this yet because it is dependedent upon redesigning the gen code to
+        // not store and load at EVERY variable assign and reference.
+        this->register_table_.Put(
+            function_param_node->symbol()->name(),
+            std::make_tuple(
+                function_param_node->symbol()->type(),
+                RegisterEntry(
+                    this->current_writer_->ins2(LIR_addp,
+                        this->current_writer_->insParam(/* args vector*/ 0, /*func param kind*/0),
+                        this->current_writer_->insImmI(arg_size * this->param_offset_++)))));
+    }
+
+    return LirGenResult(function_param_node->symbol()->type(), NULL);
 }
 
 // Walks a single property in a spec property declaration.
@@ -134,8 +204,89 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
             call_node, arguments_result.at(0));
     }
 
-    // TODO: implement function call code generation.
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+    // Lookup the function's register entry.
+    // Register entry contains register information for variables and 
+    // a pointer to a location that will contain a function pointer after compilation
+    // for functions. This is done to avoid the need to backpatch function addresses later.
+    std::tuple<Type, RegisterEntry> function_reg_tuple = this->register_table_.Get(call_node->symbol()->name());
+
+    // NanoJIT unfortunately depends on having a function pointer to jump to for function calls,
+    // however, we don't have one readily available for most functions since compilation hasn't
+    // completed. We get around this limitation by keeping a table of function pointers
+    // in this->func_table_ (and later in moduleimpl). After compilation this table is populated
+    // with pointers to each of our functions. Since we know WHERE the pointers are we can simply
+    // write instructions to load them and call them. This also has the added benefit of making
+    // it easy to perform partial recompiles by simply recompiling the modified function and
+    // updating its pointer.
+    LIns* target = this->current_writer_->insLoad(LIR_ldp,
+        this->current_writer_->insImmP(std::get<1>(function_reg_tuple).func_), 0, ACCSET_ALL, LOAD_NORMAL);
+
+    // Choose indirect call method. Arguments are passed as a single argument in a vector so
+    // only one call method is needed per return type.
+    const CallInfo* method = NULL;
+    switch (call_node->symbol()->type().type_format())
+    {
+    case TypeFormat::BOOL:
+    case TypeFormat::INT:
+        method = &CI_ICALLI;
+        break;
+    case TypeFormat::FLOAT:
+        method = &CI_FCALLI;
+        break;
+    default:
+        GS_ASSERT_FAIL("Unimplemented return type in function call");
+    }
+
+    // Create a stack alloc instruction for a vector of arguments. This is backpatched later.
+    LIns* arguments_vector = arguments_vector = this->current_writer_->insAlloc(sizeof(uint8_t));
+
+    if (arguments_result.size() > 0) {
+        int32_t arg_offset = 0;
+
+        // Store arguments in the stack.
+        for (size_t i = 0; i < arguments_result.size(); i++) {
+            LirGenResult& argument = arguments_result.at(i);
+
+            switch (argument.type().type_format())
+            {
+            case TypeFormat::BOOL:
+            case TypeFormat::INT:
+                this->current_writer_->insStore(LIR_sti, argument.ins(), arguments_vector, arg_offset, ACCSET_ALL);
+                arg_offset += sizeof(int32_t);
+                break;
+            case TypeFormat::FLOAT:
+                this->current_writer_->insStore(LIR_stf, argument.ins(), arguments_vector, arg_offset, ACCSET_ALL);
+                arg_offset += sizeof(float);
+                break;
+            default:
+                GS_ASSERT_FAIL("Unknown type argument in function call codegen");
+            }
+        }
+
+        // Backpatch the size of the arguments vector to the sum of the sizes of the
+        // respective args.
+        arguments_vector->setSize(arg_offset);
+    }
+
+    // We're using an indirect function call here meaning that we are calling a function pointer that
+    // we loaded from somewhere (in this case the func_table, see comment above). Due to quirks of
+    // NanoJIT we only need two arguments to the call instruction:
+    // - A pointer to the first argument. Subsequent function arguments are found at various offsets
+    //   along this pointer.
+    // - A pointer to the target function.
+    // This is how calls are made in Tamarin as well, presumably to allow virtual functions but they
+    // do the same thing for static methods as well making me think that NanoJIT simply requires
+    // generated functions to pass arguments in this way.
+    // NanoJIT appears to require the function pointer to be the last argument but this is merely
+    // speculation as it is undocumented and the code is difficult to follow. If tests fail, try
+    // making it first.
+    LIns* args[] = { arguments_vector, target };
+    LIns* call = this->current_writer_->insCall(method, args);
+
+    // Ensure the arguments remain live until after the call.
+    this->current_writer_->ins1(LIR_livep, arguments_vector);
+
+    return LirGenResult(call_node->symbol()->type(), call);
 }
 
 // Walks a function-like typecast and generates code for the type conversions.
@@ -225,10 +376,10 @@ LirGenResult LIRGenAstWalker::WalkAssign(
     // Check if the variable name was bound in the current scope. If it was, it is a local
     // and we can use the NanoJIT register for it.
     try {
-        variable_ptr = std::get<1>(this->register_table_.GetTopOnly(*name_node->string_value()));
+        variable_ptr = std::get<1>(this->register_table_.GetTopOnly(*name_node->string_value())).ins_;
         goto emit_assign_ins;
     }
-    catch (const Exception& ex) {
+    catch (const Exception&) {
 
         // Variable was not bound in the current scope, check if it was bound in any scope.
         // If so, if it is the same type as our expression then we are assigning to the already
@@ -236,10 +387,10 @@ LirGenResult LIRGenAstWalker::WalkAssign(
         // If not, this variable is a narrower scope variable of the same name and a different
         // type that is masking the old one.
         try {
-            std::tuple<Type, LIns*> variable_reg = this->register_table_.Get(*name_node->string_value());
+            std::tuple<Type, RegisterEntry> variable_reg = this->register_table_.Get(*name_node->string_value());
 
             if (std::get<0>(variable_reg) == operations_result.type()) {
-                variable_ptr = std::get<1>(variable_reg);
+                variable_ptr = std::get<1>(variable_reg).ins_;
                 goto emit_assign_ins;
             }
             /* else: Fall into new alloc */
@@ -251,7 +402,7 @@ LirGenResult LIRGenAstWalker::WalkAssign(
     // it has either never been seen before or is a new var of a different type masking
     // the original definition in an enclosing scope.
     variable_ptr = this->current_writer_->insAlloc(operations_result.type().size());
-    this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.type(), variable_ptr));
+    this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.type(), RegisterEntry(variable_ptr) ));
 
     // Emit the assignment instruction. Dijkstra doesn't have to agree with me, gotos can be useful.
 emit_assign_ins:
@@ -958,7 +1109,7 @@ LirGenResult LIRGenAstWalker::WalkFloat(
     Node* float_node) {
 
     return LirGenResult(float_node->symbol()->type(),
-        this->current_writer_->insImmF(float_node->float_value()));
+        this->current_writer_->insImmF((float)float_node->float_value()));
 }
 
 // Walks the STRING node and returns the type for it.
@@ -1001,7 +1152,7 @@ LirGenResult LIRGenAstWalker::WalkVariable(
     const Type& variable_type = variable_node->symbol()->type();
     LIns* load = GenerateLoad(
         variable_type,
-        std::get<1>(this->register_table_.Get(*name_node->string_value())));
+        std::get<1>(this->register_table_.Get(*name_node->string_value())).ins_);
 
     return LirGenResult(variable_type, load);
 }
@@ -1027,10 +1178,13 @@ void LIRGenAstWalker::WalkFunctionChildren(
     Node* function_node,
     bool prescan) {
 
-    // Run once.
+    this->param_offset_ = 0;
+
+    // If we're doing code generation now:
     if (!prescan) {
         // TODO: make sure that this is freed.
         LirBuffer* buf = new (alloc_) LirBuffer(alloc_);
+        buf->abi = ABI_CDECL;
 
         // Allocate a fragment for the function.
 #ifdef NJ_VERBOSE
@@ -1040,7 +1194,6 @@ void LIRGenAstWalker::WalkFunctionChildren(
 #endif
         this->current_fragment_->lirbuf = buf;
         this->current_writer_ = new LirBufWriter(buf, this->config_);
-        buf->abi = ABI_CDECL;
 
         // Write function start:
         this->current_writer_->ins0(LIR_start);
@@ -1055,9 +1208,25 @@ void LIRGenAstWalker::WalkFunctionChildren(
 
     this->register_table_.Pop();
 
-    // Run once.
-    if (!prescan) {
-        const Symbol* function_symbol = function_node->symbol();
+    const Symbol* function_symbol = function_node->symbol();
+
+    // If we're doing code generation now:
+    if (prescan) {
+        GS_ASSERT_TRUE(
+            this->current_function_index_ < this->debug_functions_count_,
+            "Not enough space in function pointer table.");
+
+        // NanoJIT requires function pointers to know where to jump at a function call.
+        // Unfortunately there IS no pointer until after assembly, so we work around this
+        // restriction by storing function pointers to the functions in a list in the Module.
+        // Now, instead of knowing a pointer to the function (where the function is),
+        // all we need is to know where we WILL be able to find the pointer (where we can look
+        // to get the pointer). These are stored in a contiguous buffer and are identified
+        // positionally to correspond with the location of the function in the symbols_vector.
+        this->register_table_.PutBottom(
+            function_symbol->name(),
+            std::make_tuple(TYPE_FUNCTION, RegisterEntry(&(this->func_table_[this->current_function_index_++]))));
+    } else {
 
         // This is the end of the function, emit default return of zero.
         // Gunderscript 2.0 has no control flow analysis so this ensures that every function
@@ -1092,7 +1261,7 @@ void LIRGenAstWalker::WalkFunctionChildren(
         this->symbols_vector_->push_back(
             ModuleImplSymbol(
                 function_symbol->name(),
-                *function_symbol,
+                new Symbol(function_symbol),
                 this->current_fragment_));
 
         // TODO: delete this somehow?? delete this->current_fragment_->lirbuf;
@@ -1181,6 +1350,26 @@ LIns* LIRGenAstWalker::GenerateLoad(const Type& type, LIns* base) {
     default:
         THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
     }
+}
+
+// Counts the total number of functions produced by this module.
+int LIRGenAstWalker::CountFunctions() {
+    size_t count = 0;
+
+    // Count static functions.
+    count += this->root().child(3)->child_count();
+
+    // Count member functions.
+    Node* specs_node = this->root().child(2);
+    for (size_t i = 0; i < specs_node->child_count(); i++) {
+        Node* current_spec_node = specs_node->child(i);
+        Node* current_spec_functions_node = current_spec_node->child(2);
+        for (size_t j = 0; j < current_spec_functions_node->child_count(); j++, count++);
+    }
+
+    // TODO: may need to modify to support additional functions for properties setters/getters.
+
+    return (int)count;
 }
 
 } // namespace compiler

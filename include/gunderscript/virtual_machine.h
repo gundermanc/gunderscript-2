@@ -16,16 +16,15 @@ class VirtualMachineImpl;
 class VirtualMachine {
 public:
     VirtualMachine(CommonResources& common_resources);
-    ~VirtualMachine();
 
     // TODO: replace with universal function calling interface.
-    int HackyRunScriptMainInt(const Module& module);
-    float HackyRunScriptMainFloat(const Module& module);
-    char HackyRunScriptMainChar(const Module& module);
-    bool HackyRunScriptMainBool(const Module& module);
+    int HackyRunScriptMainInt(Module& module);
+    float HackyRunScriptMainFloat(Module& module);
+    char HackyRunScriptMainChar(Module& module);
+    bool HackyRunScriptMainBool(Module& module);
 
 private:
-    VirtualMachineImpl* pimpl_;
+    std::shared_ptr<VirtualMachineImpl> pimpl_;
 };
 
 } // namespace gunderscript
