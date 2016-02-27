@@ -228,7 +228,6 @@ bool Lexer::SkipSingleLineComments() {
         }
 
         if (!HAS_CHAR()) {
-            this->valid_next_token_ = false;
             break;
         }
     }
@@ -273,9 +272,6 @@ bool Lexer::SkipMultiLineComments() {
         }
     }
 
-    if (!HAS_CHAR()) {
-        this->valid_next_token_ = false;
-    }
     return true;
 }
 
@@ -293,10 +289,6 @@ void Lexer::SkipWhitespace() {
             this->next_line_number_++;
         }
         ADVANCE_CHAR();
-    }
-
-    if (!HAS_CHAR()) {
-        this->valid_next_token_ = false;
     }
 }
 
@@ -470,6 +462,8 @@ void Lexer::CleanupLast() {
     this->current_token_ = this->next_token_;
     this->current_column_number_ = this->next_column_number_;
     this->current_line_number_ = this->next_line_number_;
+
+    this->valid_next_token_ = false;
 }
 
 // Parse Character Constants from the input.
@@ -499,11 +493,6 @@ void Lexer::ParseCharacter() {
 void Lexer::AdvanceTokens() {
     this->CleanupLast();
 
-    // No more input, terminate.
-    if (!HAS_CHAR()) {
-        this->valid_next_token_ = false;
-        return;
-    }
 
     while (HAS_CHAR()) {
         // Lex input to find next token.

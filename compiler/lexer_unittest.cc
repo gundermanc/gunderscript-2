@@ -516,6 +516,18 @@ TEST(Lexer, ParseFloatsWithMultipleDecimals) {
         STATUS_LEXER_MALFORMED_NUMBER);
 }
 
+// Addresses Github issue #56
+TEST(Lexer, ParseIncompleteStringPrecededByString) {
+    std::string input = "package \"Gundersoft\" \"";
+    CompilerStringSource source(input);
+
+    Lexer lexer(source);
+    lexer.AdvanceNext();
+    
+    EXPECT_STATUS(lexer.AdvanceNext(),
+        STATUS_LEXER_UNTERMINATED_STRING);
+}
+
 TEST(Lexer, ParseChar) {
     std::string input = "  'c' '\"' ";
     CompilerStringSource source(input);

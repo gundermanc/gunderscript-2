@@ -158,6 +158,8 @@ const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTIONCALL_MISSING_COMMA
     = ExceptionStatus(233, "Missing comma delimiter in function call parameters");
 const ExceptionStatus STATUS_PARSER_EOF
     = ExceptionStatus(234, "Reached end of file while parsing");
+const ExceptionStatus STATUS_PARSER_INCOMPLETE_NAME_STATEMENT
+    = ExceptionStatus(235, "Incomplete function call or assignment statement");
 
 // Semantic Walker Exceptions 300-399:
 const ExceptionStatus STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN

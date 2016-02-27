@@ -2259,7 +2259,7 @@ TEST(Parser, IncompleteNameExpr) {
     Lexer lexer(source);
     Parser parser(lexer);
 
-    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
+    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
 }
 
 } // namespace compiler
