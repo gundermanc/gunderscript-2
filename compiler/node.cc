@@ -66,7 +66,7 @@ Node::Node(NodeRule rule, int line, int column, LexerSymbol symbol) : line_(line
 Node::Node(NodeRule rule, int line, int column, const std::string* value) : line_(line), column_(column), symbol_(NULL) {
     rule_ = rule;
     num_value_.int_value = 0;
-    string_value_ = new std::string(*value);
+    string_value_ = value != NULL ? new std::string(*value) : NULL;
 }
 
 // Destroys the current node and all of its data and registered children

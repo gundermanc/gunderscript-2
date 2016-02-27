@@ -490,33 +490,53 @@ void Parser::ParseFunction(Node* node) {
         this->lexer_.current_column_number(),
         native_function));
 
-    // Check for TYPE for return type.
-    if (CurrentToken()->type != LexerTokenType::NAME) {
-        THROW_EXCEPTION(
+    if (CurrentKeyword(LexerSymbol::CONSTRUCT)) {
+        // This branch reads contructors and assigns NULL as their
+        // name and type name nodes.
+
+        function_node->AddChild(new Node(
+            NodeRule::TYPE,
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
-            STATUS_PARSER_MALFORMED_FUNCTION_MISSING_TYPE);
-    }
+            (const std::string*)NULL));
 
-    function_node->AddChild(new Node(
-        NodeRule::TYPE, 
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(), 
-        CurrentToken()->string_const));
-
-    // Check for NAME symbol type for function name.
-    if (AdvanceNext()->type != LexerTokenType::NAME) {
-        THROW_EXCEPTION(
+        function_node->AddChild(new Node(
+            NodeRule::NAME,
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
-            STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
+            (const std::string*)NULL));
     }
+    else {
+        // This branch checks for function return type and name.
 
-    function_node->AddChild(new Node(
-        NodeRule::NAME,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        CurrentToken()->string_const));
+        // Check for TYPE for return type.
+        if (CurrentToken()->type != LexerTokenType::NAME) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_MALFORMED_FUNCTION_MISSING_TYPE);
+        }
+
+        function_node->AddChild(new Node(
+            NodeRule::TYPE,
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            CurrentToken()->string_const));
+
+        // Check for NAME symbol type for function name.
+        if (AdvanceNext()->type != LexerTokenType::NAME) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
+        }
+
+        function_node->AddChild(new Node(
+            NodeRule::NAME,
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            CurrentToken()->string_const));
+    }
 
     // Check for opening parenthesis for parameters.
     if (!AdvanceSymbol(LexerSymbol::LPAREN)) {

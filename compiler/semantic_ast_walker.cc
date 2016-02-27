@@ -29,7 +29,7 @@ static const std::string MangleFunctionSymbolName(
         name_buf << *(spec_node->child(1)->string_value());
         name_buf << "::";
     }
-    name_buf << *name_node->string_value();
+    name_buf << (name_node->string_value() != NULL? *name_node->string_value() : "construct");
 
     // Append arguments to the symbol name.
     for (size_t i = 0; i < arguments_result.size(); i++) {
@@ -192,7 +192,7 @@ void SemanticAstWalker::WalkFunctionDeclaration(
                 SymbolType::FUNCTION,
                 access_modifier_node->symbol_value(),
                 native_node->bool_value(),
-                ResolveTypeNode(type_node),
+                ResolveTypeNode(spec_name, type_node),
                 spec_name,
                 symbol_name);
 
@@ -237,7 +237,7 @@ Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
         SymbolType::PARAM,
         LexerSymbol::CONCEALED,
         false,
-        ResolveTypeNode(type_node),
+        ResolveTypeNode(spec_name, type_node),
         spec_name,
         *name_node->string_value());
     function_param_node->set_symbol(param_symbol);
@@ -263,7 +263,7 @@ Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     }
 
     // Return the type.
-    return ResolveTypeNode(type_node);
+    return ResolveTypeNode(spec_name, type_node);
 }
 
 // Walks a single property in a spec property declaration.
@@ -297,7 +297,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         SymbolType::FUNCTION,
         get_access_modifier_node->symbol_value(),
         false,
-        ResolveTypeNode(type_node),
+        ResolveTypeNode(spec_name, type_node),
         spec_name,
         get_function_symbol_name);
 
@@ -312,7 +312,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         SymbolType::FUNCTION,
         set_access_modifier_node->symbol_value(),
         false,
-        ResolveTypeNode(type_node),
+        ResolveTypeNode(spec_name, type_node),
         spec_name,
         set_function_symbol_name);
 
@@ -380,7 +380,7 @@ Type SemanticAstWalker::WalkFunctionCall(
                 }
 
                 // Try walking it as if it were a typecast.
-                return WalkFunctionLikeTypecast(
+                return WalkTypeConstructor(
                     spec_node,
                     name_node,
                     call_node,
@@ -409,7 +409,7 @@ Type SemanticAstWalker::WalkFunctionCall(
 
 // Walks a function-like type cast and performs the typecast operation and resolves the types.
 // Throws if the typecast is unknown or unsupported.
-Type SemanticAstWalker::WalkFunctionLikeTypecast(
+Type SemanticAstWalker::WalkTypeConstructor(
     Node* spec_node,
     Node* name_node,
     Node* call_node,
@@ -1224,11 +1224,14 @@ Type SemanticAstWalker::CalculateBoolResultantType(
 
 // Looks up a type node's name in the symbol table and returns its Type
 // object.
-Type SemanticAstWalker::ResolveTypeNode(Node* type_node) {
+Type SemanticAstWalker::ResolveTypeNode(const std::string& spec_name, Node* type_node) {
     try {
-        const Symbol* type_symbol = this->symbol_table_.Get(*type_node->string_value());
 
-        return type_symbol->type();
+        // If a type node's type is NULL then it is the same type as its enclosing class.
+        // E.g.: Constructors.
+        const std::string& type_name = type_node->string_value() != NULL ? *type_node->string_value() : spec_name;
+
+        return this->symbol_table_.Get(type_name)->type();
     }
     catch (const Exception& ex) {
         // Rethrow as more relevant exception.

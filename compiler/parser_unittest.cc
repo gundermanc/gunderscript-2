@@ -616,6 +616,52 @@ TEST(Parser, ParseFunctionEmpty) {
     delete root;
 }
 
+TEST(Parser, ParseConstructorEmpty) {
+
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public construct(int32 x) {"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* specs_node = root->child(2);
+    Node* spec_node = specs_node->child(0);
+    Node* functions_node = spec_node->child(2);
+    Node* foo_node = functions_node->child(0);
+    EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
+    ASSERT_EQ(6, foo_node->child_count());
+
+    Node* foo_access_modifier_node = foo_node->child(0);
+    EXPECT_EQ(NodeRule::ACCESS_MODIFIER, foo_access_modifier_node->rule());
+    EXPECT_EQ(LexerSymbol::PUBLIC, foo_access_modifier_node->symbol_value());
+
+    Node* foo_native_node = foo_node->child(1);
+    EXPECT_EQ(NodeRule::NATIVE, foo_native_node->rule());
+    EXPECT_FALSE(foo_native_node->bool_value());
+
+    Node* foo_type_node = foo_node->child(2);
+    EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
+    EXPECT_EQ(NULL, foo_type_node->string_value());
+
+    Node* foo_name_node = foo_node->child(3);
+    EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
+    EXPECT_EQ(NULL, foo_name_node->string_value());
+
+    Node* foo_parameters_node = foo_node->child(4);
+    EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
+    EXPECT_EQ(1, foo_parameters_node->child_count());
+
+    Node* foo_block_node = foo_node->child(5);
+    EXPECT_EQ(0, foo_block_node->child_count());
+
+    delete root;
+}
+
 TEST(Parser, ParseFunctionEmptyOneParameterNative) {
 
     std::string input("package \"FooPackage\";"

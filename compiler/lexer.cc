@@ -29,8 +29,8 @@ static const std::string kLexerSymbolString[] = {
     "PUBLIC", "CONCEALED", "INTERNAL",
 
     // Keywords:
-    "SPEC", "IF", "ELSE", "DO", "WHILE", "TRUE", "FALSE", "RETURN", "GET", "SET", "CONCEIVE",
-    "ERADICATE", "START", "READONLY", "FOR", "BREAK", "CONTINUE", "DEPENDS", "PACKAGE",
+    "SPEC", "IF", "ELSE", "DO", "WHILE", "TRUE", "FALSE", "RETURN", "GET", "SET", "CONSTRUCT",
+    "START", "READONLY", "FOR", "BREAK", "CONTINUE", "DEPENDS", "PACKAGE",
     "NATIVE",
 
     // Types:
@@ -188,8 +188,7 @@ void Lexer::LoadKeywords() {
     DEFINE_KEYWORD("return", LexerTokenType::KEYWORD, LexerSymbol::RETURN);
     DEFINE_KEYWORD("get", LexerTokenType::KEYWORD, LexerSymbol::GET);
     DEFINE_KEYWORD("set", LexerTokenType::KEYWORD, LexerSymbol::SET);
-    DEFINE_KEYWORD("conceive", LexerTokenType::KEYWORD, LexerSymbol::CONCEIVE);
-    DEFINE_KEYWORD("eradicate", LexerTokenType::KEYWORD, LexerSymbol::ERADICATE);
+    DEFINE_KEYWORD("construct", LexerTokenType::KEYWORD, LexerSymbol::CONSTRUCT);
     DEFINE_KEYWORD("start", LexerTokenType::KEYWORD, LexerSymbol::START);
     DEFINE_KEYWORD("readonly", LexerTokenType::KEYWORD, LexerSymbol::READONLY);
     DEFINE_KEYWORD("for", LexerTokenType::KEYWORD, LexerSymbol::FOR);

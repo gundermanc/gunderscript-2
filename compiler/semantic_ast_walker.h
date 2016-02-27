@@ -266,8 +266,8 @@ private:
         int line,
         int column,
         ExceptionStatus type_mismatch_error);
-    Type ResolveTypeNode(Node* type_node);
-    Type WalkFunctionLikeTypecast(
+    Type ResolveTypeNode(const std::string& spec_name, Node* type_node);
+    Type WalkTypeConstructor(
         Node* spec_node,
         Node* name_node,
         Node* call_node,

@@ -58,14 +58,14 @@ void DebugPrintNode(const Node* node) {
         printf("%i:%s, \"%s\"\n",
             (int)node->child_count(),
             NodeRuleString(node->rule()).c_str(),
-            node->string_value()->c_str());
+            node->string_value() != NULL ? node->string_value()->c_str() : "construct");
         break;
 
     case NodeRule::TYPE:
         printf("%i:%s, %s\n",
             (int)node->child_count(),
             NodeRuleString(node->rule()).c_str(),
-            node->string_value()->c_str());
+            node->string_value() != NULL ? node->string_value()->c_str() : "construct");
         break;
 
     case NodeRule::ACCESS_MODIFIER:
