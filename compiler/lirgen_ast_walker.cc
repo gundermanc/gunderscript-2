@@ -1127,6 +1127,63 @@ void LIRGenAstWalker::WalkFunctionChildren(
     }
 }
 
+// Walks children of the if statement node.
+// This is an optional override of the default functionality that gives the code
+// generator more granular control of the iteration process.
+void LIRGenAstWalker::WalkIfStatementChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    PropertyFunction property_function,
+    Node* if_node,
+    std::vector<LirGenResult>* arguments_result) {
+
+    if (spec_node != NULL) {
+        GS_ASSERT_TRUE(spec_node->rule() == NodeRule::SPEC, "Expected SPEC in typechecker WalkIfStatementChildren");
+    }
+    if (function_node != NULL) {
+        GS_ASSERT_TRUE(function_node->rule() == NodeRule::FUNCTION, "Expected FUNCTION in typechecker WalkIfStatementChildren");
+    }
+    if (property_node != NULL) {
+        GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY, "Expected CALL in typechecker WalkIfStatementChildren");
+    }
+
+    // Walk condition expression.
+    LirGenResult condition_result = AstWalker<LirGenResult>::WalkExpressionChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        if_node->child(0));
+
+    // Jump to the else BLOCK if the condition is false. The label will be backpatched later.
+    LIns* jump_false_ins = this->current_writer_->insBranch(LIR_jf, condition_result.ins(), NULL);
+
+    // Walk true block and generate instructions.
+    WalkBlockChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        if_node->child(1),
+        arguments_result);
+
+    // At the end of the true block jump past the end of the if/else.
+    LIns* jump_end_ins = this->current_writer_->insBranch(LIR_j, NULL, NULL);
+
+    // Walk false block and generate instructions.
+    jump_false_ins->setTarget(this->current_writer_->ins0(LIR_label));
+    WalkBlockChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        if_node->child(2),
+        arguments_result);
+
+    jump_end_ins->setTarget(this->current_writer_->ins0(LIR_label));
+}
+
 // Optional implemented function that overrides base class implementation.
 // In LIRGenAstWalker, this function pushes a new table to the register_table_
 // to introduce new context for each BLOCK ('{' to '}') entered, limiting the

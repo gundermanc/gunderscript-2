@@ -2262,5 +2262,250 @@ TEST(Parser, IncompleteNameExpr) {
     EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
 }
 
+TEST(Parser, ParseMalformedIfStatement) {
+    // Case 1: Missing LPAREN
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_IF_MISSING_LPAREN);
+    }
+
+    // Case 2: Missing expression
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if ( ) "
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
+    }
+
+    // Case 3: Missing right parenthesis
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if ( true { } "
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_IF_MISSING_RPAREN);
+    }
+
+    // Case 4: Missing left brace.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if ( true || false ) }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_LBRACE);
+    }
+
+    // Case 5: Missing right brace
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if ( true || false ) { "
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
+    }
+
+    // Case 6: Missing left else brace
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if ( true || false ) { } else } "
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_LBRACE);
+    }
+
+    // Case 7: Missing right else brace
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if ( true || false ) { } else { "
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
+    }
+
+    // Case 8: Duplicate else
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if ( true || false ) { } else { } else { } "
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_OR_FUNC_ACCESS_MODIFIER_MISSING);
+    }
+}
+
+TEST(Parser, ParseCorrectIfStatement) {
+    // Case 1: Only if
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if (true) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 2: If and else
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if (true) { } else { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+
+    // Case 3: If and else if
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if (true) { } else if (false) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 4: If and two else if
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if (true) { } else if (false) { } else if (false) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 5: If and two else if and an else
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    if (true) { } else if (false) { } else if (false) { } else { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+}
+
+TEST(Parser, ParseCorrectIfStatementTree) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    if (true) { } else if (false) { } else if (false) { } else { }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* functions_node = root->child(3);
+    Node* main_function_node = functions_node->child(0);
+    Node* function_block_node = main_function_node->child(5);
+
+    Node* if_node = function_block_node->child(0);
+    EXPECT_EQ(NodeRule::IF, if_node->rule());
+    EXPECT_EQ(3, if_node->child_count());
+
+    Node* if_condition_node = if_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, if_condition_node->rule());
+
+    Node* if_true_block_node = if_node->child(1);
+    EXPECT_EQ(NodeRule::BLOCK, if_true_block_node->rule());
+
+    Node* if_false_block_node = if_node->child(2);
+    EXPECT_EQ(NodeRule::BLOCK, if_false_block_node->rule());
+    EXPECT_EQ(1, if_false_block_node->child_count());
+
+    Node* else_if_node = if_false_block_node->child(0);
+    EXPECT_EQ(NodeRule::IF, else_if_node->rule());
+    EXPECT_EQ(3, else_if_node->child_count());
+
+    Node* else_if_condition_node = else_if_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, else_if_condition_node->rule());
+
+    Node* else_if_true_block_node = else_if_node->child(1);
+    EXPECT_EQ(NodeRule::BLOCK, else_if_true_block_node->rule());
+
+    Node* else_if_false_block_node = else_if_node->child(2);
+    EXPECT_EQ(NodeRule::BLOCK, if_false_block_node->rule());
+    EXPECT_EQ(1, else_if_false_block_node->child_count());
+
+    Node* else_if_else_if_node = else_if_false_block_node->child(0);
+    EXPECT_EQ(NodeRule::IF, else_if_else_if_node->rule());
+    EXPECT_EQ(3, else_if_node->child_count());
+
+    Node* else_if_else_if_condition_node = else_if_else_if_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, else_if_else_if_condition_node->rule());
+
+    Node* else_if_else_if_true_block_node = else_if_else_if_node->child(1);
+    EXPECT_EQ(NodeRule::BLOCK, else_if_else_if_true_block_node->rule());
+
+    Node* else_if_else_if_false_block_node = else_if_else_if_node->child(2);
+    EXPECT_EQ(NodeRule::BLOCK, if_false_block_node->rule());
+    EXPECT_EQ(0, else_if_else_if_false_block_node->child_count());
+}
+
 } // namespace compiler
 } // namespace gunderscript

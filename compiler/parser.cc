@@ -1,6 +1,7 @@
 // Gunderscript-2 Parser
 // (C) 2014-2016 Christian Gunderman
 
+#include  "gs_assert.h"
 #include "parser.h"
 
 namespace gunderscript {
@@ -706,11 +707,87 @@ void Parser::ParseKeywordStatement(Node* node) {
     }
 }
 
+// Parses if statement and attaches the IF node to the given node.
 void Parser::ParseIfStatement(Node* node) {
-    THROW_EXCEPTION(
+    GS_ASSERT_TRUE(CurrentKeyword(LexerSymbol::IF), "Expected IF token in if statement parser");
+
+    AdvanceNext();
+
+    // Create IF statement node.
+    Node* if_node = new Node(
+        NodeRule::IF,
         this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        STATUS_ILLEGAL_STATE);
+        this->lexer_.current_column_number());
+    node->AddChild(if_node);
+
+    // Check for left parenthesis.
+    if (!CurrentSymbol(LexerSymbol::LPAREN)) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_IF_MISSING_LPAREN);
+    }
+
+    AdvanceNext();
+
+    // Parse if statement condition.
+    ParseExpression(if_node);
+
+    // Check for right parenthesis.
+    if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_IF_MISSING_RPAREN);
+    }
+
+    AdvanceNext();
+
+    // Parse the IF true body.
+    ParseBlockStatement(if_node);
+
+    AdvanceNext();
+
+    // Parse the else or else if if there is one.
+    ParseElIfStatement(if_node);
+}
+
+// Parses else or else if statement or returns if neither is given.
+void Parser::ParseElIfStatement(Node* node) {
+    GS_ASSERT_TRUE(node->rule() == NodeRule::IF, "Expected IF token in elif statement parser");
+
+    // Check if an else / else if was provided.
+    if (!CurrentKeyword(LexerSymbol::ELSE)) {
+
+        // Still need an empty block to maintain the proper structure of the tree.
+        Node* else_block_node = new Node(
+            NodeRule::BLOCK,
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number());
+        node->AddChild(else_block_node);
+        return;
+    }
+
+    AdvanceNext();
+
+    // Check if there is an else if or an else (false) block.
+    if (CurrentKeyword(LexerSymbol::IF)) {
+        // Create else body block to contain the if statement.
+        Node* else_block_node = new Node(
+            NodeRule::BLOCK,
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number());
+        node->AddChild(else_block_node);
+
+        // Parse the if statement into the else's block.
+        ParseIfStatement(else_block_node);
+    }
+    else {
+        // Parse the else block onto the last slot of the IF subtree.
+        ParseBlockStatement(node);
+    }
+
+    AdvanceNext();
 }
 
 void Parser::ParseWhileStatement(Node* node) {

@@ -56,6 +56,7 @@ private:
     void ParseStatement(Node* node);
     void ParseKeywordStatement(Node* node);
     void ParseIfStatement(Node* node);
+    void ParseElIfStatement(Node* node);
     void ParseWhileStatement(Node* node);
     void ParseDoWhileStatement(Node* node);
     void ParseForStatement(Node* node);

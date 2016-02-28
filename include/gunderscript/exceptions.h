@@ -139,7 +139,7 @@ const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_TYPE
 const ExceptionStatus STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_NAME
     = ExceptionStatus(224, "Trying to parse Function parameter definitions, expected but did not find name");
 const ExceptionStatus STATUS_PARSER_MALFORMED_BLOCK_MISSING_LBRACE
-    = ExceptionStatus(225, "Malformed block or function or property body, expected a left brace");
+    = ExceptionStatus(225, "Malformed block or body, expected a left brace");
 const ExceptionStatus STATUS_PARSER_MALFORMED_BLOCK_MISSING_RBRACE
     = ExceptionStatus(226, "Malformed block or function or property body, expected a right brace");
 const ExceptionStatus STATUS_PARSER_EXPECTED_STATEMENT
@@ -160,6 +160,10 @@ const ExceptionStatus STATUS_PARSER_EOF
     = ExceptionStatus(234, "Reached end of file while parsing");
 const ExceptionStatus STATUS_PARSER_INCOMPLETE_NAME_STATEMENT
     = ExceptionStatus(235, "Incomplete function call or assignment statement");
+const ExceptionStatus STATUS_PARSER_MALFORMED_IF_MISSING_LPAREN
+    = ExceptionStatus(236, "Trying to parse if statement, expected but did not find left parenthesis for condition");
+const ExceptionStatus STATUS_PARSER_MALFORMED_IF_MISSING_RPAREN
+    = ExceptionStatus(237, "Trying to parse if statement, expected but did not find right parenthesis after condition");
 
 // Semantic Walker Exceptions 300-399:
 const ExceptionStatus STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN
@@ -220,6 +224,8 @@ const ExceptionStatus STATUS_SEMANTIC_UNDEFINED_TYPE
     = ExceptionStatus(327, "Undefined type");
 const ExceptionStatus STATUS_SEMANTIC_UNSUPPORTED_TYPECAST
     = ExceptionStatus(328, "This typecast is not supported");
+const ExceptionStatus STATUS_SEMANTIC_INVALID_IF_CONDITION_TYPE
+    = ExceptionStatus(329, "Invalid if statement condition type");
 
 } // namespace gunderscript
 

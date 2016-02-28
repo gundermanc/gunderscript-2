@@ -407,6 +407,22 @@ Type SemanticAstWalker::WalkFunctionCall(
     return symbol->type();
 }
 
+// Walks and typechecks the if statement.
+void SemanticAstWalker::WalkIfStatement(
+    Node* spec_node,
+    Node* if_node,
+    Type condition_result) {
+
+    // The body of the if, else, and else_if if present are type checked automatically
+    // as they are BLOCK nodes. All we need to explicitly check here is the condition type.
+    if (condition_result != TYPE_BOOL) {
+        THROW_EXCEPTION(
+            if_node->line(),
+            if_node->column(),
+            STATUS_SEMANTIC_INVALID_IF_CONDITION_TYPE);
+    }
+}
+
 // Walks a function-like type cast and performs the typecast operation and resolves the types.
 // Throws if the typecast is unknown or unsupported.
 Type SemanticAstWalker::WalkFunctionLikeTypecast(
