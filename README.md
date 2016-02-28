@@ -37,9 +37,9 @@ please see the Github issues page.
   - Parser (except for IF, FOR, WHILE, DO/WHILE and other control flow) : 100%
   - Syntax tree walker : 100%
   - Semantic (type checker), minus control flow : 100%
-  - Code generator for VM and VM : 35%
+  - Code generator for VM and VM : 38%
   - End to end control flow support
-    - IF : 0%
+    - IF : 100%
     - FOR : 0%
     - WHILE : 0%
     - DO/WHILE : 0%
@@ -109,6 +109,8 @@ At the moment, the only end-to-end completed functionality is:
     - float32
   - Call functions, overload functions, etc.
   - Return values from functions.
+  - Control Flow Elements:
+    - If, else, else if statements.
 
 No built in functions are provided yet. Return values printed on screen are the only
 currently supported output.
