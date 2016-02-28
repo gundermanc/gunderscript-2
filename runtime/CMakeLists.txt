@@ -24,6 +24,7 @@ if (gunderscript_runtime_tests)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
     add_executable (
         gunderscript_runtime_tests
+        control_flow_integrationtest.cc
         primitive_types_integrationtest.cc
         primitive_typecasts_integrationtest.cc)
     target_link_libraries(gunderscript_runtime_tests

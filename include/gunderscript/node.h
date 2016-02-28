@@ -14,6 +14,8 @@
 namespace gunderscript {
 
 // Abstract syntax tree entities that a node may represent in the syntax tree.
+// POTENTIAL BUG BUG BUG: If you update this enum you must also update the array
+// enum in the .cc file to be identical. If you don't things will break!
 enum class NodeRule {
     MODULE,
     DEPENDS,
@@ -33,8 +35,8 @@ enum class NodeRule {
     BLOCK,
 
     ASSIGN,
-
     RETURN,
+    IF,
 
     EXPRESSION,
     MEMBER,

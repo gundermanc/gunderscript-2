@@ -5,6 +5,7 @@
 #include "gunderscript/type.h"
 
 #include "ast_walker.h"
+#include "gs_assert.h"
 
 // HACK: this include is here for explicit template instantiation for LirGenResult.
 #include "lirgen_ast_walker.h"
@@ -382,6 +383,15 @@ void AstWalker<ReturnType>::WalkBlockChildren(
         case NodeRule::CALL:
             WalkFunctionCallChildren(spec_node, function_node, statement_node);
             break;
+        case NodeRule::IF:
+            WalkIfStatementChildren(
+                spec_node,
+                function_node,
+                property_node,
+                property_function,
+                statement_node,
+                arguments_result);
+            break;
         case NodeRule::ASSIGN:
             WalkAssignChildren(spec_node, function_node, property_node, property_function, statement_node);
             break;
@@ -451,6 +461,57 @@ ReturnType AstWalker<ReturnType>::WalkFunctionCallChildren(
     // Walk the function call and provide it with the results of our
     // walk of the arguments.
     return WalkFunctionCall(spec_node, name_node, call_node, arguments_result);
+}
+
+// Walks through an IF Node's children.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkIfStatementChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    PropertyFunction property_function,
+    Node* if_node,
+    std::vector<ReturnType>* arguments_result) {
+
+    if (spec_node != NULL) {
+        GS_ASSERT_TRUE(spec_node->rule() == NodeRule::SPEC, "Expected SPEC in typechecker WalkIfStatementChildren");
+    }
+    if (function_node != NULL) {
+        GS_ASSERT_TRUE(function_node->rule() == NodeRule::FUNCTION, "Expected FUNCTION in typechecker WalkIfStatementChildren");
+    }
+    if (property_node != NULL) {
+        GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY, "Expected CALL in typechecker WalkIfStatementChildren");
+    }
+
+    // Walk condition expression.
+    ReturnType condition_result = WalkExpressionChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        if_node->child(0));
+
+    // Walk true block.
+    // TODO: why is arguments_result passed to this and other block children?????
+    WalkBlockChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        if_node->child(1),
+        arguments_result);
+
+    // Walk false block.
+    WalkBlockChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        if_node->child(2),
+        arguments_result);
+
+    // Dispatch to subclass.
+    WalkIfStatement(spec_node, if_node, condition_result);
 }
 
 // Walks through an ASSIGN Node's children.

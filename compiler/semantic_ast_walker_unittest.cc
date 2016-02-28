@@ -1980,3 +1980,83 @@ TEST(SemanticAstWalker, CallStaticFromMember) {
         delete root;
     }
 }
+
+TEST(SemanticAstWalker, IfStatementCorrectConditionType) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int8 X() {"
+        "    if (true) { } else { }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, IfStatementIncorrectConditionType) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int8 X() {"
+        "    if (3) { } else { }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_IF_CONDITION_TYPE);
+    delete root;
+}
+
+// Checks to make sure that return type is still checked in if/else body, and by
+// extension that types are checked in the blocks.
+TEST(SemanticAstWalker, IfStatementReturnTypeChecking) {
+    // Case 1: Bad return type in if.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    if (true) { return false; } else { }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+        delete root;
+    }
+    
+    // Case 2: Bad return type in else.
+    // Due to the structure of the AST, if this test passes we know that type checking also
+    // works for else/if as well.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    if (true) { } else { return false; }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+        delete root;
+    }
+}

@@ -100,6 +100,10 @@ protected:
         Node* name_node,
         Node* call_node,
         std::vector<LirGenResult>& arguments_result);
+    void WalkIfStatement(
+        Node* spec_node,
+        Node* if_node,
+        LirGenResult condition_result) { }
     LirGenResult WalkFunctionLikeTypecast(
         Node* spec_node,
         Node* name_node,
@@ -262,6 +266,13 @@ protected:
         Node* spec_node,
         Node* function_node,
         bool prescan);
+    void WalkIfStatementChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* if_node,
+        std::vector<LirGenResult>* arguments_result);
     void WalkBlockChildren(
         Node* spec_node,
         Node* function_node,

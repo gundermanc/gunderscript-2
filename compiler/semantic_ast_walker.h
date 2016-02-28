@@ -67,6 +67,10 @@ protected:
         Node* name_node,
         Node* call_none,
         std::vector<Type>& arguments_result);
+    void WalkIfStatement(
+        Node* spec_node,
+        Node* if_node,
+        Type condition_result);
     Type WalkAssign(
         Node* spec_node,
         Node* name_node,
