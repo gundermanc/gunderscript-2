@@ -785,9 +785,8 @@ void Parser::ParseElIfStatement(Node* node) {
     else {
         // Parse the else block onto the last slot of the IF subtree.
         ParseBlockStatement(node);
+        AdvanceNext();
     }
-
-    AdvanceNext();
 }
 
 void Parser::ParseWhileStatement(Node* node) {
