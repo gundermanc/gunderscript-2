@@ -423,6 +423,21 @@ void SemanticAstWalker::WalkIfStatement(
     }
 }
 
+// Checks the types in a for statement.
+void SemanticAstWalker::WalkForStatement(
+    Node* spec_node,
+    Node* for_node,
+    Type condition_result) {
+
+    // Check for a bool in the condition.
+    if (condition_result != TYPE_BOOL) {
+        THROW_EXCEPTION(
+            for_node->line(),
+            for_node->column(),
+            STATUS_SEMANTIC_INVALID_FOR_CONDITION_TYPE);
+    }
+}
+
 // Walks a function-like type cast and performs the typecast operation and resolves the types.
 // Throws if the typecast is unknown or unsupported.
 Type SemanticAstWalker::WalkFunctionLikeTypecast(

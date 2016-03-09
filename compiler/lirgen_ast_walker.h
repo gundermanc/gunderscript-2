@@ -18,6 +18,8 @@
 
 #include "nanojit.h"
 
+using namespace nanojit;
+
 namespace gunderscript {
 namespace compiler {
 
@@ -103,6 +105,10 @@ protected:
     void WalkIfStatement(
         Node* spec_node,
         Node* if_node,
+        LirGenResult condition_result) { }
+    void WalkForStatement(
+        Node* spec_node,
+        Node* for_node,
         LirGenResult condition_result) { }
     LirGenResult WalkFunctionLikeTypecast(
         Node* spec_node,
@@ -272,6 +278,13 @@ protected:
         Node* property_node,
         PropertyFunction property_function,
         Node* if_node,
+        std::vector<LirGenResult>* arguments_result);
+    virtual void WalkForStatementChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* for_node,
         std::vector<LirGenResult>* arguments_result);
     void WalkBlockChildren(
         Node* spec_node,

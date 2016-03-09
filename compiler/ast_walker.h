@@ -70,6 +70,10 @@ protected:
         Node* spec_node,
         Node* if_node,
         ReturnType condition_result) = 0;
+    virtual void WalkForStatement(
+        Node* spec_node,
+        Node* for_node,
+        ReturnType condition_result) = 0;
     virtual ReturnType WalkAssign(
         Node* spec_node,
         Node* name_node,
@@ -250,6 +254,13 @@ protected:
         Node* property_node,
         PropertyFunction property_function,
         Node* if_node,
+        std::vector<ReturnType>* arguments_result);
+    virtual void WalkForStatementChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* for_node,
         std::vector<ReturnType>* arguments_result);
 
 private:

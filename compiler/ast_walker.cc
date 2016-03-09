@@ -392,6 +392,15 @@ void AstWalker<ReturnType>::WalkBlockChildren(
                 statement_node,
                 arguments_result);
             break;
+        case NodeRule::FOR:
+            WalkForStatementChildren(
+                spec_node,
+                function_node,
+                property_node,
+                property_function,
+                statement_node,
+                arguments_result);
+            break;
         case NodeRule::ASSIGN:
             WalkAssignChildren(spec_node, function_node, property_node, property_function, statement_node);
             break;
@@ -512,6 +521,88 @@ void AstWalker<ReturnType>::WalkIfStatementChildren(
 
     // Dispatch to subclass.
     WalkIfStatement(spec_node, if_node, condition_result);
+}
+
+// Walks through a FOR Node's children.
+template <typename ReturnType>
+void AstWalker<ReturnType>::WalkForStatementChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    PropertyFunction property_function,
+    Node* for_node,
+    std::vector<ReturnType>* arguments_result) {
+
+    if (spec_node != NULL) {
+        GS_ASSERT_TRUE(spec_node->rule() == NodeRule::SPEC,
+            "Expected SPEC in typechecker WalkForStatementChildren");
+    }
+    if (function_node != NULL) {
+        GS_ASSERT_TRUE(function_node->rule() == NodeRule::FUNCTION,
+            "Expected FUNCTION in typechecker WalkForStatementChildren");
+    }
+    if (property_node != NULL) {
+        GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY,
+            "Expected CALL in typechecker WalkForStatementChildren");
+    }
+
+    // Walk initialize expression.
+    Node* init_node = for_node->child(0);
+    GS_ASSERT_TRUE(init_node->rule() == NodeRule::LOOP_INITIALIZE,
+        "Expected LOOP_INITIALIZE in typecheker WalkForStatementChildren");
+
+    // Init expression is optional.
+    if (init_node->child_count() > 0) {
+        WalkExpressionChildren(
+            spec_node,
+            function_node,
+            property_node,
+            property_function,
+            init_node->child(0));
+    }
+
+    // Walk condition expression.
+    Node* cond_node = for_node->child(1);
+    GS_ASSERT_TRUE(cond_node->rule() == NodeRule::LOOP_CONDITION,
+        "Expected LOOP_CONDITION in typecheker WalkForStatementChildren");
+
+    if (cond_node->child_count() > 0) {
+        ReturnType cond_result = WalkExpressionChildren(
+            spec_node,
+            function_node,
+            property_node,
+            property_function,
+            cond_node->child(0));
+
+        // Dispatch to child class.
+        WalkForStatement(
+            spec_node,
+            for_node,
+            cond_result);
+    }
+
+    // Walk update expression.
+    Node* update_node = for_node->child(2);
+    GS_ASSERT_TRUE(update_node->rule() == NodeRule::LOOP_UPDATE,
+        "Expected LOOP_UPDATE in typecheker WalkForStatementChildren");
+
+    if (update_node->child_count() > 0) {
+        WalkExpressionChildren(
+            spec_node,
+            function_node,
+            property_node,
+            property_function,
+            update_node->child(0));
+    }
+
+    // Walk for loop condition true block.
+    WalkBlockChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        for_node->child(3),
+        arguments_result);
 }
 
 // Walks through an ASSIGN Node's children.

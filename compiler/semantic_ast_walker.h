@@ -71,6 +71,10 @@ protected:
         Node* spec_node,
         Node* if_node,
         Type condition_result);
+    void WalkForStatement(
+        Node* spec_node,
+        Node* for_node,
+        Type condition_result);
     Type WalkAssign(
         Node* spec_node,
         Node* name_node,

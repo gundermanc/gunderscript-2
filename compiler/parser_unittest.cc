@@ -1,5 +1,5 @@
 // Gunderscript 2 Parser Tests
-// (C) 2014 Christian Gunderman
+// (C) 2014-2016 Christian Gunderman
 // Technically more "functional" than unit.
 #include "gtest/gtest.h"
 #include "testing_macros.h"
@@ -2505,6 +2505,254 @@ TEST(Parser, ParseCorrectIfStatementTree) {
     Node* else_if_else_if_false_block_node = else_if_else_if_node->child(2);
     EXPECT_EQ(NodeRule::BLOCK, if_false_block_node->rule());
     EXPECT_EQ(0, else_if_else_if_false_block_node->child_count());
+}
+
+TEST(Parser, ParseMalformedForStatement) {
+    // Case 1: Missing LPAREN
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    for"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FOR_MISSING_LPAREN);
+    }
+
+    // Case 2: Missing LPAREN
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    for (;) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_SEMICOLON);
+    }
+
+    // Case 3: Missing RPAREN
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    for (;; { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FOR_MISSING_RPAREN);
+    }
+
+    // Case 4: Missing LBRACE
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    for (;;) }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_LBRACE);
+    }
+
+    // Case 5: Missing RBRACE
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    for (;;) { -"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_RBRACE);
+    }
+}
+
+TEST(Parser, ParseCorrectForStatement) {
+    // Case 1: No params.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    for (;;) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 2: init only.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    for (x <- 1;;) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 3: condition only.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    for (;true;) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 4: update only.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- 1;"
+            "    for (;;x <- x + 1) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 5: condition and update only.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- 1;"
+            "    for (; x < 3; x <- x + 1) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 6: all params
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    for (x <- 1; x < 3; x <- x + 1) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+}
+
+TEST(Parser, CorrectForStatementTreeNoParams) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    for (;;) { }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* functions_node = root->child(3);
+    Node* main_function_node = functions_node->child(0);
+    Node* function_block_node = main_function_node->child(5);
+
+    Node* for_node = function_block_node->child(0);
+    EXPECT_EQ(NodeRule::FOR, for_node->rule());
+    EXPECT_EQ(4, for_node->child_count());
+
+    Node* init_node = for_node->child(0);
+    EXPECT_EQ(NodeRule::LOOP_INITIALIZE, init_node->rule());
+    EXPECT_EQ(0, init_node->child_count());
+
+    Node* condition_node = for_node->child(1);
+    EXPECT_EQ(NodeRule::LOOP_CONDITION, condition_node->rule());
+    EXPECT_EQ(0, condition_node->child_count());
+
+    Node* update_node = for_node->child(2);
+    EXPECT_EQ(NodeRule::LOOP_UPDATE, update_node->rule());
+    EXPECT_EQ(0, update_node->child_count());
+    
+    Node* for_node_block = for_node->child(3);
+    EXPECT_EQ(NodeRule::BLOCK, for_node_block->rule());
+    EXPECT_EQ(0, for_node_block->child_count());
+
+    delete root;
+}
+
+TEST(Parser, CorrectForStatementTreeAllParams) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    for (x <- 1; x < 1; x <- x + 1) { }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* functions_node = root->child(3);
+    Node* main_function_node = functions_node->child(0);
+    Node* function_block_node = main_function_node->child(5);
+
+    Node* for_node = function_block_node->child(0);
+    EXPECT_EQ(NodeRule::FOR, for_node->rule());
+    EXPECT_EQ(4, for_node->child_count());
+
+    Node* for_init_node = for_node->child(0);
+    EXPECT_EQ(NodeRule::LOOP_INITIALIZE, for_init_node->rule());
+    EXPECT_EQ(1, for_init_node->child_count());
+
+    Node* init_expr_node = for_init_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, init_expr_node->rule());
+    EXPECT_EQ(1, init_expr_node->child_count());
+
+    Node* for_condition_node = for_node->child(1);
+    EXPECT_EQ(NodeRule::LOOP_CONDITION, for_condition_node->rule());
+    EXPECT_EQ(1, for_condition_node->child_count());
+
+    Node* cond_expr_node = for_condition_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, cond_expr_node->rule());
+    EXPECT_EQ(1, cond_expr_node->child_count());
+
+    Node* for_update_node = for_node->child(2);
+    EXPECT_EQ(NodeRule::LOOP_UPDATE, for_update_node->rule());
+    EXPECT_EQ(1, for_update_node->child_count());
+
+    Node* update_expr_node = for_update_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, update_expr_node->rule());
+    EXPECT_EQ(1, update_expr_node->child_count());
+
+    Node* for_node_block = for_node->child(3);
+    EXPECT_EQ(NodeRule::BLOCK, for_node_block->rule());
+    EXPECT_EQ(0, for_node_block->child_count());
+
+    delete root;
 }
 
 } // namespace compiler

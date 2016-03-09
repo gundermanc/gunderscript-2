@@ -1184,6 +1184,96 @@ void LIRGenAstWalker::WalkIfStatementChildren(
     jump_end_ins->setTarget(this->current_writer_->ins0(LIR_label));
 }
 
+// Walks children of the FOR statement node.
+// This is an optional override of the default functionality that gives the code
+// generator more granular control of the walking process.
+void LIRGenAstWalker::WalkForStatementChildren(
+    Node* spec_node,
+    Node* function_node,
+    Node* property_node,
+    PropertyFunction property_function,
+    Node* for_node,
+    std::vector<LirGenResult>* arguments_result) {
+
+    if (spec_node != NULL) {
+        GS_ASSERT_TRUE(spec_node->rule() == NodeRule::SPEC,
+            "Expected SPEC in typechecker WalkForStatementChildren");
+    }
+    if (function_node != NULL) {
+        GS_ASSERT_TRUE(function_node->rule() == NodeRule::FUNCTION,
+            "Expected FUNCTION in typechecker WalkForStatementChildren");
+    }
+    if (property_node != NULL) {
+        GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY,
+            "Expected CALL in typechecker WalkForStatementChildren");
+    }
+
+    // Generate code for optional init expression if given.
+    Node* init_node = for_node->child(0);
+    GS_ASSERT_TRUE(init_node->rule() == NodeRule::LOOP_INITIALIZE,
+        "Expected LOOP_INITIALIZE in typecheker WalkForStatementChildren");
+    if (init_node->child_count() > 0) {
+        WalkExpressionChildren(
+            spec_node,
+            function_node,
+            property_node,
+            property_function,
+            init_node->child(0));
+    }
+
+    // Mark start of condition block.
+    LIns* cond_label_ins = this->current_writer_->ins0(LIR_label);
+    LIns* cond_ins = NULL;
+
+    // Generate code for optional condition expression if given.
+    // If not given, default behavior is to loop infinitely.
+    Node* cond_node = for_node->child(1);
+    GS_ASSERT_TRUE(cond_node->rule() == NodeRule::LOOP_CONDITION,
+        "Expected LOOP_CONDITION in typecheker WalkForStatementChildren");
+    if (cond_node->child_count() > 0) {
+        LirGenResult cond_result = WalkExpressionChildren(
+            spec_node,
+            function_node,
+            property_node,
+            property_function,
+            cond_node->child(0));
+
+        // If the loop condition is false, jump out. This jump is backpatched later on.
+        cond_ins = this->current_writer_->insBranch(LIR_jf, cond_result.ins(), NULL);
+    }
+    // else: No loop condition, no jump, do the loop infinitely many times.
+
+    // Generate for loop body block code.
+    WalkBlockChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        for_node->child(3),
+        arguments_result);
+
+    // Codegen update expression if provided.
+    Node* update_node = for_node->child(2);
+    GS_ASSERT_TRUE(update_node->rule() == NodeRule::LOOP_UPDATE,
+        "Expected LOOP_UPDATE in typecheker WalkForStatementChildren");
+    if (update_node->child_count() > 0) {
+        WalkExpressionChildren(
+            spec_node,
+            function_node,
+            property_node,
+            property_function,
+            update_node->child(0));
+    }
+
+    // Jump to loop condition to repeat the loop.
+    this->current_writer_->insBranch(LIR_j, NULL, cond_label_ins);
+
+    // Backpatch jumps out of the loop.
+    if (cond_ins != NULL) {
+        cond_ins->setTarget(this->current_writer_->ins0(LIR_label));
+    }
+}
+
 // Optional implemented function that overrides base class implementation.
 // In LIRGenAstWalker, this function pushes a new table to the register_table_
 // to introduce new context for each BLOCK ('{' to '}') entered, limiting the
