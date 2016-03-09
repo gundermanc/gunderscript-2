@@ -47,7 +47,8 @@ void DebugPrintLexerToken(const LexerToken& token) {
 void DebugPrintNode(const Node* node) {
 
     if (node == NULL) {
-        printf("** NULL NODE **");
+        printf("0: **NULL NODE**\n");
+        return;
     }
 
     // TODO: use C++ streams or otherwise eliminate unsafe typecasts from size_t to int.

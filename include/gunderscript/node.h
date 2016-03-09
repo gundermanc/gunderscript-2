@@ -37,6 +37,10 @@ enum class NodeRule {
     ASSIGN,
     RETURN,
     IF,
+    FOR,
+    LOOP_INITIALIZE,
+    LOOP_CONDITION,
+    LOOP_UPDATE,
 
     EXPRESSION,
     MEMBER,

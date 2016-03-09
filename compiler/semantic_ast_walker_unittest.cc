@@ -2060,3 +2060,254 @@ TEST(SemanticAstWalker, IfStatementReturnTypeChecking) {
         delete root;
     }
 }
+
+TEST(SemanticAstWalker, ForStatementInitSemanticError) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int8 X() {"
+        "    x <- 1;"
+        "    for (x <- 1.0;;) { }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN);
+    delete root;
+}
+
+TEST(SemanticAstWalker, ForStatementCondInvalidType) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int8 X() {"
+        "    x <- 1;"
+        "    for (;3;) { }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_FOR_CONDITION_TYPE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, ForStatementCondSemanticError) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int8 X() {"
+        "    x <- 1;"
+        "    for (;x < 1.0;) { }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNMATCHING_TYPE_IN_LESS);
+    delete root;
+}
+
+TEST(SemanticAstWalker, ForStatementUpdateSemanticError) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int8 X() {"
+        "    x <- 1;"
+        "    for (;;x <- 1.0) { }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN);
+    delete root;
+}
+
+TEST(SemanticAstWalker, ForStatementInvalidReturnType) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int8 X() {"
+        "    for (;;) { return 0; }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+    delete root;
+}
+
+TEST(SemanticAstWalker, CorrectForStatement) {
+    // Case 1: No params.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    for (;;) { }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_NO_THROW(semantic_walker.Walk());
+        delete root;
+    }
+
+    // Case 2: Init only.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    for (x <- 1;;) { }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_NO_THROW(semantic_walker.Walk());
+        delete root;
+    }
+
+    // Case 3: Condition only.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    i <- 1;"
+            "    for (;i < 10;) { }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_NO_THROW(semantic_walker.Walk());
+        delete root;
+    }
+
+    // Case 4: Update only.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    i <- 1;"
+            "    for (;;i <- i + 1) { }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_NO_THROW(semantic_walker.Walk());
+        delete root;
+    }
+
+    // Case 5: Init and condition.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    for (i <- 1; i < 2;) { }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_NO_THROW(semantic_walker.Walk());
+        delete root;
+    }
+
+    // Case 6: Condition and update.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    i <- 1;"
+            "    for (; i < 2; i <- i + 1) { }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_NO_THROW(semantic_walker.Walk());
+        delete root;
+    }
+
+    // Case 7: Init and update.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    for (i <- 1;; i <- i + 1) { }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_NO_THROW(semantic_walker.Walk());
+        delete root;
+    }
+
+    // Case 8: All.
+    {
+        std::string input(
+            "package \"Gundersoft\";"
+            "public int8 X() {"
+            "    for (i <- 1; i < 10; i <- i + 1) { }"
+            "}");
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        Node* root = parser.Parse();
+
+        SemanticAstWalker semantic_walker(*root);
+
+        EXPECT_NO_THROW(semantic_walker.Walk());
+        delete root;
+    }
+}

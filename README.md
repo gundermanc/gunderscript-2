@@ -40,7 +40,7 @@ please see the Github issues page.
   - Code generator for VM and VM : 38%
   - End to end control flow support
     - IF : 100%
-    - FOR : 0%
+    - FOR : 100%
     - WHILE : 0%
     - DO/WHILE : 0%
   - Investigate more complex language features:
@@ -58,7 +58,7 @@ please see the Github issues page.
   - **googletest**: The Google C++ Test framework.
   - **include**: Headers for the Gunderscript static libraries.
   - **nanojit**: A fork of Mozilla NanoJIT library.
-  - **runtime**: Th Gunderscript runtime static library.
+  - **runtime**: The Gunderscript runtime static library.
 
 ## Building:
 Build the current code by generating build files for your platform with CMake.
@@ -111,6 +111,7 @@ At the moment, the only end-to-end completed functionality is:
   - Return values from functions.
   - Control Flow Elements:
     - If, else, else if statements.
+    - For loops.
 
 No built in functions are provided yet. Return values printed on screen are the only
 currently supported output.

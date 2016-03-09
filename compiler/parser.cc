@@ -803,11 +803,85 @@ void Parser::ParseDoWhileStatement(Node* node) {
         STATUS_ILLEGAL_STATE);
 }
 
+// Parses for loop.
 void Parser::ParseForStatement(Node* node) {
-    THROW_EXCEPTION(
+    GS_ASSERT_TRUE(CurrentKeyword(LexerSymbol::FOR), "Expected FOR token in for statement parser");
+
+    // Create FOR loop subtree root node.
+    Node* for_node = new Node(
+        NodeRule::FOR,
         this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        STATUS_ILLEGAL_STATE);
+        this->lexer_.current_column_number());
+    node->AddChild(for_node);
+
+    // Create LOOP_INITIALIZE node.
+    Node* init_node = new Node(
+        NodeRule::LOOP_INITIALIZE,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+    for_node->AddChild(init_node);
+
+    // Create LOOP_CONDITION node.
+    Node* cond_node = new Node(
+        NodeRule::LOOP_CONDITION,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+    for_node->AddChild(cond_node);
+
+    // Create LOOP_UPDATE node.
+    Node* update_node = new Node(
+        NodeRule::LOOP_UPDATE,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+    for_node->AddChild(update_node);
+
+    AdvanceNext();
+
+    // Check for left parenthesis.
+    if (!CurrentSymbol(LexerSymbol::LPAREN)) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_FOR_MISSING_LPAREN);
+    }
+
+    AdvanceNext();
+
+    // Check for loop initialization statement
+    if (!CurrentSymbol(LexerSymbol::SEMICOLON)) {
+        ParseExpression(init_node);
+    }
+
+    ParseSemicolon(for_node);
+    AdvanceNext();
+
+    // Check for loop condition expression.
+    if (!CurrentSymbol(LexerSymbol::SEMICOLON)) {
+        ParseExpression(cond_node);
+    }
+
+    ParseSemicolon(for_node);
+    AdvanceNext();
+
+    // Check for loop update assign expression.
+    if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+        ParseExpression(update_node);
+    }
+
+    // Check for right parenthesis.
+    if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_FOR_MISSING_RPAREN);
+    }
+
+    AdvanceNext();
+
+    // Parse the for loop body.
+    ParseBlockStatement(for_node);
+
+    AdvanceNext();
 }
 
 // Parses a return statement.
