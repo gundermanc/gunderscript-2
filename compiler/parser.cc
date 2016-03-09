@@ -789,11 +789,67 @@ void Parser::ParseElIfStatement(Node* node) {
     }
 }
 
+// Parses a while loop.
 void Parser::ParseWhileStatement(Node* node) {
-    THROW_EXCEPTION(
+    GS_ASSERT_TRUE(CurrentKeyword(LexerSymbol::WHILE), "Expected WHILE token in for statement parser");
+
+    // Create WHILE loop subtree root node.
+    // WHILE loop is a syntactic sugar around the FOR loop parse tree.
+    Node* while_node = new Node(
+        NodeRule::FOR,
         this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        STATUS_ILLEGAL_STATE);
+        this->lexer_.current_column_number());
+    node->AddChild(while_node);
+
+    // Create LOOP_INITIALIZE node.
+    Node* init_node = new Node(
+        NodeRule::LOOP_INITIALIZE,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+    while_node->AddChild(init_node);
+
+    // Create LOOP_CONDITION node.
+    Node* cond_node = new Node(
+        NodeRule::LOOP_CONDITION,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+    while_node->AddChild(cond_node);
+
+    // Create LOOP_UPDATE node.
+    Node* update_node = new Node(
+        NodeRule::LOOP_UPDATE,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+    while_node->AddChild(update_node);
+
+    AdvanceNext();
+
+    // Check for left parenthesis.
+    if (!CurrentSymbol(LexerSymbol::LPAREN)) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_WHILE_MISSING_LPAREN);
+    }
+
+    // Parse loop expression.
+    AdvanceNext();
+    ParseExpression(cond_node);
+
+    // Check for right parenthesis.
+    if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_WHILE_MISSING_RPAREN);
+    }
+
+    AdvanceNext();
+
+    // Parse the for loop body.
+    ParseBlockStatement(while_node);
+
+    AdvanceNext();
 }
 
 void Parser::ParseDoWhileStatement(Node* node) {

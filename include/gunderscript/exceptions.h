@@ -168,6 +168,10 @@ const ExceptionStatus STATUS_PARSER_MALFORMED_FOR_MISSING_LPAREN
     = ExceptionStatus(238, "Trying to parse for loop, expected but did not find left parenthesis");
 const ExceptionStatus STATUS_PARSER_MALFORMED_FOR_MISSING_RPAREN
     = ExceptionStatus(239, "Trying to parse for loop, expected but did not find right parenthesis");
+const ExceptionStatus STATUS_PARSER_MALFORMED_WHILE_MISSING_LPAREN
+    = ExceptionStatus(240, "Trying to parse while loop, expected but did not find left parenthesis");
+const ExceptionStatus STATUS_PARSER_MALFORMED_WHILE_MISSING_RPAREN
+    = ExceptionStatus(241, "Trying to parse while loop, expected but did not find right parenthesis");
 
 // Semantic Walker Exceptions 300-399:
 const ExceptionStatus STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN
@@ -230,8 +234,8 @@ const ExceptionStatus STATUS_SEMANTIC_UNSUPPORTED_TYPECAST
     = ExceptionStatus(328, "This typecast is not supported");
 const ExceptionStatus STATUS_SEMANTIC_INVALID_IF_CONDITION_TYPE
     = ExceptionStatus(329, "Invalid if statement condition type");
-const ExceptionStatus STATUS_SEMANTIC_INVALID_FOR_CONDITION_TYPE
-    = ExceptionStatus(330, "Invalid for loop condition type");
+const ExceptionStatus STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE
+    = ExceptionStatus(330, "Invalid loop condition type");
 
 } // namespace gunderscript
 
