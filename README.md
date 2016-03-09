@@ -41,7 +41,7 @@ please see the Github issues page.
   - End to end control flow support
     - IF : 100%
     - FOR : 100%
-    - WHILE : 0%
+    - WHILE : 100%
     - DO/WHILE : 0%
   - Investigate more complex language features:
     - Exceptions
@@ -112,6 +112,7 @@ At the moment, the only end-to-end completed functionality is:
   - Control Flow Elements:
     - If, else, else if statements.
     - For loops.
+    - While loops.
 
 No built in functions are provided yet. Return values printed on screen are the only
 currently supported output.

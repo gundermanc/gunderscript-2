@@ -2755,5 +2755,105 @@ TEST(Parser, CorrectForStatementTreeAllParams) {
     delete root;
 }
 
+TEST(Parser, ParseMalformedWhileStatement) {
+    // Case 1: Missing LPAREN
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    while"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_WHILE_MISSING_LPAREN);
+    }
+
+    // Case 2: Missing LPAREN
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    while (true { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_WHILE_MISSING_RPAREN);
+    }
+
+    // Case 3: Invalid condition type
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    while (3) { }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE);
+    }
+
+    // Case 4: Invalid return type
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    while (true) { return false; }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+    }
+}
+
+TEST(Parser, CorrectWhileTree) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    while (true) { }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* functions_node = root->child(3);
+    Node* main_function_node = functions_node->child(0);
+    Node* function_block_node = main_function_node->child(5);
+
+    Node* for_node = function_block_node->child(0);
+    EXPECT_EQ(NodeRule::FOR, for_node->rule());
+    EXPECT_EQ(4, for_node->child_count());
+
+    Node* for_init_node = for_node->child(0);
+    EXPECT_EQ(NodeRule::LOOP_INITIALIZE, for_init_node->rule());
+    EXPECT_EQ(0, for_init_node->child_count());
+
+    Node* for_condition_node = for_node->child(1);
+    EXPECT_EQ(NodeRule::LOOP_CONDITION, for_condition_node->rule());
+    EXPECT_EQ(1, for_condition_node->child_count());
+
+    Node* cond_expr_node = for_condition_node->child(0);
+    EXPECT_EQ(NodeRule::EXPRESSION, cond_expr_node->rule());
+    EXPECT_EQ(1, cond_expr_node->child_count());
+
+    Node* for_update_node = for_node->child(2);
+    EXPECT_EQ(NodeRule::LOOP_UPDATE, for_update_node->rule());
+    EXPECT_EQ(0, for_update_node->child_count());
+
+    Node* for_node_block = for_node->child(3);
+    EXPECT_EQ(NodeRule::BLOCK, for_node_block->rule());
+    EXPECT_EQ(0, for_node_block->child_count());
+
+    delete root;
+}
+
 } // namespace compiler
 } // namespace gunderscript

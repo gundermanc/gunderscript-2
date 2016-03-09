@@ -2095,7 +2095,7 @@ TEST(SemanticAstWalker, ForStatementCondInvalidType) {
 
     SemanticAstWalker semantic_walker(*root);
 
-    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_FOR_CONDITION_TYPE);
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE);
     delete root;
 }
 

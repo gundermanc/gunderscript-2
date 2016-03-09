@@ -434,7 +434,7 @@ void SemanticAstWalker::WalkForStatement(
         THROW_EXCEPTION(
             for_node->line(),
             for_node->column(),
-            STATUS_SEMANTIC_INVALID_FOR_CONDITION_TYPE);
+            STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE);
     }
 }
 
