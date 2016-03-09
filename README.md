@@ -81,7 +81,7 @@ Officially Gunderscript 2 supports the following build configurations via CMAKE:
   - Launch GUNDERSCRIPT.sln solution file in Visual Studio.
   - Build. The gunderscript_cli.exe file is the command line executable.
     - To see intermediate script compilation steps use -l, -p, and -t.
-    - To see NanoJIT IR code and assembly output you must define CMAKE_BUILD_TYPE=Debug
+    - To see NanoJIT IR code and assembly cmd line options you must enable gunderscript_force_define_debug.
   - Other project files are Gunderscript components.
 
 ### Building on Linux and OS X
