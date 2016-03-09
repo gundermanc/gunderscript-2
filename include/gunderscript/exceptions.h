@@ -16,6 +16,8 @@ public:
 
     int code() const { return code_; }
     const std::string& what() const { return what_; }
+    bool operator==(const ExceptionStatus& other) { return other.code() == this->code(); }
+    bool operator!=(const ExceptionStatus& other) { return other.code() != this->code(); }
 
 private:
     const int code_;

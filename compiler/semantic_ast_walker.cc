@@ -154,7 +154,7 @@ void SemanticAstWalker::WalkSpecDeclaration(
     }
     catch (const Exception& ex) {
         // Rethrow as more relevant exception.
-        if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+        if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
             THROW_EXCEPTION(
                 name_node->line(),
                 name_node->column(),
@@ -206,7 +206,7 @@ void SemanticAstWalker::WalkFunctionDeclaration(
         catch (const Exception& ex) {
 
             // Throw a more relevant exception.
-            if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+            if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
                 THROW_EXCEPTION(
                     name_node->line(),
                     name_node->column(),
@@ -251,7 +251,7 @@ Type SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     catch (const Exception& ex) {
 
         // Throw a more relevant exception.
-        if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+        if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
             THROW_EXCEPTION(
                 name_node->line(),
                 name_node->column(),
@@ -328,7 +328,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
     catch (const Exception& ex) {
 
         // Rethrow as more understandable error.
-        if (ex.status().code() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+        if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
             THROW_EXCEPTION(
                 name_node->line(),
                 name_node->column(),
@@ -358,7 +358,7 @@ Type SemanticAstWalker::WalkFunctionCall(
     catch (const Exception& ex) {
 
         // The symbol for this function is unknown. Let's try an out of spec (static) function.
-        if (ex.status().code() != STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+        if (ex.status() != STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL) {
             throw;
         }
 
@@ -369,7 +369,7 @@ Type SemanticAstWalker::WalkFunctionCall(
         catch (const Exception& ex) {
 
             // The symbol for this function is unknown. Either a typo or a function-like typecast.
-            if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+            if (ex.status() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL) {
 
                 // Check if we have exactly one param. If so, it might be a typecast.
                 if (arguments_result.size() != 1) {
@@ -485,7 +485,7 @@ Type SemanticAstWalker::WalkFunctionLikeTypecast(
     catch (const Exception& ex) {
 
         // If the symbol is undefined, this is an invalid function symbol or typecast.
-        if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+        if (ex.status() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL) {
             THROW_EXCEPTION(
                 name_node->line(),
                 name_node->column(),
@@ -537,7 +537,7 @@ Type SemanticAstWalker::WalkAssign(
 
         // Throw exception if it's not the expected exception, we don't have handling
         // for this case.
-        if (ex.status().code() != STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL.code()) {
+        if (ex.status() != STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
             THROW_EXCEPTION(
                 name_node->line(),
                 name_node->column(),
@@ -1052,7 +1052,7 @@ Type SemanticAstWalker::WalkVariable(
         return symbol->type();
     }
     catch (const Exception& ex) {
-        if (ex.status().code() != STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+        if (ex.status() != STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL) {
             throw;
         }
 
@@ -1276,7 +1276,7 @@ Type SemanticAstWalker::ResolveTypeNode(Node* type_node) {
     }
     catch (const Exception& ex) {
         // Rethrow as more relevant exception.
-        if (ex.status().code() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+        if (ex.status() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL) {
             THROW_EXCEPTION(
                 type_node->line(),
                 type_node->column(),
