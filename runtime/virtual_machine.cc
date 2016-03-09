@@ -113,9 +113,11 @@ void VirtualMachineImpl::AssembleModule(Module& module) {
 
         // Create an instruction printer if in NJ_VERBOSE (Debug Configuration).
 #ifdef NJ_VERBOSE
-        std::cout << "Symbol: "
-            << module.pimpl()->symbols_vector().at(i).symbol_name() 
-            << std::endl;
+        if (common_resources_.verbose_asm()) {
+            std::cout << "Symbol: "
+                << module.pimpl()->symbols_vector().at(i).symbol_name()
+                << std::endl;
+        }
 
         LInsPrinter p(this->common_resources_.alloc(), 1024);
         f->lirbuf->printer = &p;

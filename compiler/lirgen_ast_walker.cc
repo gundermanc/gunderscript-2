@@ -342,12 +342,9 @@ LirGenResult LIRGenAstWalker::WalkAssign(
 emit_assign_ins:
     EmitStore(operations_result.type(), variable_ptr, 0, operations_result.ins());
 
-    // HACK: in order to support nesting of assign statements like this:
-    // y <- (x <- 3 + 2)
-    // we generate a load instruction right after our assign and return it
-    // to the caller.
-    return LirGenResult(operations_result.type(),
-        EmitLoad(operations_result.type(), variable_ptr, 0));
+    // The value and type of an assignment is equal to that of the right hand
+    // side of the operation (the expression). Simply pass it along.
+    return operations_result;
 }
 
 // Walks a return statement and generates code for it.
