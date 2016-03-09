@@ -1040,15 +1040,28 @@ Type SemanticAstWalker::WalkVariable(
 
     const std::string symbol_name = MangleLocalVariableSymbolName(name_node);
 
-    Symbol* symbol = this->symbol_table_.Get(symbol_name);
+    try {
+        Symbol* symbol = this->symbol_table_.Get(symbol_name);
 
-    // Store the symbol in the variable node:
-    // Alloc copy because ~Node() destroys the symbol when done.
-    variable_node->set_symbol(new Symbol(symbol));
+        // Store the symbol in the variable node:
+        // Alloc copy because ~Node() destroys the symbol when done.
+        variable_node->set_symbol(new Symbol(symbol));
 
-    // Looks up the variable in the SymbolTable and returns its type.
-    // Throws if the symbol is undefined.
-    return symbol->type();
+        // Looks up the variable in the SymbolTable and returns its type.
+        // Throws if the symbol is undefined.
+        return symbol->type();
+    }
+    catch (const Exception& ex) {
+        if (ex.status().code() != STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL.code()) {
+            throw;
+        }
+
+        // Throw more relevant exception.
+        THROW_EXCEPTION(
+            variable_node->column(),
+            variable_node->line(),
+            STATUS_SEMANTIC_UNDEFINED_VARIABLE);
+    }
 }
 
 // Walks the ANY_TYPE node and returns the type for it.

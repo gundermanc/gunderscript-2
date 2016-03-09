@@ -236,6 +236,8 @@ const ExceptionStatus STATUS_SEMANTIC_INVALID_IF_CONDITION_TYPE
     = ExceptionStatus(329, "Invalid if statement condition type");
 const ExceptionStatus STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE
     = ExceptionStatus(330, "Invalid loop condition type");
+const ExceptionStatus STATUS_SEMANTIC_UNDEFINED_VARIABLE
+    = ExceptionStatus(331, "Variable is not defined in current scope");
 
 } // namespace gunderscript
 

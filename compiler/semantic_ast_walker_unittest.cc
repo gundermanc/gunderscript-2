@@ -2311,3 +2311,21 @@ TEST(SemanticAstWalker, CorrectForStatement) {
         delete root;
     }
 }
+
+TEST(SemanticAstWalker, UndefinedVariable) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int8 X() {"
+        "    return X;"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNDEFINED_VARIABLE);
+    delete root;
+}
