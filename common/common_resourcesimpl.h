@@ -19,9 +19,19 @@ public:
     Allocator& alloc() { return alloc_; }
     Config& config() { return config_; }
 
+#ifdef NJ_VERBOSE
+    bool verbose_asm() { return verbose_asm_; }
+    void set_verbose_asm(bool verbose_asm) { this->verbose_asm_ = verbose_asm; }
+#endif // NJ_VERBOSE
+
 private:
     Allocator alloc_;
     Config config_;
+
+#ifdef NJ_VERBOSE
+    bool verbose_asm_ = false;
+#endif // NJ_VERBOSE
+
 };
 
 } // namespace gunderscript

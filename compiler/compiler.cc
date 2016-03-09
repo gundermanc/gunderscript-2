@@ -17,10 +17,22 @@ namespace gunderscript {
 // Gunderscript Build Configuration.
 const char* GunderscriptBuildConfigurationString() {
 #ifdef _DEBUG
-    return "DEBUG";
-#else
-    return "RELEASE";
-#endif
+
+#ifdef NJ_VERBOSE
+    return "DEBUG_NJ_VERBOSE";
+#else // NJ_VERBOSE
+    return "DEBUG_NON_VERBOSE";
+#endif // NJ_VERBOSE
+
+#else // _DEBUG
+
+#ifdef NJ_VERBOSE
+    return "RELEASE_NJ_VERBOSE";
+#else // NJ_VERBOSE
+    return "RELEASE_NON_VERBOSE";
+#endif // NJ_VERBOSE
+
+#endif // _DEBUG
 }
 
 // Gunderscript Build Timestamp.
@@ -32,7 +44,7 @@ const char* GunderscriptBuildTimestampString() {
 // pattern and is used to hide implementation details from callers.
 class CompilerImpl {
 public:
-    CompilerImpl(Allocator& alloc, Config& config) : alloc_(alloc), config_(config) { }
+    CompilerImpl(CommonResources& common_resources) : common_resources_(common_resources) { }
     void DebugCompilation(
         CompilerSourceInterface& source,
         CompilerStage stop_at,
@@ -42,8 +54,7 @@ public:
     void Compile(CompilerSourceInterface& source, Module& compiled_module);
 
 private:
-    Allocator& alloc_;
-    Config& config_;
+    CommonResources& common_resources_;
 };
 
 // Implementation of compiler DebugCompilation function.
@@ -92,6 +103,32 @@ void CompilerImpl::DebugCompilation(
         if (typecheck_walk_func != NULL) {
             typecheck_walk_func(root);
         }
+
+        if (stop_at == CompilerStage::TYPE_CHECKER) {
+            delete root;
+            return;
+        }
+
+        // Perform codegen step.
+        Module module;
+        LIRGenAstWalker lir_generator(
+            common_resources_.pimpl().alloc(),
+            common_resources_.pimpl().config(),
+            *root);
+        lir_generator.Generate(module);
+
+        if (stop_at == CompilerStage::CODE_GEN) {
+            delete root;
+            return;
+        }
+
+        // Perform assembly step.
+        // LIR and assembly is only printed on-screen if the caller set verbose_asm
+        // in CommonResources and the project was built with NJ_VERBOSE defined.
+        // On Windows with VS, this may require manual definition as CMAKE doesn't
+        // seem to define CMAKE_BUILD_TYPE with VS.
+        VirtualMachine vm(common_resources_);
+        vm.AssembleModule(module);
     }
     catch (const Exception&) {
 
@@ -102,7 +139,7 @@ void CompilerImpl::DebugCompilation(
         throw;
     }
 
-    // Delete AST and return. Be sure to add a stop_at check for TYPECHECK
+    // Delete AST and return. Be sure to add a stop_at check for ASSEMBLY
     // stage if you add more compiler stages.
     delete root;
     return;
@@ -125,8 +162,8 @@ void CompilerImpl::Compile(CompilerSourceInterface& source, Module& compiled_mod
 
         // Generate NanoJIT IR Code.
         LIRGenAstWalker lir_generator(
-            alloc_,
-            config_,
+            common_resources_.pimpl().alloc(),
+            common_resources_.pimpl().config(),
             *root);
         lir_generator.Generate(compiled_module);
         delete root;
@@ -144,8 +181,7 @@ void CompilerImpl::Compile(CompilerSourceInterface& source, Module& compiled_mod
 
 // Public constructor.
 Compiler::Compiler(CommonResources& common_resources) 
-    : pimpl_(new CompilerImpl(common_resources.pimpl().alloc(),
-        common_resources.pimpl().config())) {
+    : pimpl_(new CompilerImpl(common_resources)) {
 }
 
 // The debug compilation method for snooping on the build process steps.

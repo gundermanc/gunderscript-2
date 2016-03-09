@@ -33,7 +33,7 @@ public:
         : code_alloc_(&common_resources.config()), common_resources_(common_resources) {
         // Setup Nanojit Log control logging if in NJ_VERBOSE (Debug configuration).
 #ifdef NJ_VERBOSE
-        this->log_control_.lcbits = LC_ReadLIR | LC_Native;
+        this->log_control_.lcbits = common_resources.verbose_asm() ? LC_ReadLIR | LC_Native : 0;
 #else
         this->log_control_.lcbits = 0;
 #endif
@@ -77,6 +77,10 @@ bool VirtualMachine::HackyRunScriptMainBool(Module& module) {
     return this->pimpl_->HackyRunScriptMainBool(module);
 }
 
+void VirtualMachine::AssembleModule(Module& module) {
+    this->pimpl_->AssembleModule(module);
+}
+
 void VirtualMachineImpl::AssembleModule(Module& module) {
 
     // No need to assemble a module multiple times.
@@ -109,6 +113,10 @@ void VirtualMachineImpl::AssembleModule(Module& module) {
 
         // Create an instruction printer if in NJ_VERBOSE (Debug Configuration).
 #ifdef NJ_VERBOSE
+        std::cout << "Symbol: "
+            << module.pimpl()->symbols_vector().at(i).symbol_name() 
+            << std::endl;
+
         LInsPrinter p(this->common_resources_.alloc(), 1024);
         f->lirbuf->printer = &p;
 #endif

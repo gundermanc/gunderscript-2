@@ -32,6 +32,9 @@ static CliResult PrintException(const Exception& ex) {
 
 // Performs a debuggable compilation with access to the AST.
 static CliResult DebugCompile(
+#ifdef NJ_VERBOSE
+    bool verbose_asm,
+#endif
     int file_count,
     const char** file_names,
     CompilerStage stop_at,
@@ -52,6 +55,10 @@ static CliResult DebugCompile(
             CommonResources common_resources;
             CompilerFileSource file_source(file_names[i]);
             Compiler compiler(common_resources);
+
+#ifdef NJ_VERBOSE
+            common_resources.set_verbose_asm(verbose_asm);
+#endif // NJ_VERBOSE
 
             // Run a debug compilation.
             compiler.DebugCompilation(
@@ -75,6 +82,9 @@ static CliResult DebugCompile(
 // debug format.
 static CliResult LexFiles(int file_count, const char** file_names) {
     return DebugCompile(
+#ifdef NJ_VERBOSE
+        false,
+#endif // NJ_VERBOSE
         file_count,
         file_names,
         CompilerStage::LEXER,
@@ -87,6 +97,9 @@ static CliResult LexFiles(int file_count, const char** file_names) {
 // nodes to the command line in the debug format.
 static CliResult ParseFiles(int file_count, const char** file_names) {
     return DebugCompile(
+#ifdef NJ_VERBOSE
+        false,
+#endif // NJ_VERBOSE
         file_count,
         file_names,
         CompilerStage::PARSER,
@@ -99,6 +112,9 @@ static CliResult ParseFiles(int file_count, const char** file_names) {
 // nodes to the command line in the debug format.
 static CliResult TypeCheckFiles(int file_count, const char** file_names) {
     return DebugCompile(
+#ifdef NJ_VERBOSE
+        false,
+#endif // NJ_VERBOSE
         file_count,
         file_names,
         CompilerStage::TYPE_CHECKER,
@@ -107,8 +123,22 @@ static CliResult TypeCheckFiles(int file_count, const char** file_names) {
         [](const Node* root) { DebugPrintNode(root); });
 }
 
-// Lexes, parses, and type checks a file and then generates IR code.
-static CliResult CodeGenFiles(int file_count, const char** file_names) {
+// Lexes, parsers, typechecks, generates code, assembles, and prints IR and assembly code.
+static CliResult AssembleFiles(int file_count, const char** file_names) {
+    return DebugCompile(
+#ifdef NJ_VERBOSE
+        true,
+#endif // NJ_VERBOSE
+        file_count,
+        file_names,
+        CompilerStage::ASSEMBLY,
+        NULL,
+        NULL,
+        NULL);
+}
+
+// Lexes, parses, and type checks a file and then generates and runs the code.
+static CliResult RunFiles(int file_count, const char** file_names) {
     // Check for input files before we go any farther.
     if (file_count == 0) {
         return CliResult::REQUIRES_FILES;
@@ -154,6 +184,11 @@ void PrintDescription() {
     std::cout << "  -l  : Feed code through lexer stage only and tokenize output." << std::endl;
     std::cout << "  -p  : Feed code through lexer and parser stages only and emit serialized AST." << std::endl;
     std::cout << "  -t  : Feed code through lexer and parser and typechecker and emit AST." << std::endl;
+
+#ifdef NJ_VERBOSE
+    std::cout << "  -a  : Feed code throgh lexer and parser and typechecker and emit IR and assembly." << std::endl;
+#endif // NJ_VERBOSE
+
     std::cout << " None : Feed code through lexer and parser and typechecker and generate and run code." << std::endl;
 }
 
@@ -182,10 +217,16 @@ CliResult ProcessArguments(int argc, const char** argv) {
         case 'T':
             result = TypeCheckFiles(argc - 2, argv + 2);
             break;
+#ifdef NJ_VERBOSE
+        case 'a':
+        case 'A':
+            result = AssembleFiles(argc - 2, argv + 2);
+            break;
+#endif // NJ_VERBOSE
         }
     }
     else {
-        result = CodeGenFiles(argc - 1, argv + 1);
+        result = RunFiles(argc - 1, argv + 1);
     }
 
     // We're done here, if invalid args, let the user know.

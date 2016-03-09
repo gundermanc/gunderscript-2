@@ -15,6 +15,8 @@ class CommonResourcesImpl;
 class CommonResources {
 public:
     CommonResources();
+    bool verbose_asm();
+    void set_verbose_asm(bool verbose_asm);
 
     CommonResourcesImpl& pimpl() { return *(pimpl_.get()); }
 

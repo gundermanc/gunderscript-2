@@ -16,6 +16,8 @@ class VirtualMachineImpl;
 class VirtualMachine {
 public:
     VirtualMachine(CommonResources& common_resources);
+    
+    void AssembleModule(Module& module);
 
     // TODO: replace with universal function calling interface.
     int HackyRunScriptMainInt(Module& module);

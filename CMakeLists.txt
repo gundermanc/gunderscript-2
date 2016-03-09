@@ -7,6 +7,7 @@ option(gunderscript_cli "Gunderscript Command Line Application" ON)
 option(gunderscript_compiler "Gunderscript Compiler Library" ON)
 option(gunderscript_compiler_tests "Gunderscript Compiler Library Tests" ON)
 option(gunderscript_runtime_tests "Gunderscript Runtime Library Tests" ON)
+option(gunderscript_force_define_debug "Force define _DEBUG for working around CMAKE_BUILD_TYPE not defined on Windows" OFF)
 
 cmake_minimum_required (VERSION 2.8.7)
 project (GUNDERSCRIPT)
@@ -15,11 +16,6 @@ project (GUNDERSCRIPT)
 # MSVC DLLs on Windows. Also required for GoogleTest linkage.
 include(cmake/msvc_macros.cmake)
 configure_msvc_runtime ()
-
-# TODO: this is pretty jank, reconsider.
-# Define platform constants for NanoJIT
-include(nanojit/cmake_macros.cmake)
-define_nanojit_platform()
 
 # Travis CI Compatible C++11 Support
 # CXX_STANDARD proeprty doesn't work on Travis CI because
@@ -34,6 +30,20 @@ elseif (COMPILER_SUPPORTS_CXX0X)
 else ()
     message (STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif ()
+
+# Forces definition of _DEBUG to force inclusion of DEBUG specific
+# code. This is useful for two reasons:
+# - RELEASE code with DEBUG symbols
+# - CMAKE for Visual Studio does not define CMAKE_BUILD_TYPE.
+#   We can use this option to define it manually.
+if (gunderscript_force_define_debug)
+    set (CMAKE_BUILD_TYPE "Debug")
+endif ()
+
+# TODO: this is pretty jank, reconsider.
+# Define platform constants for NanoJIT
+include(nanojit/cmake_macros.cmake)
+define_nanojit_platform()
 
 # Import Google Test if option enabled.
 if (gunderscript_compiler_tests)
