@@ -10,6 +10,13 @@
 // HACK: this include is here for explicit template instantiation for LirGenResult.
 #include "lirgen_ast_walker.h"
 
+// Debug assertion checks that we have the correct node rule.
+// Not compiled in Release configuration.
+#define GS_ASSERT_NODE_RULE(node, node_rule) \
+    GS_ASSERT_TRUE(((node) != NULL) && ((node)->rule() == (node_rule)), "Null AstWalker node or invalid node rule");
+#define GS_ASSERT_OPTIONAL_NODE_RULE(node, node_rule) \
+    GS_ASSERT_TRUE(((node) == NULL) || ((node)->rule() == (node_rule)), "Invalid AstWalker node rule");
+
 namespace gunderscript {
 namespace compiler {
 
@@ -23,17 +30,9 @@ template class AstWalker<LirGenResult>;
 // IllegalStateException indicating that there is a bug.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleChildren() {
-    // We can't have a non-module node as the root. If we do, indicate
-    // that this is a bug.
-    CheckNodeRule(&this->root(), NodeRule::MODULE);
-
-    // Check that we have the proper number of MODULE node children.
-    if (this->root().child_count() != 4) {
-        THROW_EXCEPTION(
-            this->root().line(),
-            this->root().column(),
-            STATUS_ILLEGAL_STATE);
-    }
+    // We can't have a non-module node as the root.
+    GS_ASSERT_NODE_RULE(&this->root(), NodeRule::MODULE);
+    GS_ASSERT_TRUE(this->root().child_count() == 4, "AstWalker expected 4 nodes in AST root");
 
     // Call public pure virtual function implemented by child class
     // to give them a chance to walk/modify the AST.
@@ -45,10 +44,10 @@ void AstWalker<ReturnType>::WalkModuleChildren() {
     Node* functions_node = this->root().child(3);
 
     // Check child node types.
-    CheckNodeRule(name_node, NodeRule::NAME);
-    CheckNodeRule(depends_node, NodeRule::DEPENDS);
-    CheckNodeRule(specs_node, NodeRule::SPECS);
-    CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+    GS_ASSERT_NODE_RULE(depends_node, NodeRule::DEPENDS);
+    GS_ASSERT_NODE_RULE(specs_node, NodeRule::SPECS);
+    GS_ASSERT_NODE_RULE(functions_node, NodeRule::FUNCTIONS);
 
     // Walk children.
     // Call to WalkPropertiesFunctionsPrescanChildren() must come before WalkModuleSpecsChildren()
@@ -66,12 +65,13 @@ void AstWalker<ReturnType>::WalkModuleChildren() {
 // with the name of another script file.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleDependsChildren(Node* depends_node) {
+    GS_ASSERT_NODE_RULE(depends_node, NodeRule::DEPENDS);
 
     // Iterate through all modules that this modules depends on.
     for (size_t i = 0; i < depends_node->child_count(); i++) {
 
         // Check that each node is a NAME node and then walk it.
-        CheckNodeRule(depends_node->child(i), NodeRule::NAME);
+        GS_ASSERT_NODE_RULE(depends_node->child(i), NodeRule::NAME);
         WalkModuleDependsName(depends_node->child(i));
     }
 }
@@ -80,12 +80,13 @@ void AstWalker<ReturnType>::WalkModuleDependsChildren(Node* depends_node) {
 // defined in this module.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkModuleSpecsChildren(Node* specs_node) {
+    GS_ASSERT_NODE_RULE(specs_node, NodeRule::SPECS);
 
     // Iterate through all specs defined by this module.
     for (size_t i = 0; i < specs_node->child_count(); i++) {
 
         // Check that each node is a SPEC node and then walk it.
-        CheckNodeRule(specs_node->child(i), NodeRule::SPEC);
+        GS_ASSERT_NODE_RULE(specs_node->child(i), NodeRule::SPEC);
         WalkSpec(specs_node->child(i));
     }
 }
@@ -95,17 +96,18 @@ void AstWalker<ReturnType>::WalkModuleSpecsChildren(Node* specs_node) {
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkSpec(Node* spec_node) {
 
-    CheckNodeRule(spec_node, NodeRule::SPEC);
+    GS_ASSERT_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_TRUE(spec_node->child_count() == 4, "AstWalker expects SPEC node to have 4 children");
 
     Node* access_modifier_node = spec_node->child(0);
     Node* name_node = spec_node->child(1);
     Node* functions_node = spec_node->child(2);
     Node* properties_node = spec_node->child(3);
 
-    CheckNodeRule(access_modifier_node, NodeRule::ACCESS_MODIFIER);
-    CheckNodeRule(name_node, NodeRule::NAME);
-    CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
-    CheckNodeRule(properties_node, NodeRule::PROPERTIES);
+    GS_ASSERT_NODE_RULE(access_modifier_node, NodeRule::ACCESS_MODIFIER);
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+    GS_ASSERT_NODE_RULE(functions_node, NodeRule::FUNCTIONS);
+    GS_ASSERT_NODE_RULE(properties_node, NodeRule::PROPERTIES);
 
     WalkSpecDeclaration(spec_node, access_modifier_node, name_node);
     WalkPropertiesFunctionsPrescanChildren(spec_node, functions_node, properties_node);
@@ -116,10 +118,8 @@ void AstWalker<ReturnType>::WalkSpec(Node* spec_node) {
 // Walks the children of the FUNCTION nodes.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkFunctionsChildren(Node* spec_node, Node* functions_node) {
-    if (spec_node != NULL) {
-        CheckNodeRule(spec_node, NodeRule::SPEC);
-    }
-    CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_NODE_RULE(functions_node, NodeRule::FUNCTIONS);
 
     // Iterates through all function declarations in the spec,
     // this time looking only at the function implentation.
@@ -141,12 +141,9 @@ void AstWalker<ReturnType>::WalkFunctionChildren(
     Node* spec_node,
     Node* function_node, 
     bool prescan) {
-
-    if (spec_node != NULL) {
-        CheckNodeRule(spec_node, NodeRule::SPEC);
-    }
-
-    CheckNodeRule(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_TRUE(function_node->child_count() == 6, "AstWalker expects FUNCTION to have 6 children");
 
     // Get function attribute objects.
     Node* access_modifier_node = function_node->child(0);
@@ -157,12 +154,12 @@ void AstWalker<ReturnType>::WalkFunctionChildren(
     Node* block_node = function_node->child(5);
 
     // Naively check the node rules for basic troubleshooting.
-    CheckNodeRule(access_modifier_node, NodeRule::ACCESS_MODIFIER);
-    CheckNodeRule(native_node, NodeRule::NATIVE);
-    CheckNodeRule(type_node, NodeRule::TYPE);
-    CheckNodeRule(name_node, NodeRule::NAME);
-    CheckNodeRule(function_params_node, NodeRule::FUNCTION_PARAMETERS);
-    CheckNodeRule(block_node, NodeRule::BLOCK);
+    GS_ASSERT_NODE_RULE(access_modifier_node, NodeRule::ACCESS_MODIFIER);
+    GS_ASSERT_NODE_RULE(native_node, NodeRule::NATIVE);
+    GS_ASSERT_NODE_RULE(type_node, NodeRule::TYPE);
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+    GS_ASSERT_NODE_RULE(function_params_node, NodeRule::FUNCTION_PARAMETERS);
+    GS_ASSERT_NODE_RULE(block_node, NodeRule::BLOCK);
 
     // Dispatch the arguments walker to subclass.
     std::vector<ReturnType> arguments_result;
@@ -209,13 +206,9 @@ void AstWalker<ReturnType>::WalkPropertiesFunctionsPrescanChildren(
     Node* functions_node,
     Node* properties_node) {
 
-    // We allow having a NULL spec_node if functions are static.
-    if (spec_node != NULL) {
-        CheckNodeRule(properties_node, NodeRule::PROPERTIES);
-        CheckNodeRule(spec_node, NodeRule::SPEC);
-    }
-
-    CheckNodeRule(functions_node, NodeRule::FUNCTIONS);
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_NODE_RULE(functions_node, NodeRule::FUNCTIONS);
+    GS_ASSERT_OPTIONAL_NODE_RULE(properties_node, NodeRule::PROPERTIES);
 
     // Iterates through all function declarations in the spec
     // reading only the function headers and definitions.
@@ -243,26 +236,25 @@ void AstWalker<ReturnType>::WalkFunctionDeclarationParametersChildren(
     Node* function_params_node,
     std::vector<ReturnType>& argument_result,
     bool prescan) {
-
-    if (spec_node != NULL) {
-        CheckNodeRule(spec_node, NodeRule::SPEC);
-    }
-
-    CheckNodeRule(function_node, NodeRule::FUNCTION);
-    CheckNodeRule(function_params_node, NodeRule::FUNCTION_PARAMETERS); 
+    
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_NODE_RULE(function_params_node, NodeRule::FUNCTION_PARAMETERS); 
 
     // Iterate all FUNCTION_PARAMETER nodes in the FUNCTION_PARAMETERS node
     // and dispatch to subclass function.
     for (size_t i = 0; i < function_params_node->child_count(); i++) {
         Node* function_param_node = function_params_node->child(i);
 
-        CheckNodeRule(function_param_node, NodeRule::FUNCTION_PARAMETER);
+        GS_ASSERT_NODE_RULE(function_param_node, NodeRule::FUNCTION_PARAMETER);
+        GS_ASSERT_TRUE(function_param_node->child_count() == 2,
+            "AstWalker expected FUNCTION to have to children");
 
         Node* type_node = function_param_node->child(0);
         Node* name_node = function_param_node->child(1);
 
-        CheckNodeRule(type_node, NodeRule::TYPE);
-        CheckNodeRule(name_node, NodeRule::NAME);
+        GS_ASSERT_NODE_RULE(type_node, NodeRule::TYPE);
+        GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
 
         argument_result.push_back(
             WalkSpecFunctionDeclarationParameter(
@@ -278,8 +270,8 @@ void AstWalker<ReturnType>::WalkFunctionDeclarationParametersChildren(
 // Walks the children of the PROPERTIES node child of the SPEC node.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkSpecPropertiesChildren(Node* spec_node, Node* properties_node) {
-    CheckNodeRule(spec_node, NodeRule::SPEC);
-    CheckNodeRule(properties_node, NodeRule::PROPERTIES);
+    GS_ASSERT_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_NODE_RULE(properties_node, NodeRule::PROPERTIES);
 
     // Iterate through all properties in the SPEC's PROPERTIES node.
     for (size_t i = 0; i < properties_node->child_count(); i++) {
@@ -303,6 +295,11 @@ void AstWalker<ReturnType>::WalkSpecPropertyChildren(
     Node* property_node,
     bool prescan) {
 
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
+    GS_ASSERT_TRUE(property_node->child_count() == 4,
+        "AstWalker expects PROPERTY to have 4 children");
+
     // Get all mandatory child nodes.
     Node* type_node = property_node->child(0);
     Node* name_node = property_node->child(1);
@@ -312,25 +309,25 @@ void AstWalker<ReturnType>::WalkSpecPropertyChildren(
     Node* set_access_modifier_node = set_property_function_node->child(0);
 
     // Check mandatory child node types.
-    CheckNodeRule(type_node, NodeRule::TYPE);
-    CheckNodeRule(name_node, NodeRule::NAME);
-    CheckNodeRule(get_property_function_node, NodeRule::PROPERTY_FUNCTION);
-    CheckNodeRule(set_property_function_node, NodeRule::PROPERTY_FUNCTION);
-    CheckNodeRule(get_access_modifier_node, NodeRule::ACCESS_MODIFIER);
-    CheckNodeRule(set_access_modifier_node, NodeRule::ACCESS_MODIFIER);
+    GS_ASSERT_NODE_RULE(type_node, NodeRule::TYPE);
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+    GS_ASSERT_NODE_RULE(get_property_function_node, NodeRule::PROPERTY_FUNCTION);
+    GS_ASSERT_NODE_RULE(set_property_function_node, NodeRule::PROPERTY_FUNCTION);
+    GS_ASSERT_NODE_RULE(get_access_modifier_node, NodeRule::ACCESS_MODIFIER);
+    GS_ASSERT_NODE_RULE(set_access_modifier_node, NodeRule::ACCESS_MODIFIER);
 
-    // Check the types of the optional child nodes.
-    // The null check is because we don't want to throw if these
-    // nodes were not provided.
+    // Get the property function block nodes if they were provided.
+    // These nodes are optional. If they are not present it implies that the
+    // property is an auto (as opposed to explicit) property.
     Node* get_block_node = NULL;
     Node* set_block_node = NULL;
     if (get_property_function_node->child_count() >= 2) {
         get_block_node = get_property_function_node->child(1);
-        CheckNodeRule(get_block_node, NodeRule::BLOCK);
+        GS_ASSERT_NODE_RULE(get_block_node, NodeRule::BLOCK);
     }
     if (set_property_function_node->child_count() >= 2) {
         set_block_node = set_property_function_node->child(1);
-        CheckNodeRule(set_block_node, NodeRule::BLOCK);
+        GS_ASSERT_NODE_RULE(set_block_node, NodeRule::BLOCK);
     }
 
     // Dispatch to subclass function.
@@ -372,7 +369,10 @@ void AstWalker<ReturnType>::WalkBlockChildren(
     Node* block_node,
     std::vector<ReturnType>* arguments_result) {
 
-    CheckNodeRule(block_node, NodeRule::BLOCK);
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
+    GS_ASSERT_NODE_RULE(block_node, NodeRule::BLOCK);
 
     // Iterate through all statements in the block.
     for (size_t i = 0; i < block_node->child_count(); i++) {
@@ -423,10 +423,7 @@ void AstWalker<ReturnType>::WalkBlockChildren(
                 arguments_result);
             break;
         default:
-            THROW_EXCEPTION(
-                this->root().line(),
-                this->root().column(),
-                STATUS_ILLEGAL_STATE);
+            THROW_NOT_IMPLEMENTED();
         }
     }
 }
@@ -437,19 +434,17 @@ ReturnType AstWalker<ReturnType>::WalkFunctionCallChildren(
     Node* spec_node, 
     Node* function_node, 
     Node* call_node) {
-
-    if (spec_node != NULL) {
-        CheckNodeRule(spec_node, NodeRule::SPEC);
-    }
-
-    CheckNodeRule(call_node, NodeRule::CALL);
+    
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_NODE_RULE(call_node, NodeRule::CALL);
 
     Node* name_node = call_node->child(0);
     Node* arguments_node = call_node->child(1);
     std::vector<ReturnType> arguments_result;
 
-    CheckNodeRule(name_node, NodeRule::NAME);
-    CheckNodeRule(arguments_node, NodeRule::CALL_PARAMETERS);
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+    GS_ASSERT_NODE_RULE(arguments_node, NodeRule::CALL_PARAMETERS);
 
     // Iterate through all call param expressions and evaluate their
     // types.
@@ -482,15 +477,10 @@ void AstWalker<ReturnType>::WalkIfStatementChildren(
     Node* if_node,
     std::vector<ReturnType>* arguments_result) {
 
-    if (spec_node != NULL) {
-        GS_ASSERT_TRUE(spec_node->rule() == NodeRule::SPEC, "Expected SPEC in typechecker WalkIfStatementChildren");
-    }
-    if (function_node != NULL) {
-        GS_ASSERT_TRUE(function_node->rule() == NodeRule::FUNCTION, "Expected FUNCTION in typechecker WalkIfStatementChildren");
-    }
-    if (property_node != NULL) {
-        GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY, "Expected CALL in typechecker WalkIfStatementChildren");
-    }
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
+    GS_ASSERT_NODE_RULE(if_node, NodeRule::IF);
 
     // Walk condition expression.
     ReturnType condition_result = WalkExpressionChildren(
@@ -533,23 +523,15 @@ void AstWalker<ReturnType>::WalkForStatementChildren(
     Node* for_node,
     std::vector<ReturnType>* arguments_result) {
 
-    if (spec_node != NULL) {
-        GS_ASSERT_TRUE(spec_node->rule() == NodeRule::SPEC,
-            "Expected SPEC in typechecker WalkForStatementChildren");
-    }
-    if (function_node != NULL) {
-        GS_ASSERT_TRUE(function_node->rule() == NodeRule::FUNCTION,
-            "Expected FUNCTION in typechecker WalkForStatementChildren");
-    }
-    if (property_node != NULL) {
-        GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY,
-            "Expected CALL in typechecker WalkForStatementChildren");
-    }
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
+    GS_ASSERT_NODE_RULE(for_node, NodeRule::FOR);
+    GS_ASSERT_TRUE(for_node->child_count() == 4, "AstWalker expects FOR to have 4 children");
 
     // Walk initialize expression.
     Node* init_node = for_node->child(0);
-    GS_ASSERT_TRUE(init_node->rule() == NodeRule::LOOP_INITIALIZE,
-        "Expected LOOP_INITIALIZE in typecheker WalkForStatementChildren");
+    GS_ASSERT_NODE_RULE(init_node, NodeRule::LOOP_INITIALIZE);
 
     // Init expression is optional.
     if (init_node->child_count() > 0) {
@@ -563,8 +545,7 @@ void AstWalker<ReturnType>::WalkForStatementChildren(
 
     // Walk condition expression.
     Node* cond_node = for_node->child(1);
-    GS_ASSERT_TRUE(cond_node->rule() == NodeRule::LOOP_CONDITION,
-        "Expected LOOP_CONDITION in typecheker WalkForStatementChildren");
+    GS_ASSERT_NODE_RULE(cond_node, NodeRule::LOOP_CONDITION);
 
     if (cond_node->child_count() > 0) {
         ReturnType cond_result = WalkExpressionChildren(
@@ -583,8 +564,7 @@ void AstWalker<ReturnType>::WalkForStatementChildren(
 
     // Walk update expression.
     Node* update_node = for_node->child(2);
-    GS_ASSERT_TRUE(update_node->rule() == NodeRule::LOOP_UPDATE,
-        "Expected LOOP_UPDATE in typecheker WalkForStatementChildren");
+    GS_ASSERT_NODE_RULE(update_node, NodeRule::LOOP_UPDATE);
 
     if (update_node->child_count() > 0) {
         WalkExpressionChildren(
@@ -613,15 +593,15 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
     Node* property_node,
     PropertyFunction property_function,
     Node* assign_node) {
-
-    if (spec_node != NULL) {
-        CheckNodeRule(spec_node, NodeRule::SPEC);
-    }
-
-    CheckNodeRule(assign_node, NodeRule::ASSIGN);
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_NODE_RULE(assign_node, NodeRule::ASSIGN);
+    GS_ASSERT_TRUE(assign_node->child_count() == 2,
+        "AstWalker expects ASSIGN to have 2 children");
     
     Node* symbol_node = assign_node->child(0);
-    CheckNodeRule(symbol_node, NodeRule::SYMBOL);
+    GS_ASSERT_NODE_RULE(symbol_node, NodeRule::SYMBOL);
+    GS_ASSERT_TRUE(symbol_node->child_count() == 1,
+        "AstWalker expects SYMBOL to have 1 child");
 
     // OK, so, binary_operation_node is a bit weird. When ASSIGN is used as
     // a statement you would expect the value being assigned to be an
@@ -631,7 +611,7 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
     Node* name_node = symbol_node->child(0);
     Node* binary_operation_node = assign_node->child(1);
 
-    CheckNodeRule(name_node, NodeRule::NAME);
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
 
     // Walk the binary operation and obtain the result.
     ReturnType binary_operation_result = WalkSubExpressionChildren(
@@ -661,22 +641,13 @@ void AstWalker<ReturnType>::WalkReturnChildren(
     Node* return_node,
     std::vector<ReturnType>* arguments_result) {
 
-    // Check mandatory nodes.
-    if (spec_node != NULL) {
-        CheckNodeRule(spec_node, NodeRule::SPEC);
-    }
-    CheckNodeRule(return_node, NodeRule::RETURN);
-
-    // Check optional nodes.
-    if (function_node != NULL) {
-        CheckNodeRule(function_node, NodeRule::FUNCTION);
-    }
-    if (property_node != NULL) {
-        CheckNodeRule(property_node, NodeRule::PROPERTY);
-    }
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
+    GS_ASSERT_NODE_RULE(return_node, NodeRule::RETURN);
 
     Node* expression_node = return_node->child(0);
-    CheckNodeRule(expression_node, NodeRule::EXPRESSION);
+    GS_ASSERT_NODE_RULE(expression_node, NodeRule::EXPRESSION);
 
     // Walk the return expression.
     ReturnType expression_result = WalkExpressionChildren(
@@ -705,8 +676,10 @@ ReturnType AstWalker<ReturnType>::WalkExpressionChildren(
     PropertyFunction property_function,
     Node* expression_node) {
 
-    // Check mandatory nodes used by this walker.
-    CheckNodeRule(expression_node, NodeRule::EXPRESSION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
+    GS_ASSERT_NODE_RULE(expression_node, NodeRule::EXPRESSION);
 
     return WalkSubExpressionChildren(
         spec_node,
@@ -724,6 +697,10 @@ ReturnType AstWalker<ReturnType>::WalkSubExpressionChildren(
     Node* property_node,
     PropertyFunction property_function,
     Node* subexpression_node) {
+
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
 
     switch (subexpression_node->rule()) {
     case NodeRule::CALL:
@@ -757,6 +734,10 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
     Node* property_node,
     PropertyFunction property_function,
     Node* binary_operation_node) {
+
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
 
     // This node has children, treat it as a binary operation.
     if (binary_operation_node->child_count() == 2) {
@@ -885,10 +866,7 @@ ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
                 left_result,
                 right_result);
         default:
-            THROW_EXCEPTION(
-                this->root().line(),
-                this->root().column(),
-                STATUS_ILLEGAL_STATE);
+            THROW_NOT_IMPLEMENTED();
         }
     }
 
@@ -910,19 +888,9 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
     PropertyFunction property_function,
     Node* atomic_node) {
 
-    // Check mandatory nodes.
-    if (spec_node != NULL) {
-        CheckNodeRule(spec_node, NodeRule::SPEC);
-    }
-
-    // Check optional nodes. Property and function are optional
-    // because expressions can operate in the context of either.
-    if (function_node != NULL) {
-        CheckNodeRule(function_node, NodeRule::FUNCTION);
-    }
-    if (property_node != NULL) {
-        CheckNodeRule(property_node, NodeRule::PROPERTY);
-    }
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
 
     switch (atomic_node->rule()) {
     case NodeRule::LOGNOT:
@@ -987,22 +955,7 @@ ReturnType AstWalker<ReturnType>::WalkAtomicExpressionChildren(
             property_function,
             atomic_node);
     default:
-        THROW_EXCEPTION(
-            this->root().line(),
-            this->root().column(),
-            STATUS_ILLEGAL_STATE);
-    }
-}
-
-// Checks that the given node is for the given rule. If it is not,
-// throws IllegalStateException to indicate a bug somewhere.
-template <typename ReturnType>
-void AstWalker<ReturnType>::CheckNodeRule(Node* node, NodeRule rule) {
-    if (node->rule() != rule) {
-        THROW_EXCEPTION(
-            this->root().line(),
-            this->root().column(),
-            STATUS_ILLEGAL_STATE);
+        THROW_NOT_IMPLEMENTED();
     }
 }
 

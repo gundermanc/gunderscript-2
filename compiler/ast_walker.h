@@ -321,7 +321,6 @@ private:
         Node* property_node,
         PropertyFunction property_function,
         Node* atomic_node);
-    void CheckNodeRule(Node* node, NodeRule rule);
 };
 
 } // namespace library
