@@ -4,6 +4,8 @@
 (C) 2014-2016 Christian Gunderman
 Contact Email: gundermanc@gmail.com
 
+Uses a fork of [Mozilla NanoJIT library](https://github.com/gundermanc/nanojit) for code generation which is subject to [MPL 2.0](http://www.mozilla.org/MPL/2.0) license.
+
 ## Introduction:
 Gunderscript 2 is the successor to the original Gunderscript scripting language.
 For more information on Gunderscript, see http://github.com/gundermanc/gunderscript
