@@ -179,6 +179,7 @@ void PrintDescription() {
         << GunderscriptBuildTimestampString()
         << std::endl;
     std::cout << "(C) 2014-2016 Christian Gunderman" << std::endl << std::endl;
+    std::cout << "Uses NanoJIT (C) Mozilla, Subject to MPL https://www.mozilla.org/en-US/MPL/2.0/" << std::endl << std::endl;
     std::cout << "Usage: ./gunderscript_cli [parameters] [files]" << std::endl;
     std::cout << "Parameters:" << std::endl;
     std::cout << "  -l  : Feed code through lexer stage only and tokenize output." << std::endl;
