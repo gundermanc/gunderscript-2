@@ -438,11 +438,6 @@ LirGenResult LIRGenAstWalker::WalkSub(
 
     LIns* left_ins = left_result.ins();
 
-    // HACK: negative numbers special case.
-    if (left_result.ins() == NULL) {
-        left_ins = this->current_writer_->insImmI(0);
-    }
-
     // HACK: For the WalkSub case in particular we MUST use ONLY the RIGHT node's type because
     // the SemanticAstWalker returns ANY_TYPE for the left operand to get around the explict
     // typecast requirement for all operands with negative numbers.
@@ -454,6 +449,11 @@ LirGenResult LIRGenAstWalker::WalkSub(
         {
         case 4:
         case 1:
+            // HACK: negative numbers special case.
+            if (left_result.ins() == NULL) {
+                left_ins = this->current_writer_->insImmI(0);
+            }
+
             // Subtraction of 1 byte INT8/CHAR values is still LIR_subi because the actual
             // operation occurs in a standard >= 32 bit register.
             return LirGenResult(
@@ -465,6 +465,11 @@ LirGenResult LIRGenAstWalker::WalkSub(
         switch (right_result.type().size())
         {
         case 4:
+            // HACK: negative numbers special case.
+            if (left_result.ins() == NULL) {
+                left_ins = this->current_writer_->insImmF(0.0);
+            }
+
             return LirGenResult(
                 right_result.type(),
                 this->current_writer_->ins2(LIR_subf, left_ins, right_result.ins()));
