@@ -105,7 +105,7 @@ void AstWalker<ReturnType>::WalkSpec(Node* spec_node) {
     Node* properties_node = spec_node->child(3);
 
     GS_ASSERT_NODE_RULE(access_modifier_node, NodeRule::ACCESS_MODIFIER);
-    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::TYPE);
     GS_ASSERT_NODE_RULE(functions_node, NodeRule::FUNCTIONS);
     GS_ASSERT_NODE_RULE(properties_node, NodeRule::PROPERTIES);
 

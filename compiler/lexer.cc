@@ -18,7 +18,7 @@ static const std::string kLexerTokenTypeString[] = {
 // break.
 static const std::string kLexerSymbolString[] = {
     // Symbols:
-    "SWAP", "ASSIGN", "LSHIFT", "LESSEQUALS", "LESS", "GREATEREQUALS", "RSHIFT",
+    "SWAP", "ASSIGN", "LESSEQUALS", "LESS", "GREATEREQUALS",
     "GREATER", "ADD", "ADDEQUALS", "SUB", "SUBEQUALS", "MUL", "MULEQUALS", "DIV",
     "DIVEQUALS", "MOD", "MODEQUALS",
     "LPAREN", "RPAREN", "LSQUARE", "RSQUARE", "LBRACE", "RBRACE", "DOT", "SEMICOLON", "COMMA",
@@ -521,8 +521,6 @@ void Lexer::AdvanceTokens() {
                 else {
                     ACCEPT_SYMBOL_NU(LexerSymbol::ASSIGN);
                 }
-            case '<':
-                ACCEPT_SYMBOL(LexerSymbol::LSHIFT);
             case '=':
                 ACCEPT_SYMBOL(LexerSymbol::LESSEQUALS);
             default:
@@ -534,8 +532,6 @@ void Lexer::AdvanceTokens() {
             switch (PEEK_CHAR()) {
             case '=':
                 ACCEPT_SYMBOL(LexerSymbol::GREATEREQUALS);
-            case '>':
-                ACCEPT_SYMBOL(LexerSymbol::RSHIFT);
             default:
                 ACCEPT_SYMBOL_NU(LexerSymbol::GREATER);
             }

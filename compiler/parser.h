@@ -85,6 +85,7 @@ private:
     Node* ParseNamedValueExpression();
     Node* ParseCallExpression();
     Node* ParseMemberNameExpression();
+    void ParseTypeExpression(Node* parent_node);
     void ParseCallParameters(Node* node);
     Node* ParseVariableExpression();
     Node* ParseBoolConstant();

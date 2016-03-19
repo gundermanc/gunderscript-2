@@ -174,6 +174,12 @@ const ExceptionStatus STATUS_PARSER_MALFORMED_WHILE_MISSING_LPAREN
     = ExceptionStatus(240, "Trying to parse while loop, expected but did not find left parenthesis");
 const ExceptionStatus STATUS_PARSER_MALFORMED_WHILE_MISSING_RPAREN
     = ExceptionStatus(241, "Trying to parse while loop, expected but did not find right parenthesis");
+const ExceptionStatus STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME
+    = ExceptionStatus(242, "Trying to parse type expression parameter, expected  but did not find type");
+const ExceptionStatus STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA
+    = ExceptionStatus(243, "Trying to parse type expression, expected but did not find comma delimiter or closing angle brace");
+const ExceptionStatus STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_GREATER
+    = ExceptionStatus(244, "Trying to parse type expression, expected but did not find closing angle brace");
 
 // Semantic Walker Exceptions 300-399:
 const ExceptionStatus STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN

@@ -268,7 +268,7 @@ TEST(Parser, EmptySpec) {
     EXPECT_EQ(LexerSymbol::PUBLIC, spec_node_0_access_modifier->symbol_value());
 
     Node* spec_node_0_name = spec_node_0->child(1);
-    EXPECT_EQ(NodeRule::NAME, spec_node_0_name->rule());
+    EXPECT_EQ(NodeRule::TYPE, spec_node_0_name->rule());
     EXPECT_EQ(0, spec_node_0_name->child_count());
     EXPECT_STREQ("MySpec", spec_node_0_name->string_value()->c_str());
 
@@ -286,7 +286,7 @@ TEST(Parser, EmptySpec) {
     EXPECT_EQ(LexerSymbol::CONCEALED, spec_node_1_access_modifier->symbol_value());
 
     Node* spec_node_1_name = spec_node_1->child(1);
-    EXPECT_EQ(NodeRule::NAME, spec_node_1_name->rule());
+    EXPECT_EQ(NodeRule::TYPE, spec_node_1_name->rule());
     EXPECT_EQ(0, spec_node_1_name->child_count());
     EXPECT_STREQ("Foo", spec_node_1_name->string_value()->c_str());
 
@@ -2851,6 +2851,241 @@ TEST(Parser, CorrectWhileTree) {
     Node* for_node_block = for_node->child(3);
     EXPECT_EQ(NodeRule::BLOCK, for_node_block->rule());
     EXPECT_EQ(0, for_node_block->child_count());
+
+    delete root;
+}
+
+TEST(Parser, ParseMalformedTypeExpression) {
+    // Case 1: Missing left most angle brace.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List List<List<int32, bool>, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_LPAREN);
+    }
+
+    // Case 2: Missing an inner angle brace.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List List<int32, bool>, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_LPAREN);
+    }
+
+    // Case 3: Missing an inner angle brace (a different one).
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<Listint32, bool>, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_WHILE_MISSING_LPAREN);
+    }
+
+    // Case 4: Missing an inner angle brace (a different one).
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<Listint32, bool>, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_WHILE_MISSING_LPAREN);
+    }
+
+    // Case 5: Missing an outer close angle brace.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, bool>, string main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_GREATER);
+    }
+
+    // Case 6: Missing an outer close angle brace (a different one).
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, bool, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_GREATER);
+    }
+
+    // Case 7: Missing a delimiter.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool> bool, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
+    }
+
+    // Case 8: Missing a different delimiter.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, bool> string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
+    }
+
+    // Case 9: Missing name.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, >, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME);
+    }
+
+    // Case 10: Missing name.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, >, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME);
+    }
+
+    // Case 11: Missing name.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME);
+    }
+}
+
+TEST(Parser, CorrectTypeExpression) {
+    // Case 1: Nested type params.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, bool>, List<string, int32>> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 2: No parameters.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 3: One parameter.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<int32> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 4: Two parameters.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<int32, bool> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+}
+
+TEST(Parser, CorrectTypeExpressionTree) {
+    std::string input("package \"FooPackage\";"
+        "public List<List<bool>, int32> main() {"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* functions_node = root->child(3);
+    Node* main_function_node = functions_node->child(0);
+
+    Node* type_node = main_function_node->child(2);
+    EXPECT_STREQ("List", type_node->string_value()->c_str());
+    EXPECT_EQ(NodeRule::TYPE, type_node->rule());
+    EXPECT_EQ(2, type_node->child_count());
+
+    Node* left_type_param = type_node->child(0);
+    EXPECT_STREQ("List", left_type_param->string_value()->c_str());
+    EXPECT_EQ(NodeRule::TYPE, left_type_param->rule());
+    EXPECT_EQ(1, left_type_param->child_count());
+
+    Node* left_type_param_param = left_type_param->child(0);
+    EXPECT_STREQ("bool", left_type_param_param->string_value()->c_str());
+    EXPECT_EQ(NodeRule::TYPE, left_type_param_param->rule());
+    EXPECT_EQ(0, left_type_param_param->child_count());
+
+    Node* right_type_param = type_node->child(1);
+    EXPECT_STREQ("int32", right_type_param->string_value()->c_str());
+    EXPECT_EQ(NodeRule::TYPE, right_type_param->rule());
+    EXPECT_EQ(0, right_type_param->child_count());
 
     delete root;
 }

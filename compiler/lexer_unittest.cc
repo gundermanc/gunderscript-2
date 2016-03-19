@@ -83,11 +83,9 @@ TEST(Lexer, LexerWhitespace) {
 TEST_SYMBOL(ASSIGN, "<-", LexerSymbol::ASSIGN);
 TEST_SYMBOL(LESS, "<", LexerSymbol::LESS);
 TEST_SYMBOL(LESSEQUALS, "<=", LexerSymbol::LESSEQUALS);
-TEST_SYMBOL(LSHIFT, "<<", LexerSymbol::LSHIFT);
 TEST_SYMBOL(SWAP, "<->", LexerSymbol::SWAP);
 TEST_SYMBOL(GREATER, ">", LexerSymbol::GREATER);
 TEST_SYMBOL(GREATEREQUALS, ">=", LexerSymbol::GREATEREQUALS);
-TEST_SYMBOL(RSHIFT, ">>", LexerSymbol::RSHIFT);
 TEST_SYMBOL(ADD, "+", LexerSymbol::ADD);
 TEST_SYMBOL(ADDEQUALS, "+=", LexerSymbol::ADDEQUALS);
 TEST_SYMBOL(SUB, "-", LexerSymbol::SUB);
@@ -152,7 +150,11 @@ TEST(Lexer, SequentialSymbols) {
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-    ASSERT_EQ(LexerSymbol::LSHIFT, lexer.current_token()->symbol);
+    ASSERT_EQ(LexerSymbol::LESS, lexer.current_token()->symbol);
+
+    EXPECT_FALSE(lexer.AdvanceNext() == NULL);
+    ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+    ASSERT_EQ(LexerSymbol::LESS, lexer.current_token()->symbol);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -164,7 +166,11 @@ TEST(Lexer, SequentialSymbols) {
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-    ASSERT_EQ(LexerSymbol::RSHIFT, lexer.current_token()->symbol);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
+
+    EXPECT_FALSE(lexer.AdvanceNext() == NULL);
+    ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -253,7 +259,11 @@ TEST(Lexer, MultilineCommentPrePostTokens) {
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-    ASSERT_EQ(LexerSymbol::RSHIFT, lexer.current_token()->symbol);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
+
+    EXPECT_FALSE(lexer.AdvanceNext() == NULL);
+    ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -274,7 +284,11 @@ TEST(Lexer, MultilineCommentWithSecondStart) {
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-    ASSERT_EQ(LexerSymbol::RSHIFT, lexer.current_token()->symbol);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
+
+    EXPECT_FALSE(lexer.AdvanceNext() == NULL);
+    ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);

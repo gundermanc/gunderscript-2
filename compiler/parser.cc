@@ -1,7 +1,9 @@
 // Gunderscript-2 Parser
 // (C) 2014-2016 Christian Gunderman
 
-#include  "gs_assert.h"
+#include <functional>
+
+#include "gs_assert.h"
 #include "parser.h"
 
 namespace gunderscript {
@@ -241,14 +243,10 @@ void Parser::ParseSpecDefinition(Node* node) {
             STATUS_PARSER_MALFORMED_SPEC_NAME_MISSING);
     }
 
-    spec_node->AddChild(new Node(
-        NodeRule::NAME,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        CurrentToken()->string_const));
+    ParseTypeExpression(spec_node);
 
     // Check for opening curly brace.
-    if (!AdvanceSymbol(LexerSymbol::LBRACE)) {
+    if (!CurrentSymbol(LexerSymbol::LBRACE)) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
@@ -324,14 +322,10 @@ void Parser::ParseProperty(Node* node) {
             STATUS_PARSER_MALFORMED_PROPERTY_TYPE_MISSING);
     }
 
-    property_node->AddChild(new Node(
-        NodeRule::TYPE,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        CurrentToken()->string_const));
+    ParseTypeExpression(property_node);
 
     // Make sure second token is a NAME.
-    if (AdvanceNext()->type != LexerTokenType::NAME) {
+    if (CurrentToken()->type != LexerTokenType::NAME) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
@@ -505,14 +499,10 @@ void Parser::ParseFunction(Node* node) {
             STATUS_PARSER_MALFORMED_FUNCTION_MISSING_TYPE);
     }
 
-    function_node->AddChild(new Node(
-        NodeRule::TYPE, 
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(), 
-        CurrentToken()->string_const));
+    ParseTypeExpression(function_node);
 
     // Check for NAME symbol type for function name.
-    if (AdvanceNext()->type != LexerTokenType::NAME) {
+    if (CurrentToken()->type != LexerTokenType::NAME) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
@@ -599,14 +589,10 @@ void Parser::ParseFunctionParameter(Node* node) {
             STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_TYPE);
     }
 
-    parameter_node->AddChild(new Node(
-        NodeRule::TYPE,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        CurrentToken()->string_const));
+    ParseTypeExpression(parameter_node);
 
     // Check for a parameter NAME.
-    if (AdvanceNext()->type != LexerTokenType::NAME) {
+    if (CurrentToken()->type != LexerTokenType::NAME) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
@@ -1538,6 +1524,75 @@ Node* Parser::ParseMemberNameExpression() {
     }
 
     return name_node;
+}
+
+// Parses a type expression of the form GenericType<Param1, Param2, ...>
+void Parser::ParseTypeExpression(Node* parent_node) {
+
+    // This check is an assert because it is usually done by the caller
+    // for a more specific error message.
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::NAME,
+        "Parser expected NAME in ParseTypeExpression");
+
+    Node* type_node = new Node(
+        NodeRule::TYPE,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number(),
+        CurrentToken()->string_const);
+    parent_node->AddChild(type_node);
+
+    // Check for open angle brace <
+    // Type parameters are optional and only required for generic types.
+    // The correctness of these is checked in the SemanticAstWalker.
+    if (NextSymbol(LexerSymbol::LESS)) {
+        AdvanceNext();
+        AdvanceNext();
+
+        int line = this->lexer_.current_line_number();
+        int column = this->lexer_.current_column_number();
+
+        // Parse a single type argument.
+        std::function<void()> parse_argument_lambda = [this, type_node, line, column]() {
+
+            // Check first param is of type name.
+            if (CurrentToken()->type != LexerTokenType::NAME) {
+                THROW_EXCEPTION(line, column, STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME);
+            }
+
+            // Recursively build tree for type's first param type. Recursion is necessary
+            // for nested generics.
+            // e.g.: List<List<int32>>
+            ParseTypeExpression(type_node);
+        };
+
+        parse_argument_lambda();
+
+        // Parse the 2nd, 3rd, ... type params.
+        while (!CurrentSymbol(LexerSymbol::GREATER)) {
+
+            // Check for comma delimiter.
+            if (!CurrentSymbol(LexerSymbol::COMMA)) {
+                THROW_EXCEPTION(
+                    this->lexer_.current_line_number(),
+                    this->lexer_.current_column_number(),
+                    STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
+            }
+
+            AdvanceNext();
+
+            parse_argument_lambda();
+        }
+
+        // Check for close angle brace >
+        if (!CurrentSymbol(LexerSymbol::GREATER)) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_GREATER);
+        }
+    }
+
+    AdvanceNext();
 }
 
 Node* Parser::ParseCallExpression() {
