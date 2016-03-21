@@ -478,21 +478,8 @@ void Parser::ParseFunction(Node* node) {
         this->lexer_.current_column_number(), 
         CurrentToken()->symbol));
 
-    // Check for NATIVE function token.
-    bool native_function = false;
-    if (AdvanceKeyword(LexerSymbol::NATIVE)) {
-        native_function = true;
-        AdvanceNext();
-    }
-
-    function_node->AddChild(new Node(
-        NodeRule::NATIVE,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        native_function));
-
     // Check for TYPE for return type.
-    if (CurrentToken()->type != LexerTokenType::NAME) {
+    if (AdvanceNext()->type != LexerTokenType::NAME) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
@@ -533,10 +520,7 @@ void Parser::ParseFunction(Node* node) {
             STATUS_PARSER_MALFORMED_FUNCTION_MISSING_RPAREN);
     }
 
-    // If we found a semicolon, function has no body, we're done.
-    if (AdvanceSymbol(LexerSymbol::SEMICOLON)) {
-        return;
-    }
+    AdvanceNext();
 
     ParseBlockStatement(function_node);
 }

@@ -20,13 +20,12 @@ namespace compiler {
 
 // Type checking abstract syntax tree walker.
 // Walks along the AST and checks for type correctness.
-class SemanticAstWalker : public AstWalker<Type> {
+class SemanticAstWalker : public AstWalker<const SymbolBase*> {
 public:
 
     SemanticAstWalker(Node& node);
-    virtual ~SemanticAstWalker();
 
-    const SymbolTable<Symbol*>& symbol_table() const { return symbol_table_; }
+    const SymbolTable<const SymbolBase*>& symbol_table() const { return symbol_table_; }
 
 protected:
     void WalkModule(Node* module_node);
@@ -40,13 +39,12 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* access_modifier_node,
-        Node* native_node,
         Node* type_node,
         Node* name_node,
         Node* block_node,
-        std::vector<Type>& arguments_result,
+        std::vector<const SymbolBase*>& arguments_result,
         bool prescan);
-    Type WalkSpecFunctionDeclarationParameter(
+    const SymbolBase* WalkSpecFunctionDeclarationParameter(
         Node* spec_node,
         Node* function_node,
         Node* type_node,
@@ -62,166 +60,166 @@ protected:
         Node* get_access_modifier_node,
         Node* set_access_modifier_node,
         bool prescan);
-    Type WalkFunctionCall(
+    const SymbolBase* WalkFunctionCall(
         Node* spec_node,
         Node* name_node,
         Node* call_none,
-        std::vector<Type>& arguments_result);
+        std::vector<const SymbolBase*>& arguments_result);
     void WalkIfStatement(
         Node* spec_node,
         Node* if_node,
-        Type condition_result);
+        const SymbolBase* condition_result);
     void WalkForStatement(
         Node* spec_node,
         Node* for_node,
-        Type condition_result);
-    Type WalkAssign(
+        const SymbolBase* condition_result);
+    const SymbolBase* WalkAssign(
         Node* spec_node,
         Node* name_node,
         Node* symbol_node,
         Node* assign_node,
-        Type operations_result);
-    Type WalkReturn(
+        const SymbolBase* operations_result);
+    const SymbolBase* WalkReturn(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
-        Type expression_result,
-        std::vector<Type>* arguments_result);
-    Type WalkAdd(
+        const SymbolBase* expression_result,
+        std::vector<const SymbolBase*>* arguments_result);
+    const SymbolBase* WalkAdd(
         Node* spec_node,
         Node* add_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkSub(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkSub(
         Node* spec_node,
         Node* sub_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkMul(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkMul(
         Node* spec_node,
         Node* mul_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkDiv(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkDiv(
         Node* spec_node,
         Node* div_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkMod(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkMod(
         Node* spec_node,
         Node* mod_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkLogAnd(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkLogAnd(
         Node* spec_node,
         Node* log_and_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkLogNot(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkLogNot(
         Node* spec_node,
         Node* log_not_node,
         Node* child_node,
-        Type child_result);
-    Type WalkLogOr(
+        const SymbolBase* child_result);
+    const SymbolBase* WalkLogOr(
         Node* spec_node,
         Node* log_or_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkGreater(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkGreater(
         Node* spec_node,
         Node* greater_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkEquals(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkEquals(
         Node* spec_node,
         Node* equals_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkNotEquals(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkNotEquals(
         Node* spec_node,
         Node* not_equals_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkLess(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkLess(
         Node* spec_node,
         Node* less_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkGreaterEquals(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkGreaterEquals(
         Node* spec_node,
         Node* greater_equals_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkLessEquals(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkLessEquals(
         Node* spec_node,
         Node* less_equals_node,
         Node* left_node,
         Node* right_node,
-        Type left_result,
-        Type right_result);
-    Type WalkBool(
+        const SymbolBase* left_result,
+        const SymbolBase* right_result);
+    const SymbolBase* WalkBool(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
         Node* bool_node);
-    Type WalkInt(
+    const SymbolBase* WalkInt(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
         Node* int_node);
-    Type WalkFloat(
+    const SymbolBase* WalkFloat(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
         Node* float_node);
-    Type WalkString(
+    const SymbolBase* WalkString(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
         Node* string_node);
-    Type WalkChar(
+    const SymbolBase* WalkChar(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
         Node* char_node);
-    Type WalkVariable(
+    const SymbolBase* WalkVariable(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
         Node* atomic_node,
         Node* name_node);
-    Type WalkAnyType(
+    const SymbolBase* WalkAnyType(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
@@ -238,8 +236,8 @@ protected:
         Node* property_node,
         PropertyFunction property_function,
         Node* block,
-        std::vector<Type>* arguments_result);
-    Type WalkExpressionChildren(
+        std::vector<const SymbolBase*>* arguments_result);
+    const SymbolBase* WalkExpressionChildren(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
@@ -247,7 +245,7 @@ protected:
         Node* expression_node);
      
 private:
-    SymbolTable<Symbol*> symbol_table_;
+    SymbolTable<const SymbolBase*> symbol_table_;
 
     void CheckValidModuleName(const std::string& module_name, int line, int column);
     void CheckAccessModifier(
@@ -256,30 +254,30 @@ private:
         LexerSymbol callee_access_modifier,
         int line,
         int column);
-    Type CalculateResultantType(
-        Type left,
-        Type right,
+    const SymbolBase* CalculateResultantType(
+        const SymbolBase* left,
+        const SymbolBase* right,
         int line,
         int column,
         ExceptionStatus type_mismatch_error);
-    Type CalculateNumericResultantType(
-        Type left, 
-        Type right,
+    const SymbolBase* CalculateNumericResultantType(
+        const SymbolBase* left, 
+        const SymbolBase* right,
         int line,
         int column,
         ExceptionStatus type_mismatch_error);
-    Type CalculateBoolResultantType(
-        Type left,
-        Type right,
+    const SymbolBase* CalculateBoolResultantType(
+        const SymbolBase* left,
+        const SymbolBase* right,
         int line,
         int column,
         ExceptionStatus type_mismatch_error);
-    Type ResolveTypeNode(Node* type_node);
-    Type WalkFunctionLikeTypecast(
+    const SymbolBase* ResolveTypeNode(Node* type_node);
+    const SymbolBase* WalkFunctionLikeTypecast(
         Node* spec_node,
         Node* name_node,
         Node* call_node,
-        Type argument_result);
+        const SymbolBase* argument_result);
 };
 
 } // namespace compiler

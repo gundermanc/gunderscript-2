@@ -34,14 +34,14 @@ union RegisterEntry {
 // The result of a generation operation.
 class LirGenResult {
 public:
-    LirGenResult(const Type type, LIns* ins) : type_(type), ins_(ins) { }
+    LirGenResult(const SymbolBase* symbol, LIns* ins) : symbol_(symbol), ins_(ins) { }
 
     LIns* ins() { return ins_; }
-    const Type& type() const { return type_; }
+    const SymbolBase* symbol() const { return symbol_; }
 
 private:
     LIns* ins_;
-    const Type type_;
+    const SymbolBase* symbol_;
 };
 
 // LirGenResult checking abstract syntax tree walker.
@@ -75,7 +75,6 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* access_modifier_node,
-        Node* native_node,
         Node* type_node,
         Node* name_node,
         Node* block_node,
@@ -295,13 +294,13 @@ protected:
         std::vector<LirGenResult>* arguments_result);
 
 private:
-    LIns* EmitLoad(const Type& type, nanojit::LIns* base, int offset);
-    LIns* EmitStore(const Type& type, nanojit::LIns* base, int offset, LIns* value);
+    LIns* EmitLoad(const SymbolBase* symbol, nanojit::LIns* base, int offset);
+    LIns* EmitStore(const SymbolBase* symbol, nanojit::LIns* base, int offset, LIns* value);
     int CountFunctions();
 
     ModuleFunc* func_table_;
     const std::string* module_name_;
-    SymbolTable<std::tuple<Type, RegisterEntry>> register_table_;
+    SymbolTable<std::tuple<const SymbolBase*, RegisterEntry>> register_table_;
     std::vector<ModuleImplSymbol>* symbols_vector_;
     nanojit::Allocator& alloc_;
     nanojit::Fragment* current_fragment_;

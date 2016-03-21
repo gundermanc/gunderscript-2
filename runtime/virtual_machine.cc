@@ -155,7 +155,7 @@ int VirtualMachineImpl::HackyRunScriptMainInt(Module& module) {
         if (symbol.symbol_name() == "main") {
 
             // TODO: exception for this:
-            GS_ASSERT_TRUE(symbol.symbol()->type() == TYPE_INT, "Invalid type in main function");
+            GS_ASSERT_TRUE(*symbol.symbol() == TYPE_INT, "Invalid type in main function");
 
             // Call the hacky main function.
             typedef int(GS_CDECL *MainFunction)();
@@ -180,7 +180,7 @@ float VirtualMachineImpl::HackyRunScriptMainFloat(Module& module) {
         if (symbol.symbol_name() == "main") {
 
             // TODO: exception for this:
-            GS_ASSERT_TRUE(symbol.symbol()->type() == TYPE_FLOAT, "Invalid type in main function");
+            GS_ASSERT_TRUE(*symbol.symbol() == TYPE_FLOAT, "Invalid type in main function");
 
             // Call the hacky main function.
             typedef float(GS_CDECL *MainFunction)();
@@ -205,7 +205,7 @@ char VirtualMachineImpl::HackyRunScriptMainChar(Module& module) {
         if (symbol.symbol_name() == "main") {
 
             // TODO: exception for this:
-            GS_ASSERT_TRUE(symbol.symbol()->type() == TYPE_INT8, "Invalid type in main function");
+            GS_ASSERT_TRUE(*symbol.symbol() == TYPE_INT8, "Invalid type in main function");
 
             // Call the hacky main function.
             typedef int(GS_CDECL *MainFunction)();
@@ -230,7 +230,7 @@ bool VirtualMachineImpl::HackyRunScriptMainBool(Module& module) {
         if (symbol.symbol_name() == "main") {
 
             // TODO: exception for this:
-            GS_ASSERT_TRUE(symbol.symbol()->type() == TYPE_BOOL, "Invalid type in main function");
+            GS_ASSERT_TRUE(*symbol.symbol() == TYPE_BOOL, "Invalid type in main function");
 
             // Call the hacky main function.
             typedef int(GS_CDECL *MainFunction)();

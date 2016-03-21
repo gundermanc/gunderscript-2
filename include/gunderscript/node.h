@@ -29,7 +29,6 @@ enum class NodeRule {
     PROPERTY_FUNCTION,
     FUNCTIONS,
     FUNCTION,
-    NATIVE,
     FUNCTION_PARAMETERS,
     FUNCTION_PARAMETER,
     BLOCK,
@@ -102,10 +101,10 @@ public:
     int line() { return line_; }
     int column() { return column_; }
 
-    void set_symbol(Symbol* symbol) {
+    void set_symbol(const SymbolBase* symbol) {
         symbol_ = symbol;
     }
-    const Symbol* symbol() const { return symbol_; }
+    const SymbolBase* symbol() const { return symbol_; }
 
 private:
     std::vector<Node*> children_;
@@ -123,7 +122,7 @@ private:
 
     // Mutable Properties:
 
-    Symbol* symbol_;
+    const SymbolBase* symbol_;
 };
 
 } // namespace gunderscript

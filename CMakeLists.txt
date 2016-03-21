@@ -17,6 +17,11 @@ project (GUNDERSCRIPT)
 include(cmake/msvc_macros.cmake)
 configure_msvc_runtime ()
 
+# Disable C asserts in non-debug mode.
+if (${CMAKE_BUILD_TYPE} NOT MATCHES "Debug")
+    add_definitions(-DNDEBUG)
+endif ()
+
 # Travis CI Compatible C++11 Support
 # CXX_STANDARD proeprty doesn't work on Travis CI because
 # Travis has horribly out of date CMAKE *grumble grumble*

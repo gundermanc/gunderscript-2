@@ -77,7 +77,6 @@ void DebugPrintNode(const Node* node) {
         break;
 
     case NodeRule::BOOL:
-    case NodeRule::NATIVE:
         printf("%i:%s, %s\n",
             (int)node->child_count(),
             NodeRuleString(node->rule()).c_str(),
@@ -105,7 +104,7 @@ void DebugPrintNode(const Node* node) {
         printf("%i:%s, %s\n",
             (int)node->child_count(),
             NodeRuleString(node->rule()).c_str(),
-            node->symbol() == NULL ? "[SYMBOL]" : node->symbol()->name().c_str());
+            node->symbol() == NULL ? "[SYMBOL]" : node->symbol()->symbol_name().c_str());
         break;
 
     default:

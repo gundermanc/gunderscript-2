@@ -16,9 +16,9 @@ namespace gunderscript {
 namespace compiler {
 
 // Instantiate template so we can unit test and link from external modules.
-template class SymbolTable<std::tuple<Type, RegisterEntry>>;
+template class SymbolTable<std::tuple<const SymbolBase*, RegisterEntry>>;
 template class SymbolTable<std::string>;
-template class SymbolTable<Symbol*>;
+template class SymbolTable<const SymbolBase*>;
 
 // Default Constructor, creates empty SymbolTable with
 // automatic minimum depth of 1.

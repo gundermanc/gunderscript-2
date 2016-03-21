@@ -39,7 +39,6 @@ protected:
         Node* spec_node,
         Node* function_node,
         Node* access_modifier_node,
-        Node* native_node,
         Node* type_node,
         Node* name_node,
         Node* block_node,

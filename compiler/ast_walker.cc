@@ -21,7 +21,7 @@ namespace gunderscript {
 namespace compiler {
 
 // Instantiate template with Type and LirGenResult so we can link from external module.
-template class AstWalker<Type>;
+template class AstWalker<const SymbolBase*>;
 template class AstWalker<LirGenResult>;
 
 // Walks through all expected children of the MODULE
@@ -143,19 +143,17 @@ void AstWalker<ReturnType>::WalkFunctionChildren(
     bool prescan) {
     GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
     GS_ASSERT_NODE_RULE(function_node, NodeRule::FUNCTION);
-    GS_ASSERT_TRUE(function_node->child_count() == 6, "AstWalker expects FUNCTION to have 6 children");
+    GS_ASSERT_TRUE(function_node->child_count() == 5, "AstWalker expects FUNCTION to have 5 children");
 
     // Get function attribute objects.
     Node* access_modifier_node = function_node->child(0);
-    Node* native_node = function_node->child(1);
-    Node* type_node = function_node->child(2);
-    Node* name_node = function_node->child(3);
-    Node* function_params_node = function_node->child(4);
-    Node* block_node = function_node->child(5);
+    Node* type_node = function_node->child(1);
+    Node* name_node = function_node->child(2);
+    Node* function_params_node = function_node->child(3);
+    Node* block_node = function_node->child(4);
 
     // Naively check the node rules for basic troubleshooting.
     GS_ASSERT_NODE_RULE(access_modifier_node, NodeRule::ACCESS_MODIFIER);
-    GS_ASSERT_NODE_RULE(native_node, NodeRule::NATIVE);
     GS_ASSERT_NODE_RULE(type_node, NodeRule::TYPE);
     GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
     GS_ASSERT_NODE_RULE(function_params_node, NodeRule::FUNCTION_PARAMETERS);
@@ -175,7 +173,6 @@ void AstWalker<ReturnType>::WalkFunctionChildren(
         spec_node,
         function_node,
         access_modifier_node,
-        native_node,
         type_node,
         name_node,
         block_node,

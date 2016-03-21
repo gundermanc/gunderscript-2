@@ -599,134 +599,26 @@ TEST(Parser, ParseFunctionEmpty) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
     EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
-    ASSERT_EQ(6, foo_node->child_count());
+    ASSERT_EQ(5, foo_node->child_count());
 
     Node* foo_access_modifier_node = foo_node->child(0);
     EXPECT_EQ(NodeRule::ACCESS_MODIFIER, foo_access_modifier_node->rule());
     EXPECT_EQ(LexerSymbol::PUBLIC, foo_access_modifier_node->symbol_value());
 
-    Node* foo_native_node = foo_node->child(1);
-    EXPECT_EQ(NodeRule::NATIVE, foo_native_node->rule());
-    EXPECT_FALSE(foo_native_node->bool_value());
-
-    Node* foo_type_node = foo_node->child(2);
+    Node* foo_type_node = foo_node->child(1);
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
     EXPECT_STREQ("int", foo_type_node->string_value()->c_str());
 
-    Node* foo_name_node = foo_node->child(3);
+    Node* foo_name_node = foo_node->child(2);
     EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
     EXPECT_STREQ("Foo", foo_name_node->string_value()->c_str());
 
-    Node* foo_parameters_node = foo_node->child(4);
+    Node* foo_parameters_node = foo_node->child(3);
     EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
     EXPECT_EQ(0, foo_parameters_node->child_count());
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(0, foo_block_node->child_count());
-
-    delete root;
-}
-
-TEST(Parser, ParseFunctionEmptyOneParameterNative) {
-
-    std::string input("package \"FooPackage\";"
-        "public spec MySpec {"
-        "  concealed native string Foo2(int x);"
-        "}");
-
-    CompilerStringSource source(input);
-    Lexer lexer(source);
-    Parser parser(lexer);
-
-    Node* root = parser.Parse();
-    Node* specs_node = root->child(2);
-    Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(2);
-    Node* foo_node = functions_node->child(0);
-    EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
-    ASSERT_EQ(5, foo_node->child_count());
-
-    Node* foo_access_modifier_node = foo_node->child(0);
-    EXPECT_EQ(NodeRule::ACCESS_MODIFIER, foo_access_modifier_node->rule());
-    EXPECT_EQ(LexerSymbol::CONCEALED, foo_access_modifier_node->symbol_value());
-
-    Node* foo_native_node = foo_node->child(1);
-    EXPECT_EQ(NodeRule::NATIVE, foo_native_node->rule());
-    EXPECT_EQ(true, foo_native_node->bool_value());
-
-    Node* foo_type_node = foo_node->child(2);
-    EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
-    EXPECT_STREQ("string", foo_type_node->string_value()->c_str());
-
-    Node* foo_name_node = foo_node->child(3);
-    EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
-    EXPECT_STREQ("Foo2", foo_name_node->string_value()->c_str());
-
-    Node* foo_parameters_node = foo_node->child(4);
-    EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
-    EXPECT_EQ(1, foo_parameters_node->child_count());
-
-    Node* foo_x_node = foo_parameters_node->child(0);
-    EXPECT_EQ(NodeRule::FUNCTION_PARAMETER, foo_x_node->rule());
-    ASSERT_EQ(2, foo_x_node->child_count());
-
-    Node* foo_x_type_node = foo_x_node->child(0);
-    EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
-    EXPECT_STREQ("int", foo_x_type_node->string_value()->c_str());
-
-    Node* foo_x_name_node = foo_x_node->child(1);
-    EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
-    EXPECT_STREQ("x", foo_x_name_node->string_value()->c_str());
-
-    delete root;
-}
-
-TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
-
-    std::string input("package \"FooPackage\";"
-        "public spec MySpec {"
-        "  concealed native string Foo2(int x, string y);"
-        "}");
-
-    CompilerStringSource source(input);
-    Lexer lexer(source);
-    Parser parser(lexer);
-
-    Node* root = parser.Parse();
-    Node* specs_node = root->child(2);
-    Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(2);
-    Node* foo_node = functions_node->child(0);
-    EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
-    ASSERT_EQ(5, foo_node->child_count());
-
-    Node* foo_parameters_node = foo_node->child(4);
-    EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
-    EXPECT_EQ(2, foo_parameters_node->child_count());
-
-    Node* foo_x_node = foo_parameters_node->child(0);
-    EXPECT_EQ(NodeRule::FUNCTION_PARAMETER, foo_x_node->rule());
-    ASSERT_EQ(2, foo_x_node->child_count());
-
-    Node* foo_x_type_node = foo_x_node->child(0);
-    EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
-    EXPECT_STREQ("int", foo_x_type_node->string_value()->c_str());
-
-    Node* foo_x_name_node = foo_x_node->child(1);
-    EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
-    EXPECT_STREQ("x", foo_x_name_node->string_value()->c_str());
-
-    Node* foo_y_node = foo_parameters_node->child(1);
-    EXPECT_EQ(NodeRule::FUNCTION_PARAMETER, foo_y_node->rule());
-    ASSERT_EQ(2, foo_y_node->child_count());
-
-    Node* foo_y_type_node = foo_y_node->child(0);
-    EXPECT_EQ(NodeRule::TYPE, foo_y_type_node->rule());
-    EXPECT_STREQ("string", foo_y_type_node->string_value()->c_str());
-
-    Node* foo_y_name_node = foo_y_node->child(1);
-    EXPECT_EQ(NodeRule::NAME, foo_y_name_node->rule());
-    EXPECT_STREQ("y", foo_y_name_node->string_value()->c_str());
 
     delete root;
 }
@@ -735,8 +627,8 @@ TEST(Parser, ParseMultipleFunctions) {
 
     std::string input("package \"FooPackage\";"
         "public spec MySpec {"
-        "  concealed native string Foo2(int x, string y);"
-        "  public native int Add();"
+        "  concealed string Foo2(int x, string y) { }"
+        "  public int Add() { }"
         "  internal int Sub(string foo, int foo2) {"
         "  }  "
         "  public int Mul() {"
@@ -914,7 +806,7 @@ TEST(Parser, ParseEmptyReturn) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -943,7 +835,7 @@ TEST(Parser, ParseReturnWithExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1016,7 +908,7 @@ TEST(Parser, ParseArithmeticExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1104,7 +996,7 @@ TEST(Parser, ParseDoubleNegative) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1160,7 +1052,7 @@ TEST(Parser, ParseDoubleNot) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1213,7 +1105,7 @@ TEST(Parser, ParseDoubleNegativeNoParens) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1276,7 +1168,7 @@ TEST(Parser, ParseDoubleNotNoParens) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1439,7 +1331,7 @@ TEST(Parser, ParseBooleanExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1514,7 +1406,7 @@ TEST(Parser, ParseStringExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1567,7 +1459,7 @@ TEST(Parser, ParseVariableExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1616,7 +1508,7 @@ TEST(Parser, ParseFunctionExpressionWithoutArgs) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1669,7 +1561,7 @@ TEST(Parser, ParseFunctionExpressionWithArgs) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1754,7 +1646,7 @@ TEST(Parser, ParseMemberExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1903,7 +1795,7 @@ TEST(Parser, ParseAssignStatement) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_assign_statement_node = foo_block_node->child(0);
@@ -1960,7 +1852,7 @@ TEST(Parser, ParseCallStatement) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* call_statement_node = foo_block_node->child(0);
@@ -2004,7 +1896,7 @@ TEST(Parser, ParseComparisonExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* assign_node = foo_block_node->child(0);
@@ -2239,9 +2131,9 @@ TEST(Parser, ParseModule) {
     Node* functions_node = root->child(3);
     EXPECT_EQ(NodeRule::FUNCTIONS, functions_node->rule());
     EXPECT_EQ(3, functions_node->child_count());
-    EXPECT_STREQ("main", functions_node->child(0)->child(3)->string_value()->c_str());
-    EXPECT_STREQ("main2", functions_node->child(1)->child(3)->string_value()->c_str());
-    EXPECT_STREQ("main3", functions_node->child(2)->child(3)->string_value()->c_str());
+    EXPECT_STREQ("main", functions_node->child(0)->child(2)->string_value()->c_str());
+    EXPECT_STREQ("main2", functions_node->child(1)->child(2)->string_value()->c_str());
+    EXPECT_STREQ("main3", functions_node->child(2)->child(2)->string_value()->c_str());
 
     delete root;
 }
@@ -2462,7 +2354,7 @@ TEST(Parser, ParseCorrectIfStatementTree) {
     Node* root = parser.Parse();
     Node* functions_node = root->child(3);
     Node* main_function_node = functions_node->child(0);
-    Node* function_block_node = main_function_node->child(5);
+    Node* function_block_node = main_function_node->child(4);
 
     Node* if_node = function_block_node->child(0);
     EXPECT_EQ(NodeRule::IF, if_node->rule());
@@ -2680,7 +2572,7 @@ TEST(Parser, CorrectForStatementTreeNoParams) {
     Node* root = parser.Parse();
     Node* functions_node = root->child(3);
     Node* main_function_node = functions_node->child(0);
-    Node* function_block_node = main_function_node->child(5);
+    Node* function_block_node = main_function_node->child(4);
 
     Node* for_node = function_block_node->child(0);
     EXPECT_EQ(NodeRule::FOR, for_node->rule());
@@ -2718,7 +2610,7 @@ TEST(Parser, CorrectForStatementTreeAllParams) {
     Node* root = parser.Parse();
     Node* functions_node = root->child(3);
     Node* main_function_node = functions_node->child(0);
-    Node* function_block_node = main_function_node->child(5);
+    Node* function_block_node = main_function_node->child(4);
 
     Node* for_node = function_block_node->child(0);
     EXPECT_EQ(NodeRule::FOR, for_node->rule());
@@ -2826,7 +2718,7 @@ TEST(Parser, CorrectWhileTree) {
     Node* root = parser.Parse();
     Node* functions_node = root->child(3);
     Node* main_function_node = functions_node->child(0);
-    Node* function_block_node = main_function_node->child(5);
+    Node* function_block_node = main_function_node->child(4);
 
     Node* for_node = function_block_node->child(0);
     EXPECT_EQ(NodeRule::FOR, for_node->rule());
@@ -3067,7 +2959,7 @@ TEST(Parser, CorrectTypeExpressionTree) {
     Node* functions_node = root->child(3);
     Node* main_function_node = functions_node->child(0);
 
-    Node* type_node = main_function_node->child(2);
+    Node* type_node = main_function_node->child(1);
     EXPECT_STREQ("List", type_node->string_value()->c_str());
     EXPECT_EQ(NodeRule::TYPE, type_node->rule());
     EXPECT_EQ(2, type_node->child_count());
