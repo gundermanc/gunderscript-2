@@ -20,7 +20,7 @@ try {                                                           \
     stmt;                                                       \
 }                                                               \
 catch (const Exception& ex) {                                   \
-    EXPECT_EQ(ex.status().code(), (exception_status).code());   \
+    EXPECT_EQ((exception_status).code(), ex.status().code());   \
     return;                                                     \
 }                                                               \
 FAIL();                                                         \

@@ -58,6 +58,10 @@ endif ()
 # Compile NanoJIT dependency.
 add_subdirectory (nanojit)
 
+# Compile GC dependency.
+set(enable_cplusplus ON CACHE BOOL "Enable GC C++ Support")
+add_subdirectory (bdwgc)
+
 # Compile libgunderscript common library.
 add_subdirectory (common)
 

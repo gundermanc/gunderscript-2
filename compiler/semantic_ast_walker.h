@@ -10,7 +10,6 @@
 #include "gunderscript/lexer_resources.h"
 #include "gunderscript/node.h"
 #include "gunderscript/symbol.h"
-#include "gunderscript/type.h"
 
 #include "ast_walker.h"
 #include "symbol_table.h"
@@ -34,7 +33,8 @@ protected:
     void WalkSpecDeclaration(
         Node* spec_node,
         Node* access_modifier_node,
-        Node* name_node);
+        Node* type_node,
+        bool prescan);
     void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,
@@ -84,7 +84,7 @@ protected:
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
-        const SymbolBase* expression_result,
+        const SymbolBase** expression_result,
         std::vector<const SymbolBase*>* arguments_result);
     const SymbolBase* WalkAdd(
         Node* spec_node,
@@ -226,6 +226,8 @@ protected:
         PropertyFunction property_function,
         Node* any_type_node);
 
+    void WalkSpec(Node* spec_node, PrescanMode prescan);
+
     void WalkFunctionChildren(
         Node* spec_node,
         Node* function_node,
@@ -243,6 +245,13 @@ protected:
         Node* property_node,
         PropertyFunction property_function,
         Node* expression_node);
+    const SymbolBase* WalkNewExpression(
+        Node* new_node,
+        Node* type_node,
+        std::vector<const SymbolBase*>& arguments_result);
+    const SymbolBase* WalkDefaultExpression(
+        Node* default_node,
+        Node* type_node);
      
 private:
     SymbolTable<const SymbolBase*> symbol_table_;
@@ -278,6 +287,10 @@ private:
         Node* name_node,
         Node* call_node,
         const SymbolBase* argument_result);
+    void WalkSpecDeclarationPrescan(
+        Node* spec_node,
+        Node* access_modifier_node,
+        Node* type_node);
 };
 
 } // namespace compiler

@@ -9,7 +9,6 @@
 
 #include "gunderscript/node.h"
 #include "gunderscript/symbol.h"
-#include "gunderscript/type.h"
 #include "gunderscript/virtual_machine.h"
 
 #include "ast_walker.h"
@@ -70,7 +69,8 @@ protected:
     void WalkSpecDeclaration(
         Node* spec_node,
         Node* access_modifier_node,
-        Node* name_node) { }
+        Node* type_node,
+        bool prescan) { }
     void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,
@@ -125,7 +125,7 @@ protected:
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
-        LirGenResult expression_result,
+        LirGenResult* expression_result,
         std::vector<LirGenResult>* arguments_result);
     LirGenResult WalkAdd(
         Node* spec_node,
@@ -278,7 +278,7 @@ protected:
         PropertyFunction property_function,
         Node* if_node,
         std::vector<LirGenResult>* arguments_result);
-    virtual void WalkForStatementChildren(
+    void WalkForStatementChildren(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
@@ -292,6 +292,13 @@ protected:
         PropertyFunction property_function,
         Node* block,
         std::vector<LirGenResult>* arguments_result);
+    LirGenResult WalkNewExpression(
+        Node* new_node,
+        Node* type_node,
+        std::vector<LirGenResult>& arguments_result);
+    LirGenResult WalkDefaultExpression(
+        Node* default_node,
+        Node* type_node);
 
 private:
     LIns* EmitLoad(const SymbolBase* symbol, nanojit::LIns* base, int offset);

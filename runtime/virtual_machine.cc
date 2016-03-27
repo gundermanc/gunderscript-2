@@ -152,7 +152,7 @@ int VirtualMachineImpl::HackyRunScriptMainInt(Module& module) {
         ModuleImplSymbol& symbol = module.pimpl()->symbols_vector().at(i);
 
         // Is this the right function?
-        if (symbol.symbol_name() == "main") {
+        if (symbol.symbol_name() == "::main") {
 
             // TODO: exception for this:
             GS_ASSERT_TRUE(*symbol.symbol() == TYPE_INT, "Invalid type in main function");
@@ -177,7 +177,7 @@ float VirtualMachineImpl::HackyRunScriptMainFloat(Module& module) {
         ModuleImplSymbol& symbol = module.pimpl()->symbols_vector().at(i);
 
         // Is this the right function?
-        if (symbol.symbol_name() == "main") {
+        if (symbol.symbol_name() == "::main") {
 
             // TODO: exception for this:
             GS_ASSERT_TRUE(*symbol.symbol() == TYPE_FLOAT, "Invalid type in main function");
@@ -202,7 +202,7 @@ char VirtualMachineImpl::HackyRunScriptMainChar(Module& module) {
         ModuleImplSymbol& symbol = module.pimpl()->symbols_vector().at(i);
 
         // Is this the right function?
-        if (symbol.symbol_name() == "main") {
+        if (symbol.symbol_name() == "::main") {
 
             // TODO: exception for this:
             GS_ASSERT_TRUE(*symbol.symbol() == TYPE_INT8, "Invalid type in main function");
@@ -227,7 +227,7 @@ bool VirtualMachineImpl::HackyRunScriptMainBool(Module& module) {
         ModuleImplSymbol& symbol = module.pimpl()->symbols_vector().at(i);
 
         // Is this the right function?
-        if (symbol.symbol_name() == "main") {
+        if (symbol.symbol_name() == "::main") {
 
             // TODO: exception for this:
             GS_ASSERT_TRUE(*symbol.symbol() == TYPE_BOOL, "Invalid type in main function");

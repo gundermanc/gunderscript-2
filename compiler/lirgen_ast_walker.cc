@@ -78,6 +78,8 @@ void LIRGenAstWalker::Generate(Module& module) {
     // Walk through the AST and find everything we need for our new Module.
     this->Walk();
 
+    GS_ASSERT_TRUE(this->register_table_.depth() == 1, "Inconsistent reg table levels");
+
     // Store the function lookup table in the module.
     module.pimpl()->set_func_table(this->func_table_);
 }
@@ -175,11 +177,11 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
     // Choose indirect call method. Arguments are passed as a single argument in a vector so
     // only one call method is needed per return type.
     const CallInfo* method = NULL;
-    const FunctionSymbol* function_symbol = SYMBOL_TO_FUNCTION(call_symbol);
-    const TypeSymbol* return_type_symbol = function_symbol->type_symbol();
+    const TypeSymbol* return_type_symbol = SYMBOL_TO_FUNCTION(call_symbol)->type_symbol();
 
     switch (return_type_symbol->type_format())
     {
+    case TypeFormat::FVOID:
     case TypeFormat::BOOL:
     case TypeFormat::INT:
         method = &CI_ICALLI;
@@ -317,8 +319,6 @@ LirGenResult LIRGenAstWalker::WalkAssign(
 
     LIns* variable_ptr = NULL;
 
-    const TypeSymbol* operations_result_symbol = operations_result.symbol()->type_symbol();
-
     // Check if the variable name was bound in the current scope. If it was, it is a local
     // and we can use the NanoJIT register for it.
     try {
@@ -347,8 +347,9 @@ LirGenResult LIRGenAstWalker::WalkAssign(
     // New Alloc: Allocate a new register (NanoJIT register) for this variable name,
     // it has either never been seen before or is a new var of a different type masking
     // the original definition in an enclosing scope.
+    const TypeSymbol* operations_result_symbol = operations_result.symbol()->type_symbol();
     variable_ptr = this->current_writer_->insAlloc(operations_result_symbol->size());
-    this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.symbol(), RegisterEntry(variable_ptr) ));
+    this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.symbol(), RegisterEntry(variable_ptr)));
 
     // Emit the assignment instruction. Dijkstra doesn't have to agree with me, gotos can be useful.
 emit_assign_ins:
@@ -366,10 +367,16 @@ LirGenResult LIRGenAstWalker::WalkReturn(
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
-    LirGenResult expression_result,
+    LirGenResult* expression_result,
     std::vector<LirGenResult>* arguments_result) {
 
-    const TypeSymbol* expression_result_symbol = expression_result.symbol()->type_symbol();
+    // No return expression given. Void function or constructor.
+    if (expression_result == NULL) {
+        return LirGenResult(&TYPE_VOID,
+            this->current_writer_->ins1(LIR_reti, this->current_writer_->insImmI(0)));
+    }
+
+    const TypeSymbol* expression_result_symbol = expression_result->symbol()->type_symbol();
 
     switch (expression_result_symbol->type_format())
     {
@@ -381,8 +388,8 @@ LirGenResult LIRGenAstWalker::WalkReturn(
         case 1:
             // Return of 1 byte INT8/CHAR values is still LIR_reti because the actual
             // operation occurs in a standard >= 32 bit register on many systems.
-            return LirGenResult(expression_result.symbol(), 
-                this->current_writer_->ins1(LIR_reti, expression_result.ins()));
+            return LirGenResult((*expression_result).symbol(), 
+                this->current_writer_->ins1(LIR_reti, expression_result->ins()));
         }
         break;
     case TypeFormat::FLOAT:
@@ -391,8 +398,8 @@ LirGenResult LIRGenAstWalker::WalkReturn(
         case 4:
             // Return of 1 byte INT8/CHAR values is still LIR_reti because the actual
             // operation occurs in a standard >= 32 bit register on many systems.
-            return LirGenResult(expression_result.symbol(),
-                this->current_writer_->ins1(LIR_retf, expression_result.ins()));
+            return LirGenResult((*expression_result).symbol(),
+                this->current_writer_->ins1(LIR_retf, expression_result->ins()));
         }
         break;
     }
@@ -1144,6 +1151,10 @@ void LIRGenAstWalker::WalkFunctionChildren(
                 ret_inst = this->current_writer_->ins1(LIR_retf, ret_value);
                 break;
             }
+        case 0:
+            GS_ASSERT_TRUE(*function_type_symbol == TYPE_VOID, "Expected void type");
+            ret_inst = this->current_writer_->ins1(LIR_reti, this->current_writer_->insImmI(0));
+            break;
         default:
             THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
         }
@@ -1220,6 +1231,23 @@ void LIRGenAstWalker::WalkIfStatementChildren(
         arguments_result);
 
     jump_end_ins->setTarget(this->current_writer_->ins0(LIR_label));
+}
+
+// Walks a new Spec(arg1, arg2, ...) expression.
+LirGenResult LIRGenAstWalker::WalkNewExpression(
+    Node* new_node,
+    Node* type_node,
+    std::vector<LirGenResult>& arguments_result) {
+
+    THROW_NOT_IMPLEMENTED();
+}
+
+// Walks a default() expression.
+LirGenResult LIRGenAstWalker::WalkDefaultExpression(
+    Node* default_node,
+    Node* type_node) {
+
+    THROW_NOT_IMPLEMENTED();
 }
 
 // Walks children of the FOR statement node.

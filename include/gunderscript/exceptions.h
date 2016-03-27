@@ -177,9 +177,23 @@ const ExceptionStatus STATUS_PARSER_MALFORMED_WHILE_MISSING_RPAREN
 const ExceptionStatus STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME
     = ExceptionStatus(242, "Trying to parse type expression parameter, expected  but did not find type");
 const ExceptionStatus STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA
-    = ExceptionStatus(243, "Trying to parse type expression, expected but did not find comma delimiter or closing angle brace");
+    = ExceptionStatus(243, "Trying to parse type expression, expected but did not find comma delimiter or right angle brace");
 const ExceptionStatus STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_GREATER
     = ExceptionStatus(244, "Trying to parse type expression, expected but did not find closing angle brace");
+const ExceptionStatus STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_NAME
+    = ExceptionStatus(245, "Trying to parse new spec expression, expected but did not find spec name");
+const ExceptionStatus STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_LPAREN
+    = ExceptionStatus(246, "Trying to parse new spec expression, expected but did not find left parenthesis");
+const ExceptionStatus STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_RPAREN
+    = ExceptionStatus(247, "Trying to parse new spec expression, expected but did not find right parenthesis");
+const ExceptionStatus STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_LPAREN
+    = ExceptionStatus(248, "Trying to parse default expression, expected but did not find left parenthesis");
+const ExceptionStatus STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_TYPE
+    = ExceptionStatus(249, "Trying to parse default expression, expected but did not find type");
+const ExceptionStatus STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_RPAREN
+    = ExceptionStatus(250, "Trying to parse default expression, expected but did not find right parenthesis");
+const ExceptionStatus STATUS_PARSER_CONSTRUCTOR_OUTSIDE_SPEC
+    = ExceptionStatus(251, "Constructor function is not allowed outside of spec body");
 
 // Semantic Walker Exceptions 300-399:
 const ExceptionStatus STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN
@@ -193,7 +207,7 @@ const ExceptionStatus STATUS_SEMANTIC_INVALID_PACKAGE
 const ExceptionStatus STATUS_SEMANTIC_NONBOOL_IN_LOGNOT
     = ExceptionStatus(304, "Non-boolean type in '!' expression");
 const ExceptionStatus STATUS_SEMANTIC_NOT_ACCESSIBLE
-    = ExceptionStatus(305, "The referenced class member has an access modifier that makes it not visible to this code");
+    = ExceptionStatus(305, "The referenced spec member has an access modifier that makes it not visible to this code");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_ADD
     = ExceptionStatus(306, "Non-matching types in '+' expression");
 const ExceptionStatus STATUS_SEMANTIC_UNMATCHING_TYPE_IN_SUB
@@ -237,7 +251,7 @@ const ExceptionStatus STATUS_SEMANTIC_INVALID_TYPE_IN_ADD
 const ExceptionStatus STATUS_SEMANTIC_DUPLICATE_SPEC
     = ExceptionStatus(326, "A Spec with that name already exists");
 const ExceptionStatus STATUS_SEMANTIC_UNDEFINED_TYPE
-    = ExceptionStatus(327, "Undefined type");
+    = ExceptionStatus(327, "Undefined type or invalid generic parameters");
 const ExceptionStatus STATUS_SEMANTIC_UNSUPPORTED_TYPECAST
     = ExceptionStatus(328, "This typecast is not supported");
 const ExceptionStatus STATUS_SEMANTIC_INVALID_IF_CONDITION_TYPE
@@ -246,6 +260,16 @@ const ExceptionStatus STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE
     = ExceptionStatus(330, "Invalid loop condition type");
 const ExceptionStatus STATUS_SEMANTIC_UNDEFINED_VARIABLE
     = ExceptionStatus(331, "Variable is not defined in current scope");
+const ExceptionStatus STATUS_SEMANTIC_GENERIC_DUPLICATE_PARAM
+    = ExceptionStatus(332, "A symbol with the same name as a generic param already exists");
+const ExceptionStatus STATUS_SEMANTIC_RETURN_IN_VOID
+    = ExceptionStatus(333, "Return value in void function or constructor");
+const ExceptionStatus STATUS_SEMANTIC_VOID_USED_IN_EXPR
+    = ExceptionStatus(334, "Void function call has no value and cannot be used in expression");
+const ExceptionStatus STATUS_SEMANTIC_CONSTRUCTOR_OVERLOAD_NOT_FOUND
+    = ExceptionStatus(335, "Cannot find a constructor overload for this spec that accepts the specified param types");
+const ExceptionStatus STATUS_SEMANTIC_VOID_USED_IN_PARAM
+    = ExceptionStatus(336, "Void type cannot be used as a function param");
 
 } // namespace gunderscript
 

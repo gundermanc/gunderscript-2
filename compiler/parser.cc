@@ -192,7 +192,7 @@ void Parser::ParseModuleBody(Node* specs_node, Node* functions_node) {
             ParseSpecDefinition(specs_node);
         }
         else {
-            ParseFunction(functions_node);
+            ParseFunction(functions_node, false);
         }
 
         if (has_next()) {
@@ -288,7 +288,7 @@ void Parser::ParseSpecBody(Node* node) {
     while (!AdvanceSymbol(LexerSymbol::RBRACE)) {
         switch (CurrentToken()->type) {
         case LexerTokenType::ACCESS_MODIFIER:
-            ParseFunction(functions_node);
+            ParseFunction(functions_node, true);
             break;
         case LexerTokenType::NAME:
             ParseProperty(properties_node);
@@ -457,7 +457,7 @@ void Parser::ParsePropertyBodyFunction(Node* getter_node, Node* setter_node) {
 // public int sqrt(int value) { ...
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParseFunction(Node* node) {
+void Parser::ParseFunction(Node* node, bool in_spec) {
     Node* function_node = new Node(
         NodeRule::FUNCTION,
         this->lexer_.current_line_number(),
@@ -478,29 +478,56 @@ void Parser::ParseFunction(Node* node) {
         this->lexer_.current_column_number(), 
         CurrentToken()->symbol));
 
-    // Check for TYPE for return type.
-    if (AdvanceNext()->type != LexerTokenType::NAME) {
-        THROW_EXCEPTION(
+    // Check if this is a constructor definition or a function definition.
+    if (AdvanceKeyword(LexerSymbol::CONSTRUCT)) {
+
+        // Disallow constructors outside of function.
+        if (!in_spec) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_CONSTRUCTOR_OUTSIDE_SPEC);
+        }
+
+        // Constructor functions are void type.
+        function_node->AddChild(new Node(
+            NodeRule::TYPE,
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
-            STATUS_PARSER_MALFORMED_FUNCTION_MISSING_TYPE);
+            &TYPE_VOID.symbol_name()));
+
+        // Name is mangled to be inaccessible from user code.
+        function_node->AddChild(
+            new Node(NodeRule::NAME,
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                &kConstructorName));
     }
+    else {
+        // Check for TYPE for return type.
+        if (CurrentToken()->type != LexerTokenType::NAME) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_MALFORMED_FUNCTION_MISSING_TYPE);
+        }
 
-    ParseTypeExpression(function_node);
+        ParseTypeExpression(function_node);
 
-    // Check for NAME symbol type for function name.
-    if (CurrentToken()->type != LexerTokenType::NAME) {
-        THROW_EXCEPTION(
+        // Check for NAME symbol type for function name.
+        if (CurrentToken()->type != LexerTokenType::NAME) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
+        }
+
+        function_node->AddChild(new Node(
+            NodeRule::NAME,
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
-            STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
+            CurrentToken()->string_const));
     }
-
-    function_node->AddChild(new Node(
-        NodeRule::NAME,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        CurrentToken()->string_const));
 
     // Check for opening parenthesis for parameters.
     if (!AdvanceSymbol(LexerSymbol::LPAREN)) {
@@ -1440,7 +1467,15 @@ Node* Parser::ParseValueExpression() {
     case LexerTokenType::NAME:
         return ParseNamedValueExpression();
     case LexerTokenType::KEYWORD:
-        return ParseBoolConstant();
+        switch (CurrentToken()->symbol)
+        {
+        case LexerSymbol::NEW:
+            return ParseNewExpression();
+        case LexerSymbol::DEFAULT:
+            return ParseDefaultExpression();
+        default:
+            return ParseBoolConstant();
+        }
     case LexerTokenType::INT:
         return ParseIntConstant();
     case LexerTokenType::FLOAT:
@@ -1622,6 +1657,91 @@ Node* Parser::ParseCallExpression() {
 
     return function_node;
 }
+
+// Parses a new SpecName() expression.
+Node* Parser::ParseNewExpression() {
+    GS_ASSERT_TRUE(CurrentKeyword(LexerSymbol::NEW), "Expected NEW in ParseNewExpression");
+
+    Node* new_node = new Node(
+        NodeRule::NEW,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+
+    // Check for spec name.
+    if (AdvanceNext()->type != LexerTokenType::NAME) {
+        delete new_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_NAME);
+    }
+
+    ParseTypeExpression(new_node);
+
+    // Check for open parenthesis.
+    if (!CurrentSymbol(LexerSymbol::LPAREN)) {
+        delete new_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_LPAREN);
+    }
+
+    AdvanceNext();
+
+    // Parse params to the new expression.
+    ParseCallParameters(new_node);
+
+    // Check for closing parenthesis.
+    if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+        delete new_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_RPAREN);
+    }
+
+    AdvanceNext();
+
+    return new_node;
+}
+
+// Parses a default(symbol) expression.
+Node* Parser::ParseDefaultExpression() {
+    GS_ASSERT_TRUE(CurrentKeyword(LexerSymbol::DEFAULT), "Expected DEFAULT in ParseDefaultExpression");
+
+    Node* default_node = new Node(
+        NodeRule::DEFAULT,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+
+    if (!AdvanceSymbol(LexerSymbol::LPAREN)) {
+        delete default_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_LPAREN);
+    }
+
+    AdvanceNext();
+
+    // Parse params to the default expression.
+    ParseTypeExpression(default_node);
+
+    // Check for closing parenthesis.
+   if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+       delete default_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_LPAREN);
+    }
+
+    AdvanceNext();
+
+    return default_node;
+}
+
 
 void Parser::ParseCallParameters(Node* node) {
     Node* parameters_node = new Node(

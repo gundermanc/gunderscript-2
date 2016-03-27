@@ -13,6 +13,12 @@
 namespace gunderscript {
 namespace compiler {
 
+enum class PrescanMode {
+    SCAN_IMPL_DEF,
+    SCAN_SPEC_DEF,
+    SCAN_PROP_FUNC_DEF
+};
+
 // Class for walking through the Abstract Syntax Tree Structure.
 template<typename ReturnType>
 class AstWalker {
@@ -34,7 +40,8 @@ protected:
     virtual void WalkSpecDeclaration(
         Node* spec_node,
         Node* access_modifier_node,
-        Node* name_node) = 0;
+        Node* type_node,
+        bool prescan) = 0;
     virtual void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,
@@ -84,7 +91,7 @@ protected:
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
-        ReturnType expression_result,
+        ReturnType* expression_result,
         std::vector<ReturnType>* arguments_result) = 0;
     virtual ReturnType WalkAdd(
         Node* spec_node,
@@ -229,7 +236,7 @@ protected:
     // Optional Implementation method(s) that are critical for proper operation
     // of ASTWalker that MAY be optionally overridden by subclasses for increased
     // customization.
-
+    virtual void WalkSpec(Node* spec_node, PrescanMode scan_mode);
     virtual void WalkFunctionChildren(
         Node* spec_node,
         Node* function_node,
@@ -261,14 +268,20 @@ protected:
         PropertyFunction property_function,
         Node* for_node,
         std::vector<ReturnType>* arguments_result);
+    virtual ReturnType WalkNewExpression(
+        Node* new_node,
+        Node* type_node,
+        std::vector<ReturnType>& arguments_result) = 0;
+    virtual ReturnType WalkDefaultExpression(
+        Node* default_node,
+        Node* type_node) = 0;
 
 private:
     Node& root_;
 
     void WalkModuleChildren();
     void WalkModuleDependsChildren(Node* depends_node);
-    void WalkModuleSpecsChildren(Node* specs_node);
-    void WalkSpec(Node* spec_node);
+    void WalkModuleSpecsChildren(Node* specs_node, PrescanMode scan_mode);
     void WalkFunctionsChildren(Node* spec_node, Node* functions_node);
     void WalkFunctionDeclarationParametersChildren(
         Node* spec_node,
@@ -289,6 +302,11 @@ private:
         Node* spec_node,
         Node* function_node,
         Node* call_node);
+    ReturnType WalkNewExpressionChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* new_node);
+    ReturnType WalkDefaultExpressionChildren(Node* default_node);
     ReturnType WalkAssignChildren(
         Node* spec_node,
         Node* function_node,

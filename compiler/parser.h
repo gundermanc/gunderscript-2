@@ -49,7 +49,7 @@ private:
     void ParseProperty(Node* node);
     void ParsePropertyBody(Node* node);
     void ParsePropertyBodyFunction(Node* getter_node, Node* setter_node);
-    void ParseFunction(Node* node);
+    void ParseFunction(Node* node, bool in_spec);
     void ParseFunctionParameters(Node* node);
     void ParseFunctionParameter(Node* node);
     void ParseBlockStatement(Node* node);
@@ -84,6 +84,8 @@ private:
     Node* ParseValueExpression();
     Node* ParseNamedValueExpression();
     Node* ParseCallExpression();
+    Node* ParseNewExpression();
+    Node* ParseDefaultExpression();
     Node* ParseMemberNameExpression();
     void ParseTypeExpression(Node* parent_node);
     void ParseCallParameters(Node* node);
@@ -94,6 +96,9 @@ private:
     Node* ParseCharConstant();
     Node* ParseStringConstant();
 };
+
+// Constructor mangled function name.
+const std::string kConstructorName = "%construct%";
 
 } // namespace library
 } // namespace gunderscript

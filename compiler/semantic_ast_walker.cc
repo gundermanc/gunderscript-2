@@ -7,6 +7,7 @@
 
 #include "gs_assert.h"
 #include "lexer.h"
+#include "parser.h"
 #include "semantic_ast_walker.h"
 #include "symbolimpl.h"
 
@@ -20,18 +21,16 @@ const std::regex module_name_pattern = std::regex("^([A-Z]|[a-z])+(\\.([A-Z]|[a-
 // symbol table guarantees uniqueness for functions while allowing overloads
 // with different argument types.
 static const std::string MangleFunctionSymbolName(
-    Node* spec_node,
-    Node* name_node,
+    const std::string& spec_name,
+    const std::string& function_name,
     std::vector<const SymbolBase*>& arguments_result) {
 
     // Format the symbol name {spec}::{function}$arg1$arg2...
     // or {function}$arg1$arg2... if there is no spec.
     std::ostringstream name_buf;
-    if (spec_node != NULL) {
-        name_buf << *(spec_node->child(1)->string_value());
-        name_buf << "::";
-    }
-    name_buf << *name_node->string_value();
+    name_buf << spec_name;
+    name_buf << "::";
+    name_buf << function_name;
 
     // Append arguments to the symbol name.
     for (size_t i = 0; i < arguments_result.size(); i++) {
@@ -40,6 +39,18 @@ static const std::string MangleFunctionSymbolName(
     }
 
     return name_buf.str();
+}
+
+// Wrapper for the other MangleFunctionSymbolName.
+static const std::string MangleFunctionSymbolName(
+    Node* spec_node,
+    Node* name_node,
+    std::vector<const SymbolBase*>& arguments_result) {
+
+    return MangleFunctionSymbolName(
+        spec_node != NULL ? spec_node->symbol()->symbol_name() : "",
+        *name_node->string_value(),
+        arguments_result);
 }
 
 // Mangles local variable symbol name to the format Local%%{variable}
@@ -52,19 +63,30 @@ static const std::string MangleLocalVariableSymbolName(Node* name_node) {
     return name_buf.str();
 }
 
-// Gets the symbol name 
+// Mangles a property function symbol name.
 static const std::string ManglePropertyFunctionSymbolName(
     Node* spec_node,
     Node* name_node,
     PropertyFunction function) {
 
-    Node* spec_name_node = spec_node->child(1);
-
     // Format the getter symbol name {class}<-{function}
     std::ostringstream name_buf;
-    name_buf << *spec_name_node->string_value();
+    name_buf << spec_node->symbol()->symbol_name();
     name_buf << (function == PropertyFunction::SET ? "->" : "<-");
     name_buf << *name_node->string_value();
+
+    return name_buf.str();
+}
+
+// Mangles a Spec Template symbol name to indicate a number of generic params.
+static const std::string MangleSpecTemplateSymbolName(Node* type_node) {
+    std::ostringstream name_buf;
+    name_buf << *type_node->string_value();
+
+    // Add type template params.
+    for (size_t i = 0; i < type_node->child_count(); i++) {
+        name_buf << '~';
+    }
 
     return name_buf.str();
 }
@@ -110,34 +132,108 @@ void SemanticAstWalker::WalkModuleDependsName(Node* name_node) {
         name_node->column());
 }
 
-// Attempts to declare a new spec in the given scope. Throws if spec
-// name is taken in this context.
-void SemanticAstWalker::WalkSpecDeclaration(
+void SemanticAstWalker::WalkSpecDeclarationPrescan(
     Node* spec_node,
     Node* access_modifier_node,
-    Node* name_node) {
-    // Construct symbol with extranous fields filled in arbitrarily.
-    const SymbolBase* spec_symbol = new TypeSymbol(
-        access_modifier_node->symbol_value(),
-        *name_node->string_value(),
-        TypeFormat::POINTER);
+    Node* type_node) {
+
+    const std::string type_symbol_name = MangleSpecTemplateSymbolName(type_node);
+    const TypeSymbol* spec_symbol = NULL;
+
+    // Check if this is a generic type. If so, it gets a specialized symbol with params.
+    if (type_node->child_count() == 0) {
+        spec_symbol = new TypeSymbol(
+            access_modifier_node->symbol_value(),
+            type_symbol_name);
+    }
+    else {
+        std::vector<const SymbolBase*> type_params;
+
+        // Walk the type params, if any, and store them as template
+        // params.
+        for (size_t i = 0; i < type_node->child_count(); i++) {
+            Node* child_node = type_node->child(i);
+            const TypeSymbol* template_type_symbol = new TypeSymbol(
+                SymbolType::TYPE_TEMPLATE,
+                LexerSymbol::CONCEALED,
+                *child_node->string_value(),
+                TypeFormat::POINTER,
+                sizeof(void*));
+
+            child_node->set_symbol(template_type_symbol);
+            type_params.push_back(template_type_symbol);
+        }
+
+        spec_symbol = new GenericTypeSymbol(
+            SymbolType::GENERIC_TYPE_TEMPLATE,
+            access_modifier_node->symbol_value(),
+            type_symbol_name,
+            type_params);
+    }
 
     // Store a reference to the symbol. Node will destroy symbol on cleanup.
     spec_node->set_symbol(spec_symbol);
 
     try {
-        this->symbol_table_.PutBottom(*name_node->string_value(), spec_symbol);
+        this->symbol_table_.PutBottom(
+            type_symbol_name,
+            spec_symbol);
     }
     catch (const Exception& ex) {
         // Rethrow as more relevant exception.
         if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
             THROW_EXCEPTION(
-                name_node->line(),
-                name_node->column(),
+                type_node->line(),
+                type_node->column(),
                 STATUS_SEMANTIC_DUPLICATE_SPEC);
         }
 
         throw;
+    }
+}
+
+// Attempts to declare a new spec in the given scope. Throws if spec
+// name is taken in this context.
+void SemanticAstWalker::WalkSpecDeclaration(
+    Node* spec_node,
+    Node* access_modifier_node,
+    Node* type_node,
+    bool prescan) {
+
+    if (prescan) {
+        WalkSpecDeclarationPrescan(
+            spec_node,
+            access_modifier_node,
+            type_node);
+    }
+    else if (spec_node->symbol()->symbol_type() == SymbolType::GENERIC_TYPE_TEMPLATE) {
+
+        // Symbol for type_node was added during the prescan, just read it.
+        const GenericTypeSymbol* type_symbol
+            = SYMBOL_TO_GENERIC_TYPE_TEMPLATE(spec_node->symbol());
+
+        // We overrode the function that calls this one later in this file and pushed a new
+        // layer to the stack. Now, we'll define a series of template types in this local
+        // scope for this spec. These types go out of scope after we finish.
+        for (size_t i = 0; i < type_symbol->type_params().size(); i++) {
+            const SymbolBase* template_type_symbol = type_symbol->type_params().at(i);
+
+            try {
+                this->symbol_table_.Put(template_type_symbol->symbol_name(), template_type_symbol);
+            }
+            catch (const Exception& ex) {
+
+                // Rethrow as more relevant exception.
+                if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
+                    THROW_EXCEPTION(
+                        type_node->line(),
+                        type_node->column(),
+                        STATUS_SEMANTIC_GENERIC_DUPLICATE_PARAM);
+                }
+
+                throw;
+            }
+        }
     }
 }
 
@@ -203,12 +299,17 @@ const SymbolBase* SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* name_node,
     bool prescan) {
 
-    const std::string spec_name = spec_node != NULL ? *(spec_node->child(1)->string_value()) : "";
-
     const TypeSymbol* type_symbol = ResolveTypeNode(type_node)->type_symbol();
 
+    // Disallow void type as function param.
+    if (*type_symbol == TYPE_VOID) {
+        THROW_EXCEPTION(
+            type_node->line(),
+            type_node->column(),
+            STATUS_SEMANTIC_VOID_USED_IN_PARAM);
+    }
+
     // Create a new symbol for the parameter.
-    // Extraneous values are arbitrary.
     const SymbolBase* param_symbol = new FunctionSymbol(
         SymbolType::PARAM,
         LexerSymbol::CONCEALED,
@@ -262,7 +363,7 @@ void SemanticAstWalker::WalkSpecPropertyDeclaration(
         return;
     }
 
-    const std::string spec_name = spec_node != NULL ? *(spec_node->child(1)->string_value()) : "";
+    const std::string spec_name = spec_node->symbol()->symbol_name();
 
     // Determine the getter function symbol name.
     std::string get_function_symbol_name
@@ -323,12 +424,11 @@ const SymbolBase* SemanticAstWalker::WalkFunctionCall(
     Node* call_node,
     std::vector<const SymbolBase*>& arguments_result) {
 
-    const std::string spec_name = spec_node != NULL ? *(spec_node->child(1)->string_value()) : "";
-    const SymbolBase* symbol = NULL;
+    const SymbolBase* function_symbol = NULL;
 
     // Lookup the function in this class. Throws if there isn't a function with the correct arguments.
     try {
-        symbol = this->symbol_table_.Get(
+        function_symbol = this->symbol_table_.Get(
             MangleFunctionSymbolName(spec_node, name_node, arguments_result));
     }
     catch (const Exception& ex) {
@@ -339,7 +439,7 @@ const SymbolBase* SemanticAstWalker::WalkFunctionCall(
         }
 
         try {
-            symbol = this->symbol_table_.Get(
+            function_symbol = this->symbol_table_.Get(
                 MangleFunctionSymbolName(NULL, name_node, arguments_result));
         }
         catch (const Exception& ex) {
@@ -368,19 +468,19 @@ const SymbolBase* SemanticAstWalker::WalkFunctionCall(
     }
 
     // Copied symbol because ~Node() destroys symbol on exit.
-    call_node->set_symbol(symbol->Clone());
+    call_node->set_symbol(function_symbol->Clone());
 
     // Check for access to the callee function.
     // TODO: as of the moment this does nothing because we don't support calls between classes
     // yet. Implement calls between classes.
     CheckAccessModifier(
-        spec_name,
-        symbol->spec_name(),
-        symbol->access_modifier(),
+        spec_node != NULL ? spec_node->symbol()->symbol_name() : "",
+        function_symbol->spec_name(),
+        function_symbol->access_modifier(),
         name_node->line(),
         name_node->column());
 
-    return symbol->type_symbol();
+    return function_symbol->type_symbol();
 }
 
 // Walks and typechecks the if statement.
@@ -422,6 +522,14 @@ const SymbolBase* SemanticAstWalker::WalkFunctionLikeTypecast(
     Node* call_node,
     const SymbolBase* argument_result) {
 
+    // Disallow casting from void function.
+    if (*argument_result == TYPE_VOID) {
+        THROW_EXCEPTION(
+            call_node->line(),
+            call_node->column(),
+            STATUS_SEMANTIC_VOID_USED_IN_EXPR);
+    }
+
     try {
         // If this fails, user specified invalid function or typecast.
         const TypeSymbol* cast_type_symbol = this->symbol_table_.Get(*name_node->string_value())->type_symbol();
@@ -433,6 +541,9 @@ const SymbolBase* SemanticAstWalker::WalkFunctionLikeTypecast(
         // Make the assumption that we support conversions between all non-pointer types.
         // It is up the the LIRGenAstWalker to implement support for the OP codes.
         switch (cast_type_symbol->type_format()) {
+        case TypeFormat::FVOID:
+            // Disallowed typecast.
+            break;
         case TypeFormat::FLOAT:
         case TypeFormat::INT:
             // TODO: put exceptions in here if any.
@@ -486,6 +597,14 @@ const SymbolBase* SemanticAstWalker::WalkAssign(
     Node* assign_node,
     const SymbolBase* operation_result) {
 
+    // Disallow assigning result of void functions.
+    if (*operation_result == TYPE_VOID) {
+        THROW_EXCEPTION(
+            assign_node->line(),
+            assign_node->column(),
+            STATUS_SEMANTIC_VOID_USED_IN_EXPR);
+    }
+
     std::string symbol_name = MangleLocalVariableSymbolName(name_node);
 
     // Try to add the variable symbol to the top level of the symbol table
@@ -515,12 +634,7 @@ const SymbolBase* SemanticAstWalker::WalkAssign(
 
         // Throw exception if it's not the expected exception, we don't have handling
         // for this case.
-        if (ex.status() != STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
-            THROW_EXCEPTION(
-                name_node->line(),
-                name_node->column(),
-                STATUS_ILLEGAL_STATE);
-        }
+        GS_ASSERT_FALSE(ex.status() != STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL, "Unhandled exception case");
 
         // Value already exists in the current level of the symbol table
         // so look up the existing value and its type and make sure that the new type
@@ -531,7 +645,7 @@ const SymbolBase* SemanticAstWalker::WalkAssign(
         symbol_node->set_symbol(variable_symbol->Clone());
 
         // Check to make sure that type of new assignment matches original declared type.
-        if (variable_symbol != operation_result) {
+        if (*variable_symbol != *operation_result) {
             THROW_EXCEPTION(
                 name_node->line(),
                 name_node->column(),
@@ -549,7 +663,7 @@ const SymbolBase* SemanticAstWalker::WalkReturn(
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
-    const SymbolBase* expression_result,
+    const SymbolBase** expression_result,
     std::vector<const SymbolBase*>* arguments_result) {
 
     Node* name_node = NULL;
@@ -589,17 +703,36 @@ const SymbolBase* SemanticAstWalker::WalkReturn(
             STATUS_ILLEGAL_STATE);
     }
 
+    // No return expression.
+    if (expression_result == NULL) {
+        return function_symbol;
+    }
+
     // Check to make sure that the type of the function symbol matches the type
     // of the return statement expression.
-    if (function_symbol->type_symbol() != expression_result->type_symbol()) {
+    if (*function_symbol->type_symbol() != *(*expression_result)->type_symbol()) {
 
         // WalkReturn() will have either a property_node or a function_node, not both.
         Node* line_number_node = property_node != NULL ? property_node : function_node;
 
-        THROW_EXCEPTION(
-            line_number_node->line(),
-            line_number_node->column(),
-            STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+        // More informative error messages.
+        if (*function_symbol->type_symbol() == TYPE_VOID) {
+            THROW_EXCEPTION(
+                line_number_node->line(),
+                line_number_node->column(),
+                STATUS_SEMANTIC_RETURN_IN_VOID);
+        }
+        else if ((**expression_result) == TYPE_VOID) {
+            THROW_EXCEPTION(
+                line_number_node->line(),
+                line_number_node->column(),
+                STATUS_SEMANTIC_VOID_USED_IN_EXPR);
+        } else {
+            THROW_EXCEPTION(
+                line_number_node->line(),
+                line_number_node->column(),
+                STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+        }
     }
 
     return function_symbol;
@@ -626,7 +759,6 @@ const SymbolBase* SemanticAstWalker::WalkAdd(
     const SymbolBase* right_result) {
 
     const TypeSymbol* left_symbol = left_result->type_symbol();
-    const TypeSymbol* right_symbol = right_result->type_symbol();
 
     // Only allow numeric and string types.
     if (left_symbol->type_format() != TypeFormat::INT &&
@@ -1095,11 +1227,21 @@ void SemanticAstWalker::CheckAccessModifier(
             STATUS_ILLEGAL_STATE);
     default:
         // Throw If someone adds a new access modifier that we don't know of.
-        THROW_EXCEPTION(
-            line,
-            column,
-            STATUS_ILLEGAL_STATE);
+        GS_ASSERT_FAIL("Unimplemented access modifier.");
     }
+}
+
+// Optional implemented function that overrides base class implementation.
+// In SemanticAstWalker, this function overrides default action for walking
+// a spec and pushes another layer to the symbol_table_ to allow for declaration
+// of types and fields private to a spec, namely, Generic params.
+void SemanticAstWalker::WalkSpec(Node* spec_node, PrescanMode scan_mode) {
+    this->symbol_table_.Push();
+
+    // Call parent class implementation.
+    AstWalker::WalkSpec(spec_node, scan_mode);
+
+    this->symbol_table_.Pop();
 }
 
 // Optional implemented function that overrides base class implementation.
@@ -1171,6 +1313,54 @@ const SymbolBase* SemanticAstWalker::WalkExpressionChildren(
     return expression_type;
 }
 
+// Walks a new Spec(arg1, arg2, ...) expression.
+const SymbolBase* SemanticAstWalker::WalkNewExpression(
+    Node* new_node,
+    Node* type_node,
+    std::vector<const SymbolBase*>& arguments_result) {
+
+    // Lookup type of new statement.
+    const SymbolBase* type_symbol = ResolveTypeNode(type_node);
+    new_node->set_symbol(type_symbol->Clone());
+
+    // Lookup constructor function.
+    const std::string constructor_name = MangleFunctionSymbolName(
+        MangleSpecTemplateSymbolName(type_node),
+        kConstructorName,
+        arguments_result);
+
+    const SymbolBase* constructor_symbol = NULL;
+    try {
+        constructor_symbol = this->symbol_table_.Get(constructor_name);
+    }
+    catch (const Exception& ex) {
+
+        // The symbol for this function is unknown. Either a typo or a function-like typecast.
+        if (ex.status() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL) {
+            THROW_EXCEPTION(
+                type_node->line(),
+                type_node->column(),
+                STATUS_SEMANTIC_CONSTRUCTOR_OVERLOAD_NOT_FOUND);
+        }
+
+        throw;
+    }
+
+    return type_symbol;
+}
+
+// Walks a new default(type) expression.
+const SymbolBase* SemanticAstWalker::WalkDefaultExpression(
+    Node* default_node,
+    Node* type_node) {
+
+    const SymbolBase* type_symbol = ResolveTypeNode(type_node);
+
+    default_node->set_symbol(type_symbol->Clone());
+
+    return type_symbol;
+}
+
 // Calculates the type of a binary operator expression from the types of its
 // operands.
 const SymbolBase* SemanticAstWalker::CalculateResultantType(
@@ -1195,11 +1385,21 @@ const SymbolBase* SemanticAstWalker::CalculateResultantType(
         return left;
     }
 
-    // Types don't match. Might require a typecast. (e.g.: float to int).
-    THROW_EXCEPTION(
-        line,
-        column,
-        type_mismatch_error);
+    if (*left == TYPE_VOID || *right == TYPE_VOID) {
+        // Void function call in expression.
+        THROW_EXCEPTION(
+            line, column,
+            STATUS_SEMANTIC_VOID_USED_IN_EXPR);
+    }
+    else {
+        // Types don't match. Might require a typecast. (e.g.: float to int).
+        THROW_EXCEPTION(
+            line,
+            column,
+            type_mismatch_error);
+    }
+
+    
 }
 
 // Calculates the type of a binary operator expression from the types of its
@@ -1247,11 +1447,16 @@ const SymbolBase* SemanticAstWalker::CalculateBoolResultantType(
     return right;
 }
 
-// Looks up a type node's name in the symbol table and returns its Type
-// object.
+// Looks up a type node's name in the symbol table and returns its Symbol.
+// This is also where resolution of GENERIC_TYPE_TEMPLATEs into GENERIC_TYPEs 
+// happens.
 const SymbolBase* SemanticAstWalker::ResolveTypeNode(Node* type_node) {
+
+    const SymbolBase* type_symbol;
+
+    // Look up symbol in symbol table.
     try {
-        return this->symbol_table_.Get(*type_node->string_value());
+        type_symbol = this->symbol_table_.Get(MangleSpecTemplateSymbolName(type_node));
     }
     catch (const Exception& ex) {
         // Rethrow as more relevant exception.
@@ -1264,6 +1469,37 @@ const SymbolBase* SemanticAstWalker::ResolveTypeNode(Node* type_node) {
 
         throw;
     }
+
+    // If this is not a generic type, return the raw type.
+    if (type_symbol->symbol_type() != SymbolType::GENERIC_TYPE_TEMPLATE) {
+        return type_symbol;
+    }
+    // else: this is a generic type, continue on to check the type params.
+
+    std::ostringstream name_buf;
+    name_buf << *type_node->string_value() << '<';
+
+    // Check that all type params are valid types.
+    std::vector<const SymbolBase*> type_params;
+    for (size_t i = 0; i < type_node->child_count(); i++) {
+        const SymbolBase* param = ResolveTypeNode(type_node->child(i));
+        type_params.push_back(param);
+        name_buf << param->symbol_name() << ',';
+    }
+
+    name_buf << '>';
+
+    // Construct type from the generic type template with the concrete
+    // type params in this usage.
+    const SymbolBase* generic_type_symbol = new GenericTypeSymbol(
+        SymbolType::GENERIC_TYPE,
+        type_symbol->access_modifier(),
+        name_buf.str(),
+        type_params);
+
+    type_node->set_symbol(generic_type_symbol);
+
+    return generic_type_symbol;
 }
 
 } // namespace compiler

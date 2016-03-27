@@ -9,7 +9,6 @@
 #include "symbol_table.h"
 
 // HACK: required for explicit class instanatiation linking across libraries.
-#include "gunderscript/type.h"
 #include "lirgen_ast_walker.h"
 
 namespace gunderscript {

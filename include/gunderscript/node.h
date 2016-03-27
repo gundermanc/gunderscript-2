@@ -33,6 +33,8 @@ enum class NodeRule {
     FUNCTION_PARAMETER,
     BLOCK,
 
+    DEFAULT,
+    NEW,
     ASSIGN,
     RETURN,
     IF,

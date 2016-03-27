@@ -463,16 +463,15 @@ TEST_KEYWORD(FALSE, "false", LexerTokenType::KEYWORD, LexerSymbol::KFALSE);
 TEST_KEYWORD(RETURN, "return", LexerTokenType::KEYWORD, LexerSymbol::RETURN);
 TEST_KEYWORD(GET, "get", LexerTokenType::KEYWORD, LexerSymbol::GET);
 TEST_KEYWORD(SET, "set", LexerTokenType::KEYWORD, LexerSymbol::SET);
-TEST_KEYWORD(CONCEIVE, "conceive", LexerTokenType::KEYWORD, LexerSymbol::CONCEIVE);
-TEST_KEYWORD(ERADICATE, "eradicate", LexerTokenType::KEYWORD, LexerSymbol::ERADICATE);
+TEST_KEYWORD(CONSTRUCT, "construct", LexerTokenType::KEYWORD, LexerSymbol::CONSTRUCT);
 TEST_KEYWORD(START, "start", LexerTokenType::KEYWORD, LexerSymbol::START);
 TEST_KEYWORD(READONLY, "readonly", LexerTokenType::KEYWORD, LexerSymbol::READONLY);
 TEST_KEYWORD(FOR, "for", LexerTokenType::KEYWORD, LexerSymbol::FOR);
 TEST_KEYWORD(BREAK, "break", LexerTokenType::KEYWORD, LexerSymbol::BREAK);
 TEST_KEYWORD(CONTINUE, "continue", LexerTokenType::KEYWORD, LexerSymbol::CONTINUE);
 TEST_KEYWORD(DEPENDS, "depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
-TEST_KEYWORD(NATIVE, "native", LexerTokenType::KEYWORD, LexerSymbol::NATIVE);
-TEST_KEYWORD(TNULL, "null", LexerTokenType::KEYWORD, LexerSymbol::TNULL);
+TEST_KEYWORD(NEW, "new", LexerTokenType::KEYWORD, LexerSymbol::NEW);
+TEST_KEYWORD(DEFAULT, "default", LexerTokenType::KEYWORD, LexerSymbol::DEFAULT);
 
 TEST(Lexer, ParseIntegers) {
     std::string input = "3433+ 211";
