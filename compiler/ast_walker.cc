@@ -123,16 +123,16 @@ void AstWalker<ReturnType>::WalkSpec(Node* spec_node, PrescanMode scan_mode) {
     // Spec names are prescanned to allow for out of order and circular dependencies.
     switch (scan_mode) {
     case PrescanMode::SCAN_SPEC_DEF:
-        WalkSpecDeclaration(spec_node, access_modifier_node, type_node, true);
+        WalkSpecDeclaration(spec_node, access_modifier_node, type_node, scan_mode);
         break;
     case PrescanMode::SCAN_IMPL_DEF:
-        WalkSpecDeclaration(spec_node, access_modifier_node, type_node, false);
+        WalkSpecDeclaration(spec_node, access_modifier_node, type_node, scan_mode);
         WalkFunctionsChildren(spec_node, functions_node);
         WalkSpecPropertiesChildren(spec_node, properties_node);
         break;
     case PrescanMode::SCAN_PROP_FUNC_DEF:
-        WalkSpecDeclaration(spec_node, access_modifier_node, type_node, false);
         WalkPropertiesFunctionsPrescanChildren(spec_node, functions_node, properties_node);
+        WalkSpecDeclaration(spec_node, access_modifier_node, type_node, scan_mode);
         break;
     default:
         GS_ASSERT_FAIL("Unhandled case.");

@@ -164,6 +164,8 @@ void SemanticAstWalker::WalkSpecDeclarationPrescan(
             type_params.push_back(template_type_symbol);
         }
 
+        // Walk the properties and add space for them
+
         spec_symbol = new GenericTypeSymbol(
             SymbolType::GENERIC_TYPE_TEMPLATE,
             access_modifier_node->symbol_value(),
@@ -198,42 +200,66 @@ void SemanticAstWalker::WalkSpecDeclaration(
     Node* spec_node,
     Node* access_modifier_node,
     Node* type_node,
-    bool prescan) {
+    PrescanMode scan_mode) {
 
-    if (prescan) {
+    switch (scan_mode)
+    {
+    case PrescanMode::SCAN_SPEC_DEF:
         WalkSpecDeclarationPrescan(
             spec_node,
             access_modifier_node,
             type_node);
+        break;
+    case PrescanMode::SCAN_IMPL_DEF:
+    {
+        TypeSymbol* symbol = spec_node->symbol()->symbol_type() == SymbolType::GENERIC_TYPE_TEMPLATE
+            ? const_cast<GenericTypeSymbol*>(SYMBOL_TO_GENERIC_TYPE_TEMPLATE(spec_node->symbol()))
+            : const_cast<TypeSymbol*>(SYMBOL_TO_TYPE(spec_node->symbol()));
+
+        Node* properties_node = spec_node->child(3);
+        GS_ASSERT_TRUE(properties_node->rule() == NodeRule::PROPERTIES, "Expected PROPERTIES node");
+
+        // Retroactively populate Types with their member properties.
+        for (size_t i = 0; i < properties_node->child_count(); i++) {
+            Node* property_node = properties_node->child(i);
+            GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY, "Expected PROPERTY node");
+            symbol->add_member(property_node->symbol());
+        }
     }
-    else if (spec_node->symbol()->symbol_type() == SymbolType::GENERIC_TYPE_TEMPLATE) {
+        
+    case PrescanMode::SCAN_PROP_FUNC_DEF:
+        if (spec_node->symbol()->symbol_type() == SymbolType::GENERIC_TYPE_TEMPLATE) {
 
-        // Symbol for type_node was added during the prescan, just read it.
-        const GenericTypeSymbol* type_symbol
-            = SYMBOL_TO_GENERIC_TYPE_TEMPLATE(spec_node->symbol());
+            // Symbol for type_node was added during the prescan, just read it.
+            const GenericTypeSymbol* type_symbol
+                = SYMBOL_TO_GENERIC_TYPE_TEMPLATE(spec_node->symbol());
 
-        // We overrode the function that calls this one later in this file and pushed a new
-        // layer to the stack. Now, we'll define a series of template types in this local
-        // scope for this spec. These types go out of scope after we finish.
-        for (size_t i = 0; i < type_symbol->type_params().size(); i++) {
-            const SymbolBase* template_type_symbol = type_symbol->type_params().at(i);
+            // We overrode the function that calls this one later in this file and pushed a new
+            // layer to the stack. Now, we'll define a series of template types in this local
+            // scope for this spec. These types go out of scope after we finish.
+            for (size_t i = 0; i < type_symbol->type_params().size(); i++) {
+                const SymbolBase* template_type_symbol = type_symbol->type_params().at(i);
 
-            try {
-                this->symbol_table_.Put(template_type_symbol->symbol_name(), template_type_symbol);
-            }
-            catch (const Exception& ex) {
-
-                // Rethrow as more relevant exception.
-                if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
-                    THROW_EXCEPTION(
-                        type_node->line(),
-                        type_node->column(),
-                        STATUS_SEMANTIC_GENERIC_DUPLICATE_PARAM);
+                try {
+                    this->symbol_table_.Put(template_type_symbol->symbol_name(), template_type_symbol);
                 }
+                catch (const Exception& ex) {
 
-                throw;
+                    // Rethrow as more relevant exception.
+                    if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
+                        THROW_EXCEPTION(
+                            type_node->line(),
+                            type_node->column(),
+                            STATUS_SEMANTIC_GENERIC_DUPLICATE_PARAM);
+                    }
+
+                    throw;
+                }
             }
         }
+        break;
+    default:
+        GS_ASSERT_FAIL("Unhandled case.");
     }
 }
 
@@ -249,7 +275,7 @@ void SemanticAstWalker::WalkFunctionDeclaration(
     std::vector<const SymbolBase*>& arguments_result,
     bool prescan) {
 
-    const std::string spec_name = spec_node != NULL ? *(spec_node->child(1)->string_value()) : "";
+    const std::string spec_name = spec_node != NULL ? spec_node->symbol()->symbol_name() : "";
 
     // Only define the symbol during the prescan portion of the walking process.
     // The prescan allows for us to iterate and define symbols for all functions
@@ -1472,6 +1498,7 @@ const SymbolBase* SemanticAstWalker::ResolveTypeNode(Node* type_node) {
 
     // If this is not a generic type, return the raw type.
     if (type_symbol->symbol_type() != SymbolType::GENERIC_TYPE_TEMPLATE) {
+        type_node->set_symbol(type_symbol->Clone());
         return type_symbol;
     }
     // else: this is a generic type, continue on to check the type params.

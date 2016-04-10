@@ -52,10 +52,10 @@ public:
         const std::string& symbol_name)
         : symbol_type_(symbol_type), access_modifier_(access_modifier),
         spec_name_(spec_name), symbol_name_(symbol_name) { }
+    virtual ~SymbolBase() { }
 
     // No copy constructor, use clone() to copy so that children may override.
     SymbolBase(const SymbolBase&) = delete;
-    virtual ~SymbolBase() { }
     virtual const SymbolBase* Clone() const { return new SymbolBase(symbol_type_, access_modifier_, spec_name_, symbol_name_); }
     virtual const TypeSymbol* type_symbol() const { assert(false); return (TypeSymbol*)(NULL); }
 
@@ -84,7 +84,6 @@ public:
         const SymbolBase* return_symbol)
         : SymbolBase(symbol_type, access_modifier, spec_name, symbol_name),
         return_symbol_(return_symbol) { }
-    ~FunctionSymbol() { }
     const SymbolBase* Clone() const { return new FunctionSymbol(symbol_type(), access_modifier(), spec_name(), symbol_name(), return_symbol_); }
     const TypeSymbol* type_symbol() const { return (TypeSymbol*)(return_symbol_); }
 
@@ -114,9 +113,19 @@ public:
     TypeFormat type_format() const { return type_format_; }
     int size() const { return size_; }
 
+    const std::vector<const SymbolBase*>& members() const { return members_; }
+    void add_member(const SymbolBase* member) {
+        members_.push_back(member);
+        alloc_size_ += member->type_symbol()->size();
+    }
+
+    int alloc_size() const { return alloc_size_; }
+
 private:
     const TypeFormat type_format_;
     const int size_;
+    std::vector<const SymbolBase*> members_;
+    int alloc_size_ = 0;
 };
 
 class GenericTypeSymbol : public TypeSymbol {
@@ -126,8 +135,8 @@ public:
         LexerSymbol access_modifier,
         const std::string& symbol_name,
         const std::vector<const SymbolBase*> type_params)
-        : TypeSymbol(symbol_type, access_modifier, symbol_name, TypeFormat::POINTER, sizeof(void*)),
-        type_params_(type_params) { }
+        : type_params_(type_params),
+        TypeSymbol(access_modifier, symbol_name) { }
     ~GenericTypeSymbol() { }
     const SymbolBase* Clone() const { return new GenericTypeSymbol(symbol_type(), access_modifier(), symbol_name(), type_params()); }
     TypeSymbol* type_symbol() const { return (GenericTypeSymbol*)this; }

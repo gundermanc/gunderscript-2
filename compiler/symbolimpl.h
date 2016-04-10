@@ -34,6 +34,8 @@ namespace gunderscript {
 
 #define SYMBOL_TO_VARIABLE(src_symbol) SYMBOL_CAST(src_symbol, SymbolType::VARIABLE, const FunctionSymbol*)
 
+#define SYMBOL_TO_TYPE(src_symbol) SYMBOL_CAST(src_symbol, SymbolType::TYPE, const TypeSymbol*)
+
 #define SYMBOL_TO_GENERIC_TYPE(src_symbol) SYMBOL_CAST(src_symbol, SymbolType::GENERIC_TYPE, const GenericTypeSymbol*)
 
 #define SYMBOL_TO_GENERIC_TYPE_TEMPLATE(src_symbol) SYMBOL_CAST(src_symbol, SymbolType::GENERIC_TYPE_TEMPLATE, const GenericTypeSymbol*)

@@ -70,7 +70,7 @@ protected:
         Node* spec_node,
         Node* access_modifier_node,
         Node* type_node,
-        bool prescan) { }
+        PrescanMode scan_mode) { }
     void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,

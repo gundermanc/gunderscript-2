@@ -41,7 +41,7 @@ protected:
         Node* spec_node,
         Node* access_modifier_node,
         Node* type_node,
-        bool prescan) = 0;
+        PrescanMode scan_mode) = 0;
     virtual void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,

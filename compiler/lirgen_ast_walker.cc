@@ -1239,6 +1239,8 @@ LirGenResult LIRGenAstWalker::WalkNewExpression(
     Node* type_node,
     std::vector<LirGenResult>& arguments_result) {
 
+    const SymbolBase* sym = type_node->symbol();
+
     THROW_NOT_IMPLEMENTED();
 }
 
