@@ -11,6 +11,8 @@
 #define GS_ASSERT_TRUE(cond, message)                         \
 ([](bool condition) {                                         \
     if (!(condition)) {                                       \
+        std::cout << std::endl << "  >> " << __FILE__;        \
+        std::cout << std::endl << "  >> Line: " << __LINE__;  \
         std::cout << std::endl << "  >> ";                    \
         std::cout << message << ": " << #cond << std::endl;   \
         abort();                                              \

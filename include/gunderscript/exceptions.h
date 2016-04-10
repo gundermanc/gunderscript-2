@@ -194,6 +194,8 @@ const ExceptionStatus STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_RPAREN
     = ExceptionStatus(250, "Trying to parse default expression, expected but did not find right parenthesis");
 const ExceptionStatus STATUS_PARSER_CONSTRUCTOR_OUTSIDE_SPEC
     = ExceptionStatus(251, "Constructor function is not allowed outside of spec body");
+const ExceptionStatus STATUS_PARSER_MALFORMED_NAME
+    = ExceptionStatus(252, "Parsing name expression, expected but did not find name");
 
 // Semantic Walker Exceptions 300-399:
 const ExceptionStatus STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN

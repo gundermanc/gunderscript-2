@@ -4,17 +4,11 @@
 #include "gunderscript/exceptions.h"
 
 #include "ast_walker.h"
+#include "parser.h"
 #include "gs_assert.h"
 
 // HACK: this include is here for explicit template instantiation for LirGenResult.
 #include "lirgen_ast_walker.h"
-
-// Debug assertion checks that we have the correct node rule.
-// Not compiled in Release configuration.
-#define GS_ASSERT_NODE_RULE(node, node_rule) \
-    GS_ASSERT_TRUE(((node) != NULL) && ((node)->rule() == (node_rule)), "Null AstWalker node or invalid node rule");
-#define GS_ASSERT_OPTIONAL_NODE_RULE(node, node_rule) \
-    GS_ASSERT_TRUE(((node) == NULL) || ((node)->rule() == (node_rule)), "Invalid AstWalker node rule");
 
 namespace gunderscript {
 namespace compiler {

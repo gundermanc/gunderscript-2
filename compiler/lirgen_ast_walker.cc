@@ -347,13 +347,12 @@ LirGenResult LIRGenAstWalker::WalkAssign(
     // New Alloc: Allocate a new register (NanoJIT register) for this variable name,
     // it has either never been seen before or is a new var of a different type masking
     // the original definition in an enclosing scope.
-    const TypeSymbol* operations_result_symbol = operations_result.symbol()->type_symbol();
-    variable_ptr = this->current_writer_->insAlloc(operations_result_symbol->size());
+    variable_ptr = this->current_writer_->insAlloc(operations_result.symbol()->type_symbol()->size());
     this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.symbol(), RegisterEntry(variable_ptr)));
 
     // Emit the assignment instruction. Dijkstra doesn't have to agree with me, gotos can be useful.
 emit_assign_ins:
-    EmitStore(operations_result_symbol, variable_ptr, 0, operations_result.ins());
+    EmitStore(operations_result.symbol()->type_symbol(), variable_ptr, 0, operations_result.ins());
 
     // The value and type of an assignment is equal to that of the right hand
     // side of the operation (the expression). Simply pass it along.
@@ -776,6 +775,13 @@ LirGenResult LIRGenAstWalker::WalkEquals(
 
     // Left and right are already the same type thanks to the typechecker.
     switch (left_symbol->type_format()) {
+    case TypeFormat::POINTER:
+        return LirGenResult(
+            &TYPE_BOOL,
+            this->current_writer_->ins2(
+                LIR_eqp,
+                left_result.ins(),
+                right_result.ins()));
     case TypeFormat::INT:
         if (left_symbol->size() == 4 ||
             left_symbol->size() == 1) {
@@ -816,6 +822,16 @@ LirGenResult LIRGenAstWalker::WalkNotEquals(
 
     // Left and right are already the same type thanks to the typechecker.
     switch (left_symbol->type_format()) {
+    case TypeFormat::POINTER:
+        return LirGenResult(
+            &TYPE_BOOL,
+            this->current_writer_->ins2(
+                LIR_xori,
+                this->current_writer_->insImmI(1),
+                this->current_writer_->ins2(
+                    LIR_eqp,
+                    left_result.ins(),
+                    right_result.ins())));
     case TypeFormat::INT:
         if (left_symbol->size() == 4 ||
             left_symbol->size() == 1) {
@@ -1138,6 +1154,11 @@ void LIRGenAstWalker::WalkFunctionChildren(
         const TypeSymbol* function_type_symbol = function_symbol->type_symbol();
         switch (function_type_symbol->size())
         {
+        case 8:
+            if (function_type_symbol->type_format() == TypeFormat::POINTER) {
+                this->current_writer_->insImmP(NULL);
+            }
+            break;
         case 4:
         case 1:
             if (function_type_symbol->type_format() == TypeFormat::INT ||
@@ -1150,7 +1171,10 @@ void LIRGenAstWalker::WalkFunctionChildren(
                 ret_value = this->current_writer_->insImmF(0.0f);
                 ret_inst = this->current_writer_->ins1(LIR_retf, ret_value);
                 break;
+            } else if (function_type_symbol->type_format() == TypeFormat::POINTER) {
+                this->current_writer_->insImmP(NULL);
             }
+            break;
         case 0:
             GS_ASSERT_TRUE(*function_type_symbol == TYPE_VOID, "Expected void type");
             ret_inst = this->current_writer_->ins1(LIR_reti, this->current_writer_->insImmI(0));
@@ -1206,7 +1230,11 @@ void LIRGenAstWalker::WalkIfStatementChildren(
         if_node->child(0));
 
     // Jump to the else BLOCK if the condition is false. The label will be backpatched later.
-    LIns* jump_false_ins = this->current_writer_->insBranch(LIR_jf, condition_result.ins(), NULL);
+    // TODO: can we do this without the comparison? I have it here because some cases fail without it.
+    LIns* jump_false_ins = this->current_writer_->insBranch(LIR_jt,
+        this->current_writer_->ins2(LIR_eqi,
+            this->current_writer_->insImmI(0),
+            condition_result.ins()), NULL);
 
     // Walk true block and generate instructions.
     WalkBlockChildren(
@@ -1239,7 +1267,10 @@ LirGenResult LIRGenAstWalker::WalkNewExpression(
     Node* type_node,
     std::vector<LirGenResult>& arguments_result) {
 
-    THROW_NOT_IMPLEMENTED();
+    // TODO: actual mem alloc. For now, we'll put a placeholder.
+    return LirGenResult(
+        new_node->symbol(),
+        this->current_writer_->insImmP((const void*)0xDEADBEEFDEADBEEF));
 }
 
 // Walks a default() expression.
@@ -1247,7 +1278,30 @@ LirGenResult LIRGenAstWalker::WalkDefaultExpression(
     Node* default_node,
     Node* type_node) {
 
-    THROW_NOT_IMPLEMENTED();
+    const TypeSymbol* type_symbol = default_node->symbol()->type_symbol();
+
+    LIns* value = NULL;
+    switch (type_symbol->type_format())
+    {
+    case TypeFormat::BOOL:
+    case TypeFormat::INT:
+        if (type_symbol->size() == 4 || type_symbol->size() == 1) {
+            value = this->current_writer_->insImmI(0);
+        }
+        break;
+    case TypeFormat::FLOAT:
+        if (type_symbol->size() == 4) {
+            value = this->current_writer_->insImmI(0.0);
+        }
+        break;
+    case TypeFormat::POINTER:
+        value = this->current_writer_->insImmP(NULL);
+        break;
+    default:
+        GS_ASSERT_FAIL("Unhandled default value case");
+    }
+
+    return LirGenResult(type_symbol, value);
 }
 
 // Walks children of the FOR statement node.
@@ -1305,7 +1359,11 @@ void LIRGenAstWalker::WalkForStatementChildren(
             cond_node->child(0));
 
         // If the loop condition is false, jump out. This jump is backpatched later on.
-        cond_ins = this->current_writer_->insBranch(LIR_jf, cond_result.ins(), NULL);
+        // TODO: can we get rid of this extra EQI?
+        cond_ins = this->current_writer_->insBranch(LIR_jt,
+            this->current_writer_->ins2(LIR_eqi,
+                this->current_writer_->insImmI(0),
+                cond_result.ins()), NULL);
     }
     // else: No loop condition, no jump, do the loop infinitely many times.
 
@@ -1374,6 +1432,8 @@ LIns* LIRGenAstWalker::EmitLoad(const SymbolBase* symbol, LIns* base, int offset
     const TypeSymbol* type_symbol = symbol->type_symbol();
 
     switch (type_symbol->type_format()) {
+    case TypeFormat::POINTER:
+        return this->current_writer_->insLoad(LIR_ldp, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
     case TypeFormat::BOOL:
     case TypeFormat::INT:
         // BOOL types are simply integers that contain either 1 or 0.
@@ -1394,7 +1454,7 @@ LIns* LIRGenAstWalker::EmitLoad(const SymbolBase* symbol, LIns* base, int offset
         switch (type_symbol->size()) {
         case 4:
             // TODO: tighter access sets.
-            return this->current_writer_->insLoad(LIR_ldf, base, 0, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+            return this->current_writer_->insLoad(LIR_ldf, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
         default:
             THROW_NOT_IMPLEMENTED();
         }
@@ -1411,6 +1471,8 @@ LIns* LIRGenAstWalker::EmitStore(const SymbolBase* symbol, LIns* base, int offse
     const TypeSymbol* type_symbol = symbol->type_symbol();
 
     switch (type_symbol->type_format()) {
+    case TypeFormat::POINTER:
+        return this->current_writer_->insStore(LIR_stp, value, base, offset, ACCSET_ALL);
     case TypeFormat::BOOL:
     case TypeFormat::INT:
         // BOOL types are simply integers that contain either 1 or 0.

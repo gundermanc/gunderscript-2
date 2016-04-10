@@ -1752,6 +1752,83 @@ TEST(Parser, ParseMemberExpression) {
     delete root;
 }
 
+// Ensures that member expressions don't throw when used as a statement.
+TEST(Parser, ParseMemberCallStatement) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    (x().y()).(z());"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_NO_THROW(parser.Parse());
+}
+
+// Ensures that member expressions don't throw when used as a statement.
+TEST(Parser, ParseMemberAssignStatement) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    (x().y()).z <- 3;"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_NO_THROW(parser.Parse());
+}
+
+TEST(Parser, ParseMemberReturnStatement1) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return x.y.z;"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_NO_THROW(parser.Parse());
+}
+
+TEST(Parser, ParseMemberReturnStatement2) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return x.y().z();"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_NO_THROW(parser.Parse());
+}
+
+TEST(Parser, ParseMemberAssignCall) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return x.y() <- 3;"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
+}
+
 TEST(Parser, ParseMalformedMemberExpression) {
 
     // Case 1: Single operand reference.
@@ -1784,6 +1861,22 @@ TEST(Parser, ParseMalformedMemberExpression) {
         Parser parser(lexer);
 
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
+    }
+
+    // Case 3: Not a statement.
+    {
+        std::string input("package \"FooPackage\";"
+            "public spec MySpec {"
+            "  public bool Foo() {"
+            "    this.x;"
+            "  }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
     }
 }
 

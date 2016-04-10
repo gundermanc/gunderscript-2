@@ -303,6 +303,7 @@ protected:
 private:
     LIns* EmitLoad(const SymbolBase* symbol, nanojit::LIns* base, int offset);
     LIns* EmitStore(const SymbolBase* symbol, nanojit::LIns* base, int offset, LIns* value);
+    LIns* EmitDefault(const SymbolBase* symbol);
     int CountFunctions();
 
     ModuleFunc* func_table_;
