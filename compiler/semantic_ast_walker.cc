@@ -55,10 +55,10 @@ static const std::string MangleFunctionSymbolName(
 
 // Mangles local variable symbol name to the format Local%%{variable}
 // so that they do not collide with class names in the symbol table.
-static const std::string MangleLocalVariableSymbolName(Node* name_node) {
+static const std::string MangleLocalVariableSymbolName(const std::string& name) {
     std::ostringstream name_buf;
     name_buf << "Local%%";
-    name_buf << *name_node->string_value();
+    name_buf << name;
 
     return name_buf.str();
 }
@@ -206,33 +206,45 @@ void SemanticAstWalker::WalkSpecDeclaration(
             access_modifier_node,
             type_node);
     }
-    else if (spec_node->symbol()->symbol_type() == SymbolType::GENERIC_TYPE_TEMPLATE) {
+    else {
+        if (spec_node->symbol()->symbol_type() == SymbolType::GENERIC_TYPE_TEMPLATE) {
 
-        // Symbol for type_node was added during the prescan, just read it.
-        const GenericTypeSymbol* type_symbol
-            = SYMBOL_TO_GENERIC_TYPE_TEMPLATE(spec_node->symbol());
+            // Symbol for type_node was added during the prescan, just read it.
+            const GenericTypeSymbol* type_symbol
+                = SYMBOL_TO_GENERIC_TYPE_TEMPLATE(spec_node->symbol());
 
-        // We overrode the function that calls this one later in this file and pushed a new
-        // layer to the stack. Now, we'll define a series of template types in this local
-        // scope for this spec. These types go out of scope after we finish.
-        for (size_t i = 0; i < type_symbol->type_params().size(); i++) {
-            const SymbolBase* template_type_symbol = type_symbol->type_params().at(i);
+            // We overrode the function that calls this one later in this file and pushed a new
+            // layer to the stack. Now, we'll define a series of template types in this local
+            // scope for this spec. These types go out of scope after we finish.
+            for (size_t i = 0; i < type_symbol->type_params().size(); i++) {
+                const SymbolBase* template_type_symbol = type_symbol->type_params().at(i);
 
-            try {
-                this->symbol_table_.Put(template_type_symbol->symbol_name(), template_type_symbol);
-            }
-            catch (const Exception& ex) {
-
-                // Rethrow as more relevant exception.
-                if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
-                    THROW_EXCEPTION(
-                        type_node->line(),
-                        type_node->column(),
-                        STATUS_SEMANTIC_GENERIC_DUPLICATE_PARAM);
+                try {
+                    this->symbol_table_.Put(template_type_symbol->symbol_name(), template_type_symbol);
                 }
+                catch (const Exception& ex) {
 
-                throw;
+                    // Rethrow as more relevant exception.
+                    if (ex.status() == STATUS_SYMBOLTABLE_DUPLICATE_SYMBOL) {
+                        THROW_EXCEPTION(
+                            type_node->line(),
+                            type_node->column(),
+                            STATUS_SEMANTIC_GENERIC_DUPLICATE_PARAM);
+                    }
+
+                    throw;
+                }
             }
+        }
+
+        // Register 'this' variable in local scope.
+        try {
+            this->symbol_table_.Put(
+                MangleLocalVariableSymbolName(kThisKeyword),
+                spec_node->symbol());
+        }
+        catch (const Exception& ex) {
+            GS_ASSERT_FAIL("Local variable this is already defined");
         }
     }
 }
@@ -322,7 +334,7 @@ const SymbolBase* SemanticAstWalker::WalkSpecFunctionDeclarationParameter(
     try {
         // Insert the symbol into the table.
         this->symbol_table_.Put(
-            MangleLocalVariableSymbolName(name_node),
+            MangleLocalVariableSymbolName(*name_node->string_value()),
             param_symbol);
     }
     catch (const Exception& ex) {
@@ -424,12 +436,53 @@ const SymbolBase* SemanticAstWalker::WalkFunctionCall(
     Node* call_node,
     std::vector<const SymbolBase*>& arguments_result) {
 
+    try {
+        // Mangle the given spec name, function name, and parameter names into a function
+        // symbol name and look it up and run it.
+        // NOTICE: this is a static function call, so, spec name is left empty. Member function
+        // calls are handled in WalkMemberFunctionCall(). Also note that Gunderscript uses strict name
+        // equivalence. There are no aliases for member functions. You must always use this.x()
+        // or foo.x(). x() does not work.
+        return WalkFunctionCall(
+            spec_node,
+            "",
+            *name_node->string_value(),
+            call_node,
+            arguments_result);
+    }
+    catch (const Exception& ex) {
+
+        // No function with this name and there is only one argument, lets try it as
+        // a typecast instead.
+        if (ex.status() == STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND &&
+            arguments_result.size() == 1) {
+
+            return WalkFunctionLikeTypecast(
+                spec_node,
+                name_node,
+                call_node,
+                arguments_result.at(0));
+        }
+
+        throw;
+    }
+}
+
+// Walks a function call and checks to make sure that the types
+// of the function matches the context.
+const SymbolBase* SemanticAstWalker::WalkFunctionCall(
+    Node* spec_node,
+    const std::string& spec_name,
+    const std::string& function_name,
+    Node* call_node,
+    std::vector<const SymbolBase*>& arguments_result) {
+
     const SymbolBase* function_symbol = NULL;
 
     // Lookup the function in this class. Throws if there isn't a function with the correct arguments.
     try {
         function_symbol = this->symbol_table_.Get(
-            MangleFunctionSymbolName(spec_node, name_node, arguments_result));
+            MangleFunctionSymbolName(spec_name, function_name, arguments_result));
     }
     catch (const Exception& ex) {
 
@@ -440,27 +493,16 @@ const SymbolBase* SemanticAstWalker::WalkFunctionCall(
 
         try {
             function_symbol = this->symbol_table_.Get(
-                MangleFunctionSymbolName(NULL, name_node, arguments_result));
+                MangleFunctionSymbolName("", function_name, arguments_result));
         }
         catch (const Exception& ex) {
 
             // The symbol for this function is unknown. Either a typo or a function-like typecast.
             if (ex.status() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL) {
-
-                // Check if we have exactly one param. If so, it might be a typecast.
-                if (arguments_result.size() != 1) {
-                    THROW_EXCEPTION(
-                        name_node->line(),
-                        name_node->column(),
-                        STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
-                }
-
-                // Try walking it as if it were a typecast.
-                return WalkFunctionLikeTypecast(
-                    spec_node,
-                    name_node,
-                    call_node,
-                    arguments_result.at(0));
+                THROW_EXCEPTION(
+                    call_node->line(),
+                    call_node->column(),
+                    STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
             }
 
             throw;
@@ -477,10 +519,50 @@ const SymbolBase* SemanticAstWalker::WalkFunctionCall(
         spec_node != NULL ? spec_node->symbol()->symbol_name() : "",
         function_symbol->spec_name(),
         function_symbol->access_modifier(),
-        name_node->line(),
-        name_node->column());
+        call_node->line(),
+        call_node->column());
 
     return function_symbol->type_symbol();
+}
+
+// Walks a member expression.
+// e.g.: this.x()
+const SymbolBase* SemanticAstWalker::WalkMemberFunctionCall(
+    Node* spec_node,
+    Node* member_node,
+    const SymbolBase* left_result,
+    Node* right_node,
+    std::vector<const SymbolBase*>& arguments_result) {
+
+    // TODO: when we implement properties change to a branch.
+    GS_ASSERT_TRUE(right_node->rule() == NodeRule::CALL,
+        "Unimplemented or improper member right node rule");
+
+    Node* name_node = right_node->child(0);
+
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+
+    const SymbolBase* result = WalkFunctionCall(
+        spec_node,
+        left_result->type_symbol()->symbol_name(),
+        *name_node->string_value(),
+        right_node,
+        arguments_result);
+
+    // Set member node symbol to be the function call symbol since the member
+    // simply resolves to a function call.
+    member_node->set_symbol(right_node->symbol()->Clone());
+
+    return result;
+}
+
+const SymbolBase* SemanticAstWalker::WalkMemberPropertyGet(
+    Node* spec_node,
+    Node* member_node,
+    const SymbolBase* left_result,
+    Node* right_node) {
+
+    THROW_NOT_IMPLEMENTED();
 }
 
 // Walks and typechecks the if statement.
@@ -605,7 +687,15 @@ const SymbolBase* SemanticAstWalker::WalkAssign(
             STATUS_SEMANTIC_VOID_USED_IN_EXPR);
     }
 
-    std::string symbol_name = MangleLocalVariableSymbolName(name_node);
+    // Disallow assigning to 'this' keyword.
+    if (*name_node->string_value() == kThisKeyword) {
+        THROW_EXCEPTION(
+            assign_node->line(),
+            assign_node->column(),
+            STATUS_SEMANTIC_THIS_ASSIGNED);
+    }
+
+    std::string symbol_name = MangleLocalVariableSymbolName(*name_node->string_value());
 
     // Try to add the variable symbol to the top level of the symbol table
     // (most recent scope). If the value exists in a lower scope it will
@@ -1151,7 +1241,7 @@ const SymbolBase* SemanticAstWalker::WalkVariable(
     Node* variable_node,
     Node* name_node) {
 
-    const std::string symbol_name = MangleLocalVariableSymbolName(name_node);
+    const std::string symbol_name = MangleLocalVariableSymbolName(*name_node->string_value());
 
     try {
         const SymbolBase* symbol = this->symbol_table_.Get(symbol_name);
@@ -1208,23 +1298,12 @@ void SemanticAstWalker::CheckAccessModifier(
                 STATUS_SEMANTIC_NOT_ACCESSIBLE);
         }
         break;
-    case LexerSymbol::PACKAGE:
-        // What exactly a 'package' will be is currently up in the air.
-        // TODO: complete this.
-        THROW_EXCEPTION(
-            line,
-            column,
-            STATUS_ILLEGAL_STATE);
-        break;
     case LexerSymbol::INTERNAL:
         // What exactly 'internal' means is currently up in the air.
-        // Internal is TYPE_INTENDED to mean that it is internal to the file,
+        // Internal is intended to mean that it is internal to the file,
         // but there isn't support for multifile lex/parse/typecheck yet.
         // TODO: complete this.
-        THROW_EXCEPTION(
-            line,
-            column,
-            STATUS_ILLEGAL_STATE);
+        THROW_NOT_IMPLEMENTED();
     default:
         // Throw If someone adds a new access modifier that we don't know of.
         GS_ASSERT_FAIL("Unimplemented access modifier.");

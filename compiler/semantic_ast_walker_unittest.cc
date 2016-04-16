@@ -657,19 +657,19 @@ TEST(SemanticAstWalker, AttemptTypeReassignmentStatic) {
     delete root;
 }
 
-TEST(SemanticAstWalker, FunctionsOutOfOrder) {
+TEST(SemanticAstWalker, MemberFunctionsOutOfOrder) {
     // Check to make sure that functions can call one another out of order.
     // This tests the prescan.
     std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int32 X() {"
-        "        Y();"
-        "        X();"
+        "        this.Y();"
+        "        this.X();"
         "    }"
         "    public int32 Y() {"
-        "        Y();"
-        "        X();"
+        "        this.Y();"
+        "        this.X();"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -940,10 +940,8 @@ TEST(SemanticAstWalker, AddInvalidTypeStatic) {
 TEST(SemanticAstWalker, AddString) {
     std::string input(
         "package \"Gundersoft\";"
-        "public spec Test {"
-        "    public int32 X(string x) {"
-        "        X(\"sfsf\" + \"sfsf\");"
-        "    }"
+        "public int32 X(string x) {"
+        "    X(\"sfsf\" + \"sfsf\");"
         "}");
     CompilerStringSource source(input);
     Lexer lexer(source);
@@ -1361,7 +1359,8 @@ TEST(SemanticAstWalker, FunctionInAssign) {
         "    public int32 X(bool x) {"
         "        foo <- X(true);"
         "    }"
-        "}");
+        "}"
+        "public int32 X(bool x) { }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -1758,7 +1757,8 @@ TEST(SemanticAstWalker, Combined) {
         "    public int32 X(bool x) {"
         "        X( ((-(-1+2) / 3)) > (0 * (4 % -5)) || !(!(3 < 2)) && (4 >= 5) && (1 <= 6));"
         "    }"
-        "}");
+        "}"
+        "public int32 X(bool x) { }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -2573,8 +2573,8 @@ TEST(SemanticAstWalker, VoidFunctionCall) {
         "    public int32 X(int32 x) {"
         "       foo(3);"
         "    }"
-        "    public void foo(int32 x) { y <- x; return; }"
-        "}");
+        "}"
+        "public void foo(int32 x) { y <- x; return; }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -2594,8 +2594,8 @@ TEST(SemanticAstWalker, VoidFunctionCallAttemptedReturn) {
         "    public int32 X(int32 x) {"
         "       foo(3);"
         "    }"
-        "    public void foo(int32 x) { y <- x; return x; }"
-        "}");
+        "}"
+        "public void foo(int32 x) { y <- x; return x; }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -2615,8 +2615,8 @@ TEST(SemanticAstWalker, VoidFunctionCallUsedInReturn) {
         "    public int32 X(int32 x) {"
         "       return foo(3);"
         "    }"
-        "    public void foo(int32 x) {  }"
-        "}");
+        "}"
+        "public void foo(int32 x) {  }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -2636,8 +2636,8 @@ TEST(SemanticAstWalker, VoidFunctionCallUsedInExpr) {
         "    public int32 X(int32 x) {"
         "       foo(3 + foo(3));"
         "    }"
-        "    public void foo(int32 x) {  }"
-        "}");
+        "}"
+        "public void foo(int32 x) {  }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -2657,8 +2657,8 @@ TEST(SemanticAstWalker, VoidFunctionCallAttemptedAssign) {
         "    public int32 X(int32 x) {"
         "       x <- foo(3);"
         "    }"
-        "    public void foo(int32 x) {  }"
-        "}");
+        "}"
+        "public void foo(int32 x) {  }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -2678,8 +2678,8 @@ TEST(SemanticAstWalker, VoidFunctionCallUsedInCast) {
         "    public int32 X(int32 x) {"
         "       x <- int32(foo(3));"
         "    }"
-        "    public void foo(int32 x) {  }"
-        "}");
+        "}"
+        "public void foo(int32 x) {  }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -2814,5 +2814,108 @@ TEST(SemanticAstWalker, FunctionAsType) {
     SemanticAstWalker semantic_walker(*root);
 
     EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNDEFINED_TYPE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, MemberFunctionCall) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}"
+        "public spec Foo {"
+        "    public construct() { this.X(); }"
+        "    public int32 X() {  return this.X(); }"
+        "}"
+        "public int32 main2() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, MemberFunctionCallInvalidOverload) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}"
+        "public spec Foo {"
+        "    public construct() { this.X(3); }"
+        "    public int32 X() {  return this.X(); }"
+        "}"
+        "public int32 main2() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
+    delete root;
+}
+
+TEST(SemanticAstWalker, MemberFunctionCallInvalidName) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <- new Foo();"
+        "    return x.Y();"
+        "}"
+        "public spec Foo {"
+        "    public construct() { this.X(); }"
+        "    public int32 X() {  return this.X(); }"
+        "}"
+        "public int32 main2() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
+    delete root;
+}
+
+TEST(SemanticAstWalker, AttemptToAssignThis) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Foo {"
+        "    public construct() { }"
+        "    public int32 X() { return this.X(); }"
+        "}"
+        "public int32 main2() {"
+        "    this <- new Foo();"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_THIS_ASSIGNED);
     delete root;
 }

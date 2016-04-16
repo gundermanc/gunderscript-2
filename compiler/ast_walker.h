@@ -72,6 +72,17 @@ protected:
         Node* name_node,
         Node* call_node,
         std::vector<ReturnType>& arguments_result) = 0;
+    virtual ReturnType WalkMemberFunctionCall(
+        Node* spec_node,
+        Node* member_node,
+        ReturnType left_result,
+        Node* right_node,
+        std::vector<ReturnType>& arguments_result) = 0;
+    virtual ReturnType WalkMemberPropertyGet(
+        Node* spec_node,
+        Node* member_node,
+        ReturnType left_result,
+        Node* right_node) = 0;
     virtual void WalkIfStatement(
         Node* spec_node,
         Node* if_node,
@@ -298,10 +309,22 @@ private:
         Node* spec_node,
         Node* property_node,
         bool prescan);
+    void WalkFunctionCallParametersChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* name_node,
+        Node* arguments_node,
+        std::vector<ReturnType>& arguments_result);
     ReturnType WalkFunctionCallChildren(
         Node* spec_node,
         Node* function_node,
         Node* call_node);
+    ReturnType WalkMemberChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* member_node);
     ReturnType WalkNewExpressionChildren(
         Node* spec_node,
         Node* function_node,

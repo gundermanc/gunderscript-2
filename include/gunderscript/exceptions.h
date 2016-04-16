@@ -272,6 +272,8 @@ const ExceptionStatus STATUS_SEMANTIC_CONSTRUCTOR_OVERLOAD_NOT_FOUND
     = ExceptionStatus(335, "Cannot find a constructor overload for this spec that accepts the specified param types");
 const ExceptionStatus STATUS_SEMANTIC_VOID_USED_IN_PARAM
     = ExceptionStatus(336, "Void type cannot be used as a function param");
+const ExceptionStatus STATUS_SEMANTIC_THIS_ASSIGNED
+    = ExceptionStatus(337, "'this' keyword cannot be manually assigned to");
 
 } // namespace gunderscript
 

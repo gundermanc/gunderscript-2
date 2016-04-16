@@ -65,6 +65,23 @@ protected:
         Node* name_node,
         Node* call_none,
         std::vector<const SymbolBase*>& arguments_result);
+    const SymbolBase* SemanticAstWalker::WalkFunctionCall(
+        Node* spec_node,
+        const std::string& spec_name,
+        const std::string& function_name,
+        Node* call_node,
+        std::vector<const SymbolBase*>& arguments_result);
+    const SymbolBase* WalkMemberFunctionCall(
+        Node* spec_node,
+        Node* member_node,
+        const SymbolBase* left_result,
+        Node* right_node,
+        std::vector<const SymbolBase*>& arguments_result);
+    const SymbolBase* WalkMemberPropertyGet(
+        Node* spec_node,
+        Node* member_node,
+        const SymbolBase* left_result,
+        Node* right_node);
     void WalkIfStatement(
         Node* spec_node,
         Node* if_node,
@@ -292,6 +309,8 @@ private:
         Node* access_modifier_node,
         Node* type_node);
 };
+
+const std::string kThisKeyword = "this";
 
 } // namespace compiler
 } // namespace gunderscript

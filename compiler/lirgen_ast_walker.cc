@@ -7,6 +7,7 @@
 
 #include "gs_assert.h"
 #include "lirgen_ast_walker.h"
+#include "parser.h"
 #include "symbolimpl.h"
 
 using namespace nanojit;
@@ -43,6 +44,10 @@ const CallInfo CI_FCALLI = {
     CALL_INDIRECT,
     CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_P, ARGTYPE_P),
     ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_float32" )};
+const CallInfo CI_PCALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig2(ARGTYPE_P, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_pointer") };
 
 // Generates IR code for the given module and stores it within the module.
 // Throws: If this module has failed compilation once or is already compiled
@@ -181,6 +186,9 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
 
     switch (return_type_symbol->type_format())
     {
+    case TypeFormat::POINTER:
+        method = &CI_PCALLI;
+        break;
     case TypeFormat::FVOID:
     case TypeFormat::BOOL:
     case TypeFormat::INT:
@@ -231,6 +239,43 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
     this->current_writer_->ins1(LIR_livep, arguments_vector);
 
     return LirGenResult(return_type_symbol, call);
+}
+
+// Walks a member expression.
+// e.g.: this.x()
+LirGenResult LIRGenAstWalker::WalkMemberFunctionCall (
+    Node* spec_node,
+    Node* member_node,
+    LirGenResult left_result,
+    Node* right_node,
+    std::vector<LirGenResult>& arguments_result) {
+
+    // TODO: when we implement properties change to a branch.
+    GS_ASSERT_TRUE(right_node->rule() == NodeRule::CALL,
+        "Unimplemented or improper member right node rule");
+
+    Node* name_node = right_node->child(0);
+
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+
+    // Walking a member function works pretty much the same as a non-member function
+    // at this stage. Thanks to the typechecker the right_node (call_node) has been
+    // annotated with the proper function call symbol and can simply be fed
+    // to the normal code generator.
+    return WalkFunctionCall(
+        spec_node,
+        name_node,
+        right_node,
+        arguments_result);
+}
+
+LirGenResult LIRGenAstWalker::WalkMemberPropertyGet(
+    Node* spec_node,
+    Node* member_node,
+    LirGenResult left_result,
+    Node* right_node) {
+
+    THROW_NOT_IMPLEMENTED();
 }
 
 // Walks a function-like typecast and generates code for the type conversions.
@@ -401,6 +446,9 @@ LirGenResult LIRGenAstWalker::WalkReturn(
                 this->current_writer_->ins1(LIR_retf, expression_result->ins()));
         }
         break;
+    case TypeFormat::POINTER:
+        return LirGenResult((*expression_result).symbol(),
+            this->current_writer_->ins1(LIR_retp, expression_result->ins()));
     }
 
     // Unknown return type.
@@ -1139,6 +1187,8 @@ void LIRGenAstWalker::WalkFunctionChildren(
         // all we need is to know where we WILL be able to find the pointer (where we can look
         // to get the pointer). These are stored in a contiguous buffer and are identified
         // positionally to correspond with the location of the function in the symbols_vector.
+        // NOTE: this code working properly is dependent upon the assumption that the prescan
+        // and the code gen steps are done in EXACTLY the same order every time.
         this->register_table_.PutBottom(
             function_symbol->symbol_name(),
             std::make_tuple(&TYPE_FUNCTION, RegisterEntry(&(this->func_table_[this->current_function_index_++]))));
@@ -1149,30 +1199,27 @@ void LIRGenAstWalker::WalkFunctionChildren(
         // returns.
         // For integer and floating point types this means default is numeric zero (0 or 0.0).
         // For BOOL default is false and for object default is NULL.
-        LIns* ret_value = NULL;
         LIns* ret_inst = NULL;
         const TypeSymbol* function_type_symbol = function_symbol->type_symbol();
         switch (function_type_symbol->size())
         {
         case 8:
             if (function_type_symbol->type_format() == TypeFormat::POINTER) {
-                this->current_writer_->insImmP(NULL);
+                ret_inst = this->current_writer_->insImmP(NULL);
             }
             break;
         case 4:
         case 1:
             if (function_type_symbol->type_format() == TypeFormat::INT ||
                 function_type_symbol->type_format() == TypeFormat::BOOL) {
-                ret_value = this->current_writer_->insImmI(0);
-                ret_inst = this->current_writer_->ins1(LIR_reti, ret_value);
+                ret_inst = this->current_writer_->ins1(LIR_reti, this->current_writer_->insImmI(0));
                 break;
             }
             else if (function_type_symbol->type_format() == TypeFormat::FLOAT) {
-                ret_value = this->current_writer_->insImmF(0.0f);
-                ret_inst = this->current_writer_->ins1(LIR_retf, ret_value);
+                ret_inst = this->current_writer_->ins1(LIR_retf, this->current_writer_->insImmF(0.0f));
                 break;
             } else if (function_type_symbol->type_format() == TypeFormat::POINTER) {
-                this->current_writer_->insImmP(NULL);
+                ret_inst = this->current_writer_->insImmP(NULL);
             }
             break;
         case 0:
@@ -1291,7 +1338,7 @@ LirGenResult LIRGenAstWalker::WalkDefaultExpression(
         break;
     case TypeFormat::FLOAT:
         if (type_symbol->size() == 4) {
-            value = this->current_writer_->insImmI(0.0);
+            value = this->current_writer_->insImmF(0.0);
         }
         break;
     case TypeFormat::POINTER:

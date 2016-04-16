@@ -101,6 +101,17 @@ protected:
         Node* name_node,
         Node* call_node,
         std::vector<LirGenResult>& arguments_result);
+    LirGenResult WalkMemberFunctionCall(
+        Node* spec_node,
+        Node* member_node,
+        LirGenResult left_result,
+        Node* right_node,
+        std::vector<LirGenResult>& arguments_result);
+    LirGenResult WalkMemberPropertyGet(
+        Node* spec_node,
+        Node* member_node,
+        LirGenResult left_result,
+        Node* right_node);
     void WalkIfStatement(
         Node* spec_node,
         Node* if_node,

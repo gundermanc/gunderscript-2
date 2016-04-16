@@ -28,7 +28,8 @@ if (gunderscript_runtime_tests)
         gunderscript_runtime_tests
         control_flow_integrationtest.cc
         primitive_types_integrationtest.cc
-        primitive_typecasts_integrationtest.cc)
+        primitive_typecasts_integrationtest.cc
+        spec_types_integrationtest.cc)
     target_link_libraries(gunderscript_runtime_tests
                           gunderscript_compiler
                           gunderscript_runtime
