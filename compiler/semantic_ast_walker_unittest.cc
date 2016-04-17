@@ -2919,3 +2919,178 @@ TEST(SemanticAstWalker, AttemptToAssignThis) {
     EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_THIS_ASSIGNED);
     delete root;
 }
+
+TEST(SemanticAstWalker, ValidGetSetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    x.y <-(x.y + 2);"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, ValidGetPropertyWithConcealedSetter) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    return x.y;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} concealed set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, ValidSetPropertyWithConcealedGetter) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    x.y <- 34;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        concealed get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, InaccessibleSetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    x.y <- 34;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} concealed set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NOT_ACCESSIBLE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, InaccessibleGetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    return x.y;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        concealed get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NOT_ACCESSIBLE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, NonexistentGetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    return x.yz;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_PROPERTY_NOT_FOUND);
+    delete root;
+}
+
+TEST(SemanticAstWalker, NonExistentSetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    x.yz <- 1;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_PROPERTY_NOT_FOUND);
+    delete root;
+}

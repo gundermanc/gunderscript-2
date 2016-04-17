@@ -6,12 +6,15 @@
 # Include the public and common includes.
 include_directories(../include)
 include_directories(../common)
+include_directories(../runtime)
 
 # TODO: These paths are nasty. Refactor the nanojit library.
 include_directories(
     ${nanojit_SOURCE_DIR}/nanojit
     ${nanojit_SOURCE_DIR}/lirasm/VMPI.nj
     ${nanojit_SOURCE_DIR})
+
+include_directories(${gc_SOURCE_DIR}/include)
 
 add_library (
     gunderscript_compiler

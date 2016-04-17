@@ -65,7 +65,7 @@ protected:
         Node* name_node,
         Node* call_none,
         std::vector<const SymbolBase*>& arguments_result);
-    const SymbolBase* SemanticAstWalker::WalkFunctionCall(
+    const SymbolBase* WalkFunctionCall(
         Node* spec_node,
         const std::string& spec_name,
         const std::string& function_name,
@@ -82,6 +82,12 @@ protected:
         Node* member_node,
         const SymbolBase* left_result,
         Node* right_node);
+    const SymbolBase* WalkMemberPropertySet(
+        Node* spec_node,
+        Node* member_node,
+        const SymbolBase* left_result,
+        Node* right_node,
+        const SymbolBase* value_result);
     void WalkIfStatement(
         Node* spec_node,
         Node* if_node,
@@ -299,6 +305,12 @@ private:
         int column,
         ExceptionStatus type_mismatch_error);
     const SymbolBase* ResolveTypeNode(Node* type_node);
+    const SymbolBase* TypeCheckProperty(
+        Node* spec_node,
+        Node* member_node,
+        const SymbolBase* left_result,
+        Node* right_node,
+        PropertyFunction property_function);
     const SymbolBase* WalkFunctionLikeTypecast(
         Node* spec_node,
         Node* name_node,

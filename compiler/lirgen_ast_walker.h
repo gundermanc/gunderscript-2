@@ -22,14 +22,6 @@ using namespace nanojit;
 namespace gunderscript {
 namespace compiler {
 
-union RegisterEntry {
-    LIns* ins_;
-    ModuleFunc* func_; // Pointer to a function pointer.
-
-    RegisterEntry(LIns* ins) { ins_ = ins; }
-    RegisterEntry(ModuleFunc* func) { func_ = func; }
-};
-
 // The result of a generation operation.
 class LirGenResult {
 public:
@@ -101,6 +93,16 @@ protected:
         Node* name_node,
         Node* call_node,
         std::vector<LirGenResult>& arguments_result);
+    LirGenResult WalkFunctionCall(
+        Node* spec_node,
+        Node* name_node,
+        Node* call_node,
+        std::vector<LirGenResult>& arguments_result,
+        LirGenResult* obj_ref_result);
+    LirGenResult WalkFunctionCall(
+        const SymbolBase* call_symbol,
+        std::vector<LirGenResult>& arguments_result,
+        LirGenResult* obj_ref_result);
     LirGenResult WalkMemberFunctionCall(
         Node* spec_node,
         Node* member_node,
@@ -112,6 +114,12 @@ protected:
         Node* member_node,
         LirGenResult left_result,
         Node* right_node);
+    LirGenResult WalkMemberPropertySet(
+        Node* spec_node,
+        Node* member_node,
+        LirGenResult left_result,
+        Node* right_node,
+        LirGenResult value_result);
     void WalkIfStatement(
         Node* spec_node,
         Node* if_node,
@@ -278,6 +286,7 @@ protected:
         PropertyFunction property_function,
         Node* any_type_node);
 
+    void WalkSpec(Node* spec_node, PrescanMode scan_mode);
     void WalkFunctionChildren(
         Node* spec_node,
         Node* function_node,
@@ -314,12 +323,13 @@ protected:
 private:
     LIns* EmitLoad(const SymbolBase* symbol, nanojit::LIns* base, int offset);
     LIns* EmitStore(const SymbolBase* symbol, nanojit::LIns* base, int offset, LIns* value);
-    LIns* EmitDefault(const SymbolBase* symbol);
     int CountFunctions();
 
     ModuleFunc* func_table_;
     const std::string* module_name_;
-    SymbolTable<std::tuple<const SymbolBase*, RegisterEntry>> register_table_;
+
+    // Registers stored values as a 3-tuple for load/store: Type, Address, Offset.
+    SymbolTable<std::tuple<const SymbolBase*, LIns*, int>> register_table_;
     std::vector<ModuleImplSymbol>* symbols_vector_;
     nanojit::Allocator& alloc_;
     nanojit::Fragment* current_fragment_;
@@ -327,6 +337,7 @@ private:
     nanojit::LirBufWriter* current_writer_;
     int current_function_index_;
     int param_offset_;
+    int property_offset_;
 
     // Sanity check variables.
 #ifdef _DEBUG

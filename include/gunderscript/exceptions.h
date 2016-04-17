@@ -274,6 +274,8 @@ const ExceptionStatus STATUS_SEMANTIC_VOID_USED_IN_PARAM
     = ExceptionStatus(336, "Void type cannot be used as a function param");
 const ExceptionStatus STATUS_SEMANTIC_THIS_ASSIGNED
     = ExceptionStatus(337, "'this' keyword cannot be manually assigned to");
+const ExceptionStatus STATUS_SEMANTIC_PROPERTY_NOT_FOUND
+    = ExceptionStatus(338, "Cannot find a property in the specified object with given name");
 
 } // namespace gunderscript
 

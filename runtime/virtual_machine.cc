@@ -10,6 +10,8 @@
 #include "common_resourcesimpl.h"
 #include "moduleimpl.h"
 
+#include "garbage_collector.h"
+
 #include "nanojit.h"
 
 // Platform specific:
@@ -59,6 +61,9 @@ VirtualMachine::VirtualMachine(CommonResources& common_resources)
     : pimpl_(new VirtualMachineImpl(
         common_resources.pimpl())) {
 
+    // This has to be run once and before anything else VM related.
+    // TODO: add an assertion to prevent multiple calls??
+    INIT_GARBAGE_COLLECTOR();
 }
 
 int VirtualMachine::HackyRunScriptMainInt(Module& module) {
@@ -126,11 +131,6 @@ void VirtualMachineImpl::AssembleModule(Module& module) {
         // Assemble LIR to native code.
         assm.compile(f, this->common_resources_.alloc(), optimize verbose_only(, &p));
 
-        // Store a reference to this function in the module's function lookup table.
-        // This mechanism gives the generated code a place to lookup function addresses
-        // to prevent the need to back patch between functions.
-        module.pimpl()->func_table()[i] = reinterpret_cast<ModuleFunc>(f->code());
-
         // Handle assembler errors.
         if (assm.error() != AssmError::None) {
 
@@ -140,6 +140,11 @@ void VirtualMachineImpl::AssembleModule(Module& module) {
             // Probably a bug if this happens.
             THROW_EXCEPTION(1, 1, STATUS_ASSEMBLER_DIED);
         }
+
+        // Store a reference to this function in the module's function lookup table.
+        // This mechanism gives the generated code a place to lookup function addresses
+        // to prevent the need to back patch between functions.
+        module.pimpl()->func_table()[i] = reinterpret_cast<ModuleFunc>(f->code());
     }
 }
 

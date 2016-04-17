@@ -10,6 +10,8 @@
 #include "parser.h"
 #include "symbolimpl.h"
 
+#include "garbage_collector.h"
+
 using namespace nanojit;
 
 namespace gunderscript {
@@ -30,24 +32,42 @@ static float FloatMod(float a1, float a2) {
 const CallInfo CI_FLOAT_MOD = {
     (uintptr_t)FloatMod,
     CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_F, ARGTYPE_F),
-    ABI_CDECL, 1, ACCSET_STORE_ANY verbose_only(, "fmod")};
+    ABI_CDECL, ACCSET_STORE_ANY, false verbose_only(, "fmod")};
 
 // Calling conventions for Gunderscript generated methods. One per machine level return type (int, float).
 // These methods all take two arguments: A function pointer and a pointer to a vector of arguments in the stack
 // and they return the function's return value. Admittedly this is weird but this is how arguments are passed in
 // Tamarin as well.
+// TODO: I suspect the 1 here is being mis-recognized as isPure=1 which could cause necessary function calls to be
+// erronenously optimized out.
+
+// Static methods:
 const CallInfo CI_ICALLI = {
     CALL_INDIRECT,
     CallInfo::typeSig2(ARGTYPE_I, ARGTYPE_P, ARGTYPE_P),
-    ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_int32")};
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "CallIndirect_int32")};
 const CallInfo CI_FCALLI = {
     CALL_INDIRECT,
     CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_P, ARGTYPE_P),
-    ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_float32" )};
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "CallIndirect_float32" )};
 const CallInfo CI_PCALLI = {
     CALL_INDIRECT,
     CallInfo::typeSig2(ARGTYPE_P, ARGTYPE_P, ARGTYPE_P),
-    ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_pointer") };
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "CallIndirect_pointer") };
+
+// Member methods.
+const CallInfo CI_M_ICALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig3(ARGTYPE_I, ARGTYPE_P, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "this.CallIndirect_int32") };
+const CallInfo CI_M_FCALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig3(ARGTYPE_F, ARGTYPE_P, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "this.CallIndirect_float32") };
+const CallInfo CI_M_PCALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig3(ARGTYPE_P, ARGTYPE_P, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "this.CallIndirect_pointer") };
 
 // Generates IR code for the given module and stores it within the module.
 // Throws: If this module has failed compilation once or is already compiled
@@ -113,18 +133,15 @@ LirGenResult LIRGenAstWalker::WalkSpecFunctionDeclarationParameter(
         // Determine argument size.
         int arg_size = param_type_symbol->size();
 
-        // Store the param load address in the register_table_
-        // TODO: make address calculation at compile instead of runtime.
-        // I haven't done this yet because it is dependedent upon redesigning the gen code to
-        // not store and load at EVERY variable assign and reference.
+        // Store the param load type, address, and offset in the register_table_
         this->register_table_.Put(
             function_param_node->symbol()->symbol_name(),
             std::make_tuple(
                 param_type_symbol,
-                RegisterEntry(
-                    this->current_writer_->ins2(LIR_addp,
-                        this->current_writer_->insParam(/* args vector*/ 0, /*func param kind*/0),
-                        this->current_writer_->insImmI(arg_size * this->param_offset_++)))));
+                this->current_writer_->insParam(/* args vector*/ 0, /*func param kind*/0),
+                this->param_offset_));
+
+        this->param_offset_ += arg_size;
     }
 
     return LirGenResult(param_type_symbol, NULL);
@@ -140,10 +157,34 @@ void LIRGenAstWalker::WalkSpecPropertyDeclaration(
     Node* get_access_modifier_node,
     Node* set_access_modifier_node,
     bool prescan) {
-    // TODO: declare spec properties code.
+
+    // Only run during the prescan for out of order properties.
+    if (prescan) {
+
+        const TypeSymbol* property_type_symbol = get_property_function_node->symbol()->type_symbol();
+
+        // Determine argument size.
+        int arg_size = property_type_symbol->size();
+
+        // Store the property load address in the register_table_.
+        this->register_table_.PutBottom(
+            get_property_function_node->symbol()->symbol_name(),
+            std::make_tuple(
+                property_type_symbol,
+                (LIns*)NULL,
+                this->property_offset_));
+
+        this->register_table_.PutBottom(
+            set_property_function_node->symbol()->symbol_name(),
+            std::make_tuple(
+                property_type_symbol,
+                (LIns*)NULL,
+                this->property_offset_));
+
+        this->property_offset_ += arg_size;
+    }
 }
 
-// Walks a function call and function-like typecasts and emits code.
 LirGenResult LIRGenAstWalker::WalkFunctionCall(
     Node* spec_node,
     Node* name_node,
@@ -161,12 +202,40 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
             call_node, arguments_result.at(0));
     }
 
+    return WalkFunctionCall(
+        spec_node,
+        name_node,
+        call_node,
+        arguments_result,
+        NULL);
+}
+
+// Walks a function call and function-like typecasts and emits code.
+LirGenResult LIRGenAstWalker::WalkFunctionCall(
+    Node* spec_node,
+    Node* name_node,
+    Node* call_node,
+    std::vector<LirGenResult>& arguments_result,
+    LirGenResult* obj_ref_result) {
+
+    return WalkFunctionCall(
+        call_node->symbol(),
+        arguments_result,
+        obj_ref_result);
+}
+
+// Walks a function call and function-like typecasts and emits code.
+LirGenResult LIRGenAstWalker::WalkFunctionCall(
+    const SymbolBase* call_symbol,
+    std::vector<LirGenResult>& arguments_result,
+    LirGenResult* obj_ref_result) {
+
     // Lookup the function's register entry.
     // Register entry contains register information for variables and 
     // a pointer to a location that will contain a function pointer after compilation
     // for functions. This is done to avoid the need to backpatch function addresses later.
-    std::tuple<const SymbolBase*, RegisterEntry> function_reg_tuple
-        = this->register_table_.Get(call_node->symbol()->symbol_name());
+    std::tuple<const SymbolBase*, LIns*, int> function_reg_tuple
+        = this->register_table_.Get(call_symbol->symbol_name());
 
     // NanoJIT unfortunately depends on having a function pointer to jump to for function calls,
     // however, we don't have one readily available for most functions since compilation hasn't
@@ -176,8 +245,12 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
     // write instructions to load them and call them. This also has the added benefit of making
     // it easy to perform partial recompiles by simply recompiling the modified function and
     // updating its pointer.
-    LIns* target = this->current_writer_->insLoad(LIR_ldp,
-        this->current_writer_->insImmP(std::get<1>(function_reg_tuple).func_), 0, ACCSET_ALL, LOAD_NORMAL);
+    LIns* target = this->current_writer_->insLoad(
+        LIR_ldp,
+        this->current_writer_->insImmP(std::get<1>(function_reg_tuple)),
+        0,
+        ACCSET_ALL,
+        LOAD_NORMAL);
 
     // Choose indirect call method. Arguments are passed as a single argument in a vector so
     // only one call method is needed per return type.
@@ -187,20 +260,20 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
     switch (return_type_symbol->type_format())
     {
     case TypeFormat::POINTER:
-        method = &CI_PCALLI;
+        method = obj_ref_result == NULL ? &CI_PCALLI : &CI_M_PCALLI;
         break;
     case TypeFormat::FVOID:
     case TypeFormat::BOOL:
     case TypeFormat::INT:
-        method = &CI_ICALLI;
+        method = obj_ref_result == NULL ? &CI_ICALLI : &CI_M_ICALLI;
         break;
     case TypeFormat::FLOAT:
-        method = &CI_FCALLI;
+        method = obj_ref_result == NULL ? &CI_FCALLI : &CI_M_FCALLI;
         break;
     default:
         GS_ASSERT_FAIL("Unimplemented return type in function call");
     }
-
+    
     // Create a stack alloc instruction for a vector of arguments. This is backpatched later.
     LIns* arguments_vector = arguments_vector = this->current_writer_->insAlloc(sizeof(uint8_t));
 
@@ -232,8 +305,15 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
     // NanoJIT appears to require the function pointer to be the last argument but this is merely
     // speculation as it is undocumented and the code is difficult to follow. If tests fail, try
     // making it first.
-    LIns* args[] = { arguments_vector, target };
-    LIns* call = this->current_writer_->insCall(method, args);
+    LIns* call;
+    if (obj_ref_result == NULL) {
+        LIns* args[] = { arguments_vector, target };
+        call = this->current_writer_->insCall(method, args);
+    }
+    else {
+        LIns* args[] = { obj_ref_result->ins(), arguments_vector, target };
+        call = this->current_writer_->insCall(method, args);
+    }
 
     // Ensure the arguments remain live until after the call.
     this->current_writer_->ins1(LIR_livep, arguments_vector);
@@ -266,7 +346,8 @@ LirGenResult LIRGenAstWalker::WalkMemberFunctionCall (
         spec_node,
         name_node,
         right_node,
-        arguments_result);
+        arguments_result,
+        &left_result);
 }
 
 LirGenResult LIRGenAstWalker::WalkMemberPropertyGet(
@@ -275,7 +356,41 @@ LirGenResult LIRGenAstWalker::WalkMemberPropertyGet(
     LirGenResult left_result,
     Node* right_node) {
 
-    THROW_NOT_IMPLEMENTED();
+    const SymbolBase* member_symbol = member_node->symbol();
+
+    // Lookup property entry.
+    const std::tuple<const SymbolBase*, LIns*, int>& reg_tuple
+        = this->register_table_.Get(member_symbol->symbol_name());
+
+    // Emit load instruction to load the value from a spec instance property.
+    // The base pointer is the pointer from the left side of the member expression
+    // (left.right) and the offset is the stored offset associated with this property
+    // in the register table.
+    return LirGenResult(
+        member_symbol,
+        EmitLoad(member_symbol, left_result.ins(), std::get<2>(reg_tuple)));
+}
+
+LirGenResult LIRGenAstWalker::WalkMemberPropertySet(
+    Node* spec_node,
+    Node* member_node,
+    LirGenResult left_result,
+    Node* right_node,
+    LirGenResult value_result) {
+
+    const SymbolBase* member_symbol = member_node->symbol();
+
+    // Lookup property entry.
+    const std::tuple<const SymbolBase*, LIns*, int>& reg_tuple
+        = this->register_table_.Get(member_symbol->symbol_name());
+
+    // Emit load instruction to load the value from a spec instance property.
+    // The base pointer is the pointer from the left side of the member expression
+    // (left.right) and the offset is the stored offset associated with this property
+    // in the register table.
+    return LirGenResult(
+        member_symbol,
+        EmitStore(member_symbol, left_result.ins(), std::get<2>(reg_tuple), value_result.ins()));
 }
 
 // Walks a function-like typecast and generates code for the type conversions.
@@ -367,7 +482,7 @@ LirGenResult LIRGenAstWalker::WalkAssign(
     // Check if the variable name was bound in the current scope. If it was, it is a local
     // and we can use the NanoJIT register for it.
     try {
-        variable_ptr = std::get<1>(this->register_table_.GetTopOnly(*name_node->string_value())).ins_;
+        variable_ptr = std::get<1>(this->register_table_.GetTopOnly(*name_node->string_value()));;
         goto emit_assign_ins;
     }
     catch (const Exception&) {
@@ -378,10 +493,10 @@ LirGenResult LIRGenAstWalker::WalkAssign(
         // If not, this variable is a narrower scope variable of the same name and a different
         // type that is masking the old one.
         try {
-            std::tuple<const SymbolBase*, RegisterEntry> variable_reg = this->register_table_.Get(*name_node->string_value());
+            std::tuple<const SymbolBase*, LIns*, int> variable_reg = this->register_table_.Get(*name_node->string_value());
 
             if (*std::get<0>(variable_reg) == *operations_result.symbol()) {
-                variable_ptr = std::get<1>(variable_reg).ins_;
+                variable_ptr = std::get<1>(variable_reg);
                 goto emit_assign_ins;
             }
             /* else: Fall into new alloc */
@@ -393,7 +508,7 @@ LirGenResult LIRGenAstWalker::WalkAssign(
     // it has either never been seen before or is a new var of a different type masking
     // the original definition in an enclosing scope.
     variable_ptr = this->current_writer_->insAlloc(operations_result.symbol()->type_symbol()->size());
-    this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.symbol(), RegisterEntry(variable_ptr)));
+    this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.symbol(), variable_ptr, 0));
 
     // Emit the assignment instruction. Dijkstra doesn't have to agree with me, gotos can be useful.
 emit_assign_ins:
@@ -1113,13 +1228,23 @@ LirGenResult LIRGenAstWalker::WalkVariable(
     Node* variable_node,
     Node* name_node) {
 
+    const SymbolBase* variable_type = variable_node->symbol();
+
+    if (*name_node->string_value() == "this") {
+        return LirGenResult(
+            variable_type,
+            this->current_writer_->insParam(/* _this_ pointer */ 1, /*func param kind*/0));
+    }
+
+    const std::tuple<const SymbolBase*, LIns*, int>& reg_tuple
+        = this->register_table_.Get(*name_node->string_value());
+
     // No try/catch here, if register_table_ throws then the type checker made
     // a boo boo and didn't notice the missing variable initialization.
-    const SymbolBase* variable_type = variable_node->symbol();
     LIns* load = EmitLoad(
-        variable_type,
-        std::get<1>(this->register_table_.Get(*name_node->string_value())).ins_,
-        0);
+        std::get<0>(reg_tuple),
+        std::get<1>(reg_tuple),
+        std::get<2>(reg_tuple));
 
     return LirGenResult(variable_type, load);
 }
@@ -1136,6 +1261,24 @@ LirGenResult LIRGenAstWalker::WalkAnyType(
     // TODO: Get rid of the ANY/NONE type.
     // this is a hack associated with Github issue #101 that needs to be fixed.
     return LirGenResult(&TYPE_NONE, NULL);
+}
+
+// Optional implemented function that overrides base class implementation.
+// In SemanticAstWalker, this function overrides default action for walking
+// a spec and pushes another layer to the symbol_table_ to allow for declaration
+// of types and fields private to a spec, namely, Generic params.
+void LIRGenAstWalker::WalkSpec(Node* spec_node, PrescanMode scan_mode) {
+
+    this->register_table_.Push();
+
+    // Offset of next declared property from beginning of the object.
+    // Set to zero, we're starting a new object.
+    this->property_offset_ = 0;
+
+    // Call parent class implementation.
+    AstWalker::WalkSpec(spec_node, scan_mode);
+
+    this->register_table_.Pop();
 }
 
 // Optional implemented function that overrides base class implementation.
@@ -1191,7 +1334,10 @@ void LIRGenAstWalker::WalkFunctionChildren(
         // and the code gen steps are done in EXACTLY the same order every time.
         this->register_table_.PutBottom(
             function_symbol->symbol_name(),
-            std::make_tuple(&TYPE_FUNCTION, RegisterEntry(&(this->func_table_[this->current_function_index_++]))));
+            std::make_tuple(
+                &TYPE_FUNCTION,
+                reinterpret_cast<LIns*>(&(this->func_table_[this->current_function_index_++])),
+                0));
     } else {
 
         // This is the end of the function, emit default return of zero.
@@ -1314,10 +1460,28 @@ LirGenResult LIRGenAstWalker::WalkNewExpression(
     Node* type_node,
     std::vector<LirGenResult>& arguments_result) {
 
-    // TODO: actual mem alloc. For now, we'll put a placeholder.
-    return LirGenResult(
+    // TODO: calculate object size.
+    size_t alloc_size = 1000000;
+    LIns* size_arg[1];
+
+#ifdef NANOJIT_X64
+    size_arg[0] = this->current_writer_->insImmQ(alloc_size);
+#else
+    size_arg[0] = this->current_writer_->insImmI(alloc_size);
+#endif
+
+    LIns* alloc_call_inst = this->current_writer_->insCall(&runtime::CI_GC_ALLOC, size_arg);
+
+    LirGenResult alloc_result(
+        type_node->symbol(),
+        alloc_call_inst);
+
+    WalkFunctionCall(
         new_node->symbol(),
-        this->current_writer_->insImmP((const void*)0xDEADBEEFDEADBEEF));
+        arguments_result,
+        &alloc_result);
+
+    return alloc_result;
 }
 
 // Walks a default() expression.
@@ -1480,19 +1644,19 @@ LIns* LIRGenAstWalker::EmitLoad(const SymbolBase* symbol, LIns* base, int offset
 
     switch (type_symbol->type_format()) {
     case TypeFormat::POINTER:
-        return this->current_writer_->insLoad(LIR_ldp, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+        return this->current_writer_->insLoad(LIR_ldp, base, offset, ACCSET_ALL, LoadQual::LOAD_VOLATILE);
     case TypeFormat::BOOL:
     case TypeFormat::INT:
         // BOOL types are simply integers that contain either 1 or 0.
         switch (type_symbol->size()) {
         case 4:
             // TODO: tighter access sets.
-            return this->current_writer_->insLoad(LIR_ldi, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+            return this->current_writer_->insLoad(LIR_ldi, base, offset, ACCSET_ALL, LoadQual::LOAD_VOLATILE);
         case 1:
             // Load 1 byte INT8/CHAR value and sign extend to fill the 32 bit register.
             // For those unfamilar with low level ops, all registers are >= 32 bit on our target
             // machines. There are no 1 byte registers.
-            return this->current_writer_->insLoad(LIR_ldc2i, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+            return this->current_writer_->insLoad(LIR_ldc2i, base, offset, ACCSET_ALL, LoadQual::LOAD_VOLATILE);
         default:
             THROW_NOT_IMPLEMENTED();
         }
@@ -1501,7 +1665,7 @@ LIns* LIRGenAstWalker::EmitLoad(const SymbolBase* symbol, LIns* base, int offset
         switch (type_symbol->size()) {
         case 4:
             // TODO: tighter access sets.
-            return this->current_writer_->insLoad(LIR_ldf, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+            return this->current_writer_->insLoad(LIR_ldf, base, offset, ACCSET_ALL, LoadQual::LOAD_VOLATILE);
         default:
             THROW_NOT_IMPLEMENTED();
         }

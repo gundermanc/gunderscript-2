@@ -15,7 +15,7 @@ namespace gunderscript {
 namespace compiler {
 
 // Instantiate template so we can unit test and link from external modules.
-template class SymbolTable<std::tuple<const SymbolBase*, RegisterEntry>>;
+template class SymbolTable<std::tuple<const SymbolBase*, LIns*, int>>;
 template class SymbolTable<std::string>;
 template class SymbolTable<const SymbolBase*>;
 
@@ -130,7 +130,7 @@ const ValueType& SymbolTable<ValueType>::Get(const std::string& key) const {
 }
 
 // Gets the value associated with the given symbol, if one was Put
-// since lass call to Push().
+// since last call to Push().
 // key: The symbol to look up.
 // Returns: the value associated with key since last call to Push().
 // Throws: SymbolTableException if key does not exist.
@@ -145,6 +145,68 @@ const ValueType& SymbolTable<ValueType>::GetTopOnly(const std::string& key) cons
             1,
             STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
     }
+}
+
+// Updates the value associated with the given symbol.
+// key: The symbol to look up.
+// Returns: the value associated with key since last call to Push().
+// Throws: SymbolTableException if key does not exist.
+template <typename ValueType>
+void SymbolTable<ValueType>::UpdateExisting(const std::string& key, ValueType value) {
+
+    // size_t is the correct type to use when indexing the map_vector_ since
+    // we can't a have a negative index, however, it is unsigned and so i
+    // less than zero is an invalid loop termination because if i is zero and
+    // we subtract one, it wraps around. To combat this, i is equal to the
+    // desired index + 1 and the termination condition is i == 0. i = 1 maps
+    // maps to the zero-th index.
+    for (size_t i = this->map_vector_.size(); i > 0; i--) {
+        std::unordered_map<std::string, ValueType, std::hash<std::string> >& map =
+            this->map_vector_[i - 1];
+
+        // Try to find item.
+        std::unordered_map<std::string, ValueType, std::hash<std::string> >::iterator iter
+            = map.find(key);
+
+        // If element already existed in the map, then update it.
+        if (iter != map.end()) {
+            iter->second = value;
+            return;
+        }
+    }
+
+    // These are incorrect line numbers but this exception should ALWAYS be caught
+    // and never bubble up so it doesn't matter.
+    THROW_EXCEPTION(
+        1,
+        1,
+        STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
+}
+
+// Updates the value associated with the given symbol, if one was Put
+// since last call to Push().
+// key: The symbol to look up.
+// Returns: the value associated with key since last call to Push().
+// Throws: SymbolTableException if key does not exist.
+template <typename ValueType>
+void SymbolTable<ValueType>::UpdateExistingTopOnly(const std::string& key, ValueType value) {
+    std::unordered_map<std::string, ValueType, std::hash<std::string> >& map =
+        this->map_vector_.back();
+
+    // Try to find item.
+    std::unordered_map<std::string, ValueType, std::hash<std::string> >::iterator iter
+        = map.find(key);
+
+    // If element already existed in the map, then update it.
+    if (iter != map.end()) {
+        iter->second = value;
+        return;
+    }
+
+    THROW_EXCEPTION(
+        1,
+        1,
+        STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
 }
 
 } // namespace compiler

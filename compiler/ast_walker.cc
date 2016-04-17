@@ -470,9 +470,6 @@ ReturnType AstWalker<ReturnType>::WalkMemberChildren(
     GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
     GS_ASSERT_NODE_RULE(member_node, NodeRule::MEMBER);
 
-    Node* left_node = NULL;
-    Node* right_node = NULL;
-
     ReturnType left_result = WalkSubExpressionChildren(
         spec_node,
         function_node,
@@ -516,7 +513,7 @@ ReturnType AstWalker<ReturnType>::WalkMemberChildren(
             spec_node,
             member_node,
             left_result,
-            right_node);
+            member_node->child(1));
     }
 
     GS_ASSERT_FAIL("Unhandled case");
@@ -766,8 +763,34 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
     GS_ASSERT_NODE_RULE(assign_node, NodeRule::ASSIGN);
     GS_ASSERT_TRUE(assign_node->child_count() == 2,
         "AstWalker expects ASSIGN to have 2 children");
-    
+
     Node* symbol_node = assign_node->child(0);
+
+    Node* binary_operation_node = assign_node->child(1);
+
+    // Walk the binary operation and obtain the result.
+    ReturnType binary_operation_result = WalkSubExpressionChildren(
+        spec_node,
+        function_node,
+        property_node,
+        property_function,
+        binary_operation_node);
+
+    // Check for and special-case assignment to spec properties.
+    if (symbol_node->rule() == NodeRule::MEMBER) {
+        return WalkMemberPropertySet(
+            spec_node,
+            symbol_node,
+            WalkSubExpressionChildren(
+                spec_node,
+                function_node,
+                property_node,
+                property_function,
+                symbol_node->child(0)),
+            symbol_node->child(1),
+            binary_operation_result);
+    }
+    
     GS_ASSERT_NODE_RULE(symbol_node, NodeRule::SYMBOL);
     GS_ASSERT_TRUE(symbol_node->child_count() == 1,
         "AstWalker expects SYMBOL to have 1 child");
@@ -778,17 +801,8 @@ ReturnType AstWalker<ReturnType>::WalkAssignChildren(
     // be embedded in an EXPRESSION, so instead the value being assigned
     // is simply any binary operation and has no specific NodeRule to check.
     Node* name_node = symbol_node->child(0);
-    Node* binary_operation_node = assign_node->child(1);
 
     GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
-
-    // Walk the binary operation and obtain the result.
-    ReturnType binary_operation_result = WalkSubExpressionChildren(
-        spec_node,
-        function_node,
-        property_node,
-        property_function,
-        binary_operation_node);
     
     // Dispatch assignment walker to child class and feed in result of
     // of the binary operation walk.

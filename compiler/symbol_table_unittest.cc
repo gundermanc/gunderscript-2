@@ -150,3 +150,66 @@ TEST(SymbolTable, PutBottom) {
 
     EXPECT_STATUS(table.Pop(), STATUS_SYMBOLTABLE_BOTTOM_OF_STACK);
 }
+
+TEST(SymbolTable, UpdateExisting) {
+    SymbolTable<std::string> table;
+
+    table.Put("Item1", "Value1");
+    table.Put("Item2", "Value2");
+
+    table.Push();
+
+    table.Put("Item3", "Value3");
+    table.Put("Item4", "Value4");
+
+    EXPECT_STATUS(table.UpdateExisting("Item5", "Value5"), STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
+
+    EXPECT_NO_THROW(table.UpdateExisting("Item4", "NewValue4"));
+    EXPECT_NO_THROW(table.UpdateExisting("Item3", "NewValue3"));
+    EXPECT_NO_THROW(table.UpdateExisting("Item2", "NewValue2"));
+    EXPECT_NO_THROW(table.UpdateExisting("Item1", "NewValue1"));
+
+    EXPECT_STREQ("NewValue4", table.Get("Item4").c_str());
+    EXPECT_STREQ("NewValue3", table.Get("Item3").c_str());
+
+    table.Pop();
+
+    EXPECT_STATUS(table.UpdateExisting("Item4", "NewValue4-2"), STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
+    EXPECT_STATUS(table.UpdateExisting("Item3", "NewValue3-2"), STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
+
+    EXPECT_STREQ("NewValue2", table.Get("Item2").c_str());
+    EXPECT_STREQ("NewValue1", table.Get("Item1").c_str());
+}
+
+TEST(SymbolTable, UpdateExistingTopOnly) {
+    SymbolTable<std::string> table;
+
+    table.Put("Item1", "Value1");
+    table.Put("Item2", "Value2");
+
+    table.Push();
+
+    table.Put("Item3", "Value3");
+    table.Put("Item4", "Value4");
+
+    EXPECT_STATUS(table.UpdateExisting("Item5", "Value5"), STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
+
+    EXPECT_NO_THROW(table.UpdateExisting("Item4", "NewValue4"));
+    EXPECT_NO_THROW(table.UpdateExisting("Item3", "NewValue3"));
+    EXPECT_STATUS(table.UpdateExisting("Item2", "NewValue2"), STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
+    EXPECT_STATUS(table.UpdateExisting("Item1", "NewValue1"), STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
+
+    EXPECT_STREQ("NewValue4", table.Get("Item4").c_str());
+    EXPECT_STREQ("NewValue3", table.Get("Item3").c_str());
+
+    EXPECT_STREQ("Value2", table.Get("Item2").c_str());
+    EXPECT_STREQ("Value1", table.Get("Item1").c_str());
+
+    table.Pop();
+
+    EXPECT_STATUS(table.UpdateExisting("Item4", "NewValue4-2"), STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
+    EXPECT_STATUS(table.UpdateExisting("Item3", "NewValue3-2"), STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL);
+
+    EXPECT_STREQ("NewValue2", table.Get("Item2").c_str());
+    EXPECT_STREQ("NewValue1", table.Get("Item1").c_str());
+}

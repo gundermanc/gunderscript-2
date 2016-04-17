@@ -24,7 +24,7 @@ namespace gunderscript {
 
 #else // _DEBUG
 
-#define SYMBOL_CAST(src_symbol, sym_type, cast_type) static_cast<cast_type>(src_symbol);
+#define SYMBOL_CAST(src_symbol, sym_type, cast_type) (static_cast<cast_type>(src_symbol))
 
 #endif // _DEBUG
 

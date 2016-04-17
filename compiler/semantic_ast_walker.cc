@@ -65,17 +65,28 @@ static const std::string MangleLocalVariableSymbolName(const std::string& name) 
 
 // Mangles a property function symbol name.
 static const std::string ManglePropertyFunctionSymbolName(
-    Node* spec_node,
-    Node* name_node,
+    const std::string& spec_name,
+    const std::string& property_name,
     PropertyFunction function) {
 
     // Format the getter symbol name {class}<-{function}
     std::ostringstream name_buf;
-    name_buf << spec_node->symbol()->symbol_name();
+    name_buf << spec_name;
     name_buf << (function == PropertyFunction::SET ? "->" : "<-");
-    name_buf << *name_node->string_value();
+    name_buf << property_name;
 
     return name_buf.str();
+}
+
+// Wrapper for other overload.
+static const std::string ManglePropertyFunctionSymbolName(
+    Node* spec_node,
+    Node* name_node,
+    PropertyFunction function) {
+    return ManglePropertyFunctionSymbolName(
+        spec_node->symbol()->symbol_name(),
+        *name_node->string_value(),
+        function);
 }
 
 // Mangles a Spec Template symbol name to indicate a number of generic params.
@@ -243,7 +254,7 @@ void SemanticAstWalker::WalkSpecDeclaration(
                 MangleLocalVariableSymbolName(kThisKeyword),
                 spec_node->symbol());
         }
-        catch (const Exception& ex) {
+        catch (const Exception&) {
             GS_ASSERT_FAIL("Local variable this is already defined");
         }
     }
@@ -556,13 +567,76 @@ const SymbolBase* SemanticAstWalker::WalkMemberFunctionCall(
     return result;
 }
 
+const SymbolBase* SemanticAstWalker::TypeCheckProperty(
+    Node* spec_node,
+    Node* member_node,
+    const SymbolBase* left_result,
+    Node* right_node,
+    PropertyFunction property_function) {
+    Node* name_node = right_node->child(0);
+
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+
+    const std::string property_symbol_name = ManglePropertyFunctionSymbolName(
+        left_result->type_symbol()->symbol_name(),
+        *name_node->string_value(),
+        property_function);
+
+    const SymbolBase* property_function_symbol = NULL;
+    try {
+        property_function_symbol = this->symbol_table_.Get(property_symbol_name);
+    }
+    catch (const Exception& ex) {
+
+        // Translate exception to more meaningful error message.
+        if (ex.status() == STATUS_SYMBOLTABLE_UNDEFINED_SYMBOL) {
+            THROW_EXCEPTION(
+                right_node->line(),
+                right_node->column(),
+                STATUS_SEMANTIC_PROPERTY_NOT_FOUND);
+        }
+    }
+
+    member_node->set_symbol(property_function_symbol->Clone());
+
+    // Ensure that we have GET access to the property in question.
+    CheckAccessModifier(
+        spec_node != NULL ? spec_node->symbol()->symbol_name() : "",
+        property_function_symbol->spec_name(),
+        property_function_symbol->access_modifier(),
+        member_node->line(),
+        member_node->column());
+
+    return property_function_symbol;
+}
+
 const SymbolBase* SemanticAstWalker::WalkMemberPropertyGet(
     Node* spec_node,
     Node* member_node,
     const SymbolBase* left_result,
     Node* right_node) {
 
-    THROW_NOT_IMPLEMENTED();
+    return TypeCheckProperty(
+        spec_node,
+        member_node,
+        left_result,
+        right_node,
+        PropertyFunction::GET);
+}
+
+const SymbolBase* SemanticAstWalker::WalkMemberPropertySet(
+    Node* spec_node,
+    Node* member_node,
+    const SymbolBase* left_result,
+    Node* right_node,
+    const SymbolBase* value_result) {
+
+    return TypeCheckProperty(
+        spec_node,
+        member_node,
+        left_result,
+        right_node,
+        PropertyFunction::SET);
 }
 
 // Walks and typechecks the if statement.
@@ -1400,7 +1474,7 @@ const SymbolBase* SemanticAstWalker::WalkNewExpression(
 
     // Lookup type of new statement.
     const SymbolBase* type_symbol = ResolveTypeNode(type_node);
-    new_node->set_symbol(type_symbol->Clone());
+    type_node->set_symbol(type_symbol->Clone());
 
     // Lookup constructor function.
     const std::string constructor_name = MangleFunctionSymbolName(
@@ -1424,6 +1498,8 @@ const SymbolBase* SemanticAstWalker::WalkNewExpression(
 
         throw;
     }
+
+    new_node->set_symbol(constructor_symbol->Clone());
 
     return type_symbol;
 }

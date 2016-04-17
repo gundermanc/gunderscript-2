@@ -83,6 +83,12 @@ protected:
         Node* member_node,
         ReturnType left_result,
         Node* right_node) = 0;
+    virtual ReturnType WalkMemberPropertySet(
+        Node* spec_node,
+        Node* member_node,
+        ReturnType left_result,
+        Node* right_node,
+        ReturnType value_result) = 0;
     virtual void WalkIfStatement(
         Node* spec_node,
         Node* if_node,

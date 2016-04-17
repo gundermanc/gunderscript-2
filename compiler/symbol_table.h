@@ -23,6 +23,9 @@ public:
     void PutBottom(const std::string& key, ValueType value);
     const ValueType& Get(const std::string& key) const;
     const ValueType& GetTopOnly(const std::string& key) const;
+
+    void UpdateExisting(const std::string& key, ValueType value);
+    void UpdateExistingTopOnly(const std::string& key, ValueType value);
     size_t depth() const { return this->map_vector_.size(); };
 
 private:

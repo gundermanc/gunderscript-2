@@ -17,6 +17,7 @@ include_directories(${gc_SOURCE_DIR}/include)
 
 add_library (
     gunderscript_runtime
+    garbage_collector.cc
     virtual_machine.cc)
 
 target_link_libraries (gunderscript_runtime gunderscript_common gc-lib)
