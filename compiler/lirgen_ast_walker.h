@@ -62,7 +62,7 @@ protected:
         Node* spec_node,
         Node* access_modifier_node,
         Node* type_node,
-        bool prescan) { }
+        bool prescan);
     void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,
@@ -330,6 +330,12 @@ private:
 
     // Registers stored values as a 3-tuple for load/store: Type, Address, Offset.
     SymbolTable<std::tuple<const SymbolBase*, LIns*, int>> register_table_;
+
+    // Stores the compiled-object sizes of Gunderscript types + and their properties.
+    // Although it'd make more sense to have this as part of the type's Symbol, doing so
+    // would prevent us from using immutable copies as is currently done and it would
+    // introduce cycles into the abstract syntax tree, complicating memory management.
+    std::unordered_map<const std::string, int, std::hash<std::string> > type_size_table_;
     std::vector<ModuleImplSymbol>* symbols_vector_;
     nanojit::Allocator& alloc_;
     nanojit::Fragment* current_fragment_;

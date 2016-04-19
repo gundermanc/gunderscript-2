@@ -318,7 +318,6 @@ private:
     void WalkFunctionCallParametersChildren(
         Node* spec_node,
         Node* function_node,
-        Node* name_node,
         Node* arguments_node,
         std::vector<ReturnType>& arguments_result);
     ReturnType WalkFunctionCallChildren(

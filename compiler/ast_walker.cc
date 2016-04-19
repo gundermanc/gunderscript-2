@@ -486,10 +486,8 @@ ReturnType AstWalker<ReturnType>::WalkMemberChildren(
     case NodeRule::CALL:
     {
         Node* call_node = member_node->child(1);
-        Node* name_node = call_node->child(0);
         Node* arguments_node = call_node->child(1);
 
-        GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
         GS_ASSERT_NODE_RULE(arguments_node, NodeRule::CALL_PARAMETERS);
 
         std::vector<ReturnType> arguments_result;
@@ -497,7 +495,6 @@ ReturnType AstWalker<ReturnType>::WalkMemberChildren(
         WalkFunctionCallParametersChildren(
             spec_node,
             function_node,
-            name_node,
             arguments_node,
             arguments_result);
 
@@ -525,11 +522,9 @@ template <typename ReturnType>
 void AstWalker<ReturnType>::WalkFunctionCallParametersChildren(
     Node* spec_node,
     Node* function_node,
-    Node* name_node,
     Node* arguments_node,
     std::vector<ReturnType>& arguments_result) {
 
-    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
     GS_ASSERT_NODE_RULE(arguments_node, NodeRule::CALL_PARAMETERS);
 
     // Iterate through all call param expressions and evaluate their
@@ -571,7 +566,6 @@ ReturnType AstWalker<ReturnType>::WalkFunctionCallChildren(
     WalkFunctionCallParametersChildren(
         spec_node,
         function_node,
-        name_node,
         arguments_node,
         arguments_result);
 
@@ -596,21 +590,11 @@ ReturnType AstWalker<ReturnType>::WalkNewExpressionChildren(
 
     std::vector<ReturnType> arguments_result;
 
-    // Iterate through all call param expressions and evaluate their
-    // types.
-    for (size_t i = 0; i < arguments_node->child_count(); i++) {
-        Node* expression_node = arguments_node->child(i);
-
-        // Walk the parameter expressions and add the results
-        // to the params vector.
-        arguments_result.push_back(
-            WalkExpressionChildren(
-                spec_node,
-                function_node,
-                NULL,
-                PropertyFunction::NONE,
-                expression_node));
-    }
+    WalkFunctionCallParametersChildren(
+        spec_node,
+        function_node,
+        arguments_node,
+        arguments_result);
 
     // Dispatch to subclass.
     return WalkNewExpression(new_node, type_node, arguments_result);

@@ -754,7 +754,7 @@ const SymbolBase* SemanticAstWalker::WalkAssign(
     const SymbolBase* operation_result) {
 
     // Disallow assigning result of void functions.
-    if (*operation_result == TYPE_VOID) {
+    if (*operation_result->type_symbol() == TYPE_VOID) {
         THROW_EXCEPTION(
             assign_node->line(),
             assign_node->column(),
@@ -809,7 +809,7 @@ const SymbolBase* SemanticAstWalker::WalkAssign(
         symbol_node->set_symbol(variable_symbol->Clone());
 
         // Check to make sure that type of new assignment matches original declared type.
-        if (*variable_symbol != *operation_result) {
+        if (*variable_symbol->type_symbol() != *operation_result->type_symbol()) {
             THROW_EXCEPTION(
                 name_node->line(),
                 name_node->column(),
@@ -1627,6 +1627,7 @@ const SymbolBase* SemanticAstWalker::ResolveTypeNode(Node* type_node) {
 
     // If this is not a generic type, return the raw type.
     if (type_symbol->symbol_type() != SymbolType::GENERIC_TYPE_TEMPLATE) {
+        type_node->set_symbol(type_symbol->Clone());
         return type_symbol;
     }
     // else: this is a generic type, continue on to check the type params.

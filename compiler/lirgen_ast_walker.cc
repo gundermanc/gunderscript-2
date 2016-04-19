@@ -115,6 +115,36 @@ void LIRGenAstWalker::WalkModuleDependsName(Node* name_node) {
     THROW_NOT_IMPLEMENTED();
 }
 
+// Walks a spec declaration and calculates it's compiled size.
+void LIRGenAstWalker::WalkSpecDeclaration(
+    Node* spec_node,
+    Node* access_modifier_node,
+    Node* type_node,
+    bool prescan) {
+
+    // Run only during the prescan stage.
+    if (prescan) {
+        int compiled_size = 0;
+
+        Node* properties_node = spec_node->child(3);
+
+        GS_ASSERT_NODE_RULE(properties_node, NodeRule::PROPERTIES);
+
+        // Sum properties sizes.
+        for (size_t i = 0; i < properties_node->child_count(); i++) {
+            Node* property_type_node = properties_node->child(i)->child(0);
+            
+            GS_ASSERT_NODE_RULE(property_type_node, NodeRule::TYPE);
+
+            compiled_size += property_type_node->symbol()->type_symbol()->size();
+        }
+
+        // NOTE: there is no need to catch exceptions from this table. If this spec
+        // is a duplicate then the type checker messed up. It is supposed to ensure uniqueness.
+        this->type_size_table_.insert(std::make_pair(spec_node->symbol()->symbol_name(), compiled_size));
+    }
+}
+
 // Walks a single parameter in a spec function declaration and generates
 // addressing code for it and stores it in the registers_table_.
 LirGenResult LIRGenAstWalker::WalkSpecFunctionDeclarationParameter(
@@ -330,7 +360,6 @@ LirGenResult LIRGenAstWalker::WalkMemberFunctionCall (
     Node* right_node,
     std::vector<LirGenResult>& arguments_result) {
 
-    // TODO: when we implement properties change to a branch.
     GS_ASSERT_TRUE(right_node->rule() == NodeRule::CALL,
         "Unimplemented or improper member right node rule");
 
@@ -817,15 +846,12 @@ LirGenResult LIRGenAstWalker::WalkLogNot(
     Node* child_node,
     LirGenResult child_result) {
 
-    // XORing a boolean value by 1 effectively performs effectively performs a NOT
-    // operation: 1 xor 1 = 0; 0 xor 1 = 1;
-    // This assumption works as long as we force booleans to ALWAYS be 0 or 1 only.
-    // TODO: can we do this with one instruction instead of two??
     return LirGenResult(
         &TYPE_BOOL,
-        this->current_writer_->ins2(LIR_xori,
-            this->current_writer_->insImmI(1),
-            child_result.ins()));
+        this->current_writer_->ins2ImmI(
+            LIR_xori,
+            child_result.ins(),
+            1));
 }
 
 // Walks the LOGAND node and generates code for it.
@@ -837,29 +863,13 @@ LirGenResult LIRGenAstWalker::WalkLogAnd(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    // XORing a boolean value by 1 effectively performs effectively performs a NOT
-    // operation: 1 xor 1 = 0; 0 xor 1 = 1;
-    // This assumption works as long as we force booleans to ALWAYS be 0 or 1 only.
-    // TODO: can we do this with one instruction instead of two??
-    LIns* negated_left_inst = this->current_writer_->ins2(
-        LIR_xori,
-        this->current_writer_->insImmI(1),
-        left_result.ins());
-
-    // Short circuit evaluation of AND instruction:
-    // If the left condition is true (because we negated it,
-    // we return the value true immediately. If it is false (it was true
-    // before the negation we instead obtain our true/false value by
-    // evaluating the right instruction which may be a true,
-    // false, or a tree of additional boolean operations.
-    // TODO: can we use CMOV here? CMOV might break short circuit eval.
+    // TODO: short circuit.
     return LirGenResult(
         &TYPE_BOOL,
-        this->current_writer_->insChoose(
-            negated_left_inst,
-            this->current_writer_->insImmI(0),
-            right_result.ins(),
-            false));
+        this->current_writer_->ins2(
+            LIR_andi,
+            left_result.ins(),
+            right_result.ins()));
 }
 
 // Walks the LOGOR node and generates code for it and its children.
@@ -871,19 +881,13 @@ LirGenResult LIRGenAstWalker::WalkLogOr(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    // Short circuit evaluation of OR instruction:
-    // If the left condition is true, we return the value true
-    // immediately. If it is false we instead obtain our true/false
-    // value by evaluating the right instruction which may be a true,
-    // false, or a tree of additional boolean operations.
-    // TODO: can we use CMOV here? CMOV might break short circuit eval.
+    // TODO: short circuit.
     return LirGenResult(
         &TYPE_BOOL,
-        this->current_writer_->insChoose(
+        this->current_writer_->ins2(
+            LIR_ori,
             left_result.ins(),
-            this->current_writer_->insImmI(1),
-            right_result.ins(),
-            false));
+            right_result.ins()));
 }
 
 // Walks the GREATER node and generates code for it.
@@ -1350,22 +1354,26 @@ void LIRGenAstWalker::WalkFunctionChildren(
         switch (function_type_symbol->size())
         {
         case 8:
-            if (function_type_symbol->type_format() == TypeFormat::POINTER) {
-                ret_inst = this->current_writer_->insImmP(NULL);
-            }
+            GS_ASSERT_TRUE(function_type_symbol->type_format() == TypeFormat::POINTER,
+                "Expected POINTER");
+            ret_inst = this->current_writer_->ins1(LIR_retp, this->current_writer_->insImmP(NULL));
             break;
         case 4:
         case 1:
-            if (function_type_symbol->type_format() == TypeFormat::INT ||
-                function_type_symbol->type_format() == TypeFormat::BOOL) {
+            switch (function_type_symbol->type_format())
+            {
+            case TypeFormat::INT:
+            case TypeFormat::BOOL:
                 ret_inst = this->current_writer_->ins1(LIR_reti, this->current_writer_->insImmI(0));
                 break;
-            }
-            else if (function_type_symbol->type_format() == TypeFormat::FLOAT) {
+            case TypeFormat::FLOAT:
                 ret_inst = this->current_writer_->ins1(LIR_retf, this->current_writer_->insImmF(0.0f));
                 break;
-            } else if (function_type_symbol->type_format() == TypeFormat::POINTER) {
-                ret_inst = this->current_writer_->insImmP(NULL);
+            case TypeFormat::POINTER:
+                ret_inst = this->current_writer_->ins1(LIR_retp, this->current_writer_->insImmP(NULL));
+                break;
+            default:
+                GS_ASSERT_FAIL("Unimplemented default return");
             }
             break;
         case 0:
@@ -1373,7 +1381,7 @@ void LIRGenAstWalker::WalkFunctionChildren(
             ret_inst = this->current_writer_->ins1(LIR_reti, this->current_writer_->insImmI(0));
             break;
         default:
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+            GS_ASSERT_FAIL("Unimplemented default return");
         }
         this->current_fragment_->lastIns = ret_inst;
 
@@ -1404,15 +1412,9 @@ void LIRGenAstWalker::WalkIfStatementChildren(
     Node* if_node,
     std::vector<LirGenResult>* arguments_result) {
 
-    if (spec_node != NULL) {
-        GS_ASSERT_TRUE(spec_node->rule() == NodeRule::SPEC, "Expected SPEC in typechecker WalkIfStatementChildren");
-    }
-    if (function_node != NULL) {
-        GS_ASSERT_TRUE(function_node->rule() == NodeRule::FUNCTION, "Expected FUNCTION in typechecker WalkIfStatementChildren");
-    }
-    if (property_node != NULL) {
-        GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY, "Expected CALL in typechecker WalkIfStatementChildren");
-    }
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
 
     // Walk condition expression.
     LirGenResult condition_result = AstWalker<LirGenResult>::WalkExpressionChildren(
@@ -1460,15 +1462,11 @@ LirGenResult LIRGenAstWalker::WalkNewExpression(
     Node* type_node,
     std::vector<LirGenResult>& arguments_result) {
 
-    // TODO: calculate object size.
-    size_t alloc_size = 1000000;
-    LIns* size_arg[1];
-
-#ifdef NANOJIT_X64
-    size_arg[0] = this->current_writer_->insImmQ(alloc_size);
-#else
-    size_arg[0] = this->current_writer_->insImmI(alloc_size);
-#endif
+    // Lookup the spec's size and allocate enough memory to hold its properties.
+    // NOTE: there is no need to catch exceptions from this table. If it throws
+    // then the AstWalker is walking in the incorrect order.
+    int alloc_size = this->type_size_table_.at(type_node->symbol()->symbol_name());
+    LIns* size_arg[] = { this->current_writer_->insImmI(alloc_size) };
 
     LIns* alloc_call_inst = this->current_writer_->insCall(&runtime::CI_GC_ALLOC, size_arg);
 
@@ -1476,10 +1474,19 @@ LirGenResult LIRGenAstWalker::WalkNewExpression(
         type_node->symbol(),
         alloc_call_inst);
 
+    // Call the constructor on our object.
     WalkFunctionCall(
         new_node->symbol(),
         arguments_result,
         &alloc_result);
+
+    // Register allocation algorithm is imperfect. Turns out that in this particular
+    // case it treats RBX and EBX as separate registers on x64 when, in actuality,
+    // they overlap and are 32 bit and 64 bit respectively. When we called into the
+    // constructor above, writing to EBX overwrote the address we saved in RBX.
+    // LIR_regfence indicates to the reg allocator that it needs to start over
+    // and fixes this.
+    this->current_writer_->ins0(LIR_regfence);
 
     return alloc_result;
 }

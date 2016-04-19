@@ -46,13 +46,8 @@ void* GarbageCollectorAllocBuffer(size_t buf_size);
 // TODO: correct calling convention?
 const CallInfo CI_GC_ALLOC = {
     (uintptr_t)GarbageCollectorAllocBuffer,
-    CallInfo::typeSig1(ARGTYPE_P,
-#ifdef NANOJIT_X64
-    ARGTYPE_Q),
-#else
-    ARGTYPE_I),
-#endif
-    ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "GC_Alloc") };
+    CallInfo::typeSig1(ARGTYPE_P, ARGTYPE_I),
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "GC_Alloc") };
 
 } // namespace runtime
 } // namespace gunderscript
