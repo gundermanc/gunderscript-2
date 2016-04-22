@@ -11,6 +11,8 @@
 #include "gunderscript/symbol.h"
 #include "gunderscript/virtual_machine.h"
 
+#include "gs_assert.h"
+
 #include "ast_walker.h"
 #include "moduleimpl.h"
 #include "symbol_table.h"

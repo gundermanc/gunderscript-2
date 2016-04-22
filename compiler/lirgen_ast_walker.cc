@@ -427,7 +427,7 @@ LirGenResult LIRGenAstWalker::WalkMemberPropertyGet(
     // (left.right) and the offset is the stored offset associated with this property
     // in the register table.
     return LirGenResult(
-        member_symbol,
+        member_symbol->type_symbol(),
         EmitLoad(member_symbol, left_result.ins(), std::get<2>(reg_tuple)));
 }
 
@@ -454,7 +454,7 @@ LirGenResult LIRGenAstWalker::WalkMemberPropertySet(
     // (left.right) and the offset is the stored offset associated with this property
     // in the register table.
     return LirGenResult(
-        member_symbol,
+        member_symbol->type_symbol(),
         EmitStore(member_symbol, left_result.ins(), std::get<2>(reg_tuple), value_result.ins()));
 }
 
@@ -560,14 +560,14 @@ LirGenResult LIRGenAstWalker::WalkAssign(
         try {
             std::tuple<const SymbolBase*, LIns*, int> variable_reg = this->register_table_.Get(*name_node->string_value());
 
-            if (*std::get<0>(variable_reg) == *operations_result.symbol()) {
+            if (*(std::get<0>(variable_reg)->type_symbol()) == *(operations_result.symbol()->type_symbol())) {
                 variable_ptr = std::get<1>(variable_reg);
                 goto emit_assign_ins;
             }
             /* else: Fall into new alloc */
         }
         catch (const Exception&) { /* Fall into new alloc */ }
-    }
+    } 
 
     // New Alloc: Allocate a new register (NanoJIT register) for this variable name,
     // it has either never been seen before or is a new var of a different type masking
@@ -1632,12 +1632,6 @@ LirGenResult LIRGenAstWalker::WalkNewExpression(
         arguments_result,
         &alloc_result);
 
-    // Register allocation algorithm is imperfect. Turns out that in this particular
-    // case it treats RBX and EBX as separate registers on x64 when, in actuality,
-    // they overlap and are 32 bit and 64 bit respectively. When we called into the
-    // constructor above, writing to EBX overwrote the address we saved in RBX.
-    // LIR_regfence indicates to the reg allocator that it needs to start over
-    // and fixes this.
     this->current_writer_->ins0(LIR_regfence);
 
     return alloc_result;

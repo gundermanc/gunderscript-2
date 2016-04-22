@@ -24,3 +24,183 @@ TEST(SpecTypesIntegration, MemberFunctionCalls) {
         "    }"
         "}"));
 }
+
+TEST(SpecTypesIntegration, ExternalPropertyDefaultValues) {
+    EXPECT_EQ(0, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    pt <- new Point();"
+        "    return pt.X + pt.Y;"
+        "}"
+        "public spec Point{"
+        "    int32 X{ public get; public set; }"
+        "    int32 Y{ public get; public set; }"
+        "    public construct() { }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, ExternalPropertyGetSet) {
+    EXPECT_EQ(-3, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    pt <- new Point();"
+        "    pt.X <- 34;"
+        "    pt.Y <- 31;"
+        "    return pt.Y - pt.X;"
+        "}"
+        "public spec Point{"
+        "    int32 X{ public get; public set; }"
+        "    int32 Y{ public get; public set; }"
+        "    public construct() { }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, ConstructorCallArgsAndSetters) {
+    EXPECT_EQ(6, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    pt <- new Point(66, 72);"
+        "    return pt.Y - pt.X;"
+        "}"
+        "public spec Point{"
+        "    int32 X{ public get; public set; }"
+        "    int32 Y{ public get; public set; }"
+        "    public construct(int32 x, int32 y) {"
+        "        this.X <- x; this.Y <- y;"
+        "    }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, ConstructorCallArgsGettersAndSetters) {
+    EXPECT_EQ(28, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    pt <- new Point(66, 72);"
+        "    return pt.Y - pt.X;"
+        "}"
+        "public spec Point{"
+        "    int32 X{ public get; public set; }"
+        "    int32 Y{ public get; public set; }"
+        "    public construct(int32 x, int32 y) {"
+        "        this.X <- 22; this.Y <- 44;"
+        "        this.X <- (this.X + x); this.Y <- (this.Y + y);"
+        "    }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, ConstructorCallMemberFunctionGettersAndSetters) {
+    EXPECT_EQ(28, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    pt <- new Point(66, 72);"
+        "    return pt.Y - pt.X;"
+        "}"
+        "public spec Point{"
+        "    int32 X{ public get; public set; }"
+        "    int32 Y{ public get; public set; }"
+        "    public construct(int32 x, int32 y) {"
+        "        this.Init(x, y);"
+        "    }"
+        "    public void Init(int32 x, int32 y) {"
+        "        this.X <- 22; this.Y <- 44;"
+        "        this.X <- (this.X + x); this.Y <- (this.Y + y);"
+        "    }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, NodesListFirst) {
+    EXPECT_EQ(1, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    list <-new Node(1, new Node(2, new Node(3, default(Node))));"
+        "    return list.Item;"
+        "}"
+        "public spec Node{"
+        "    Node Next{ public get; public set; }"
+        "    int32 Item{ public get; public set; }"
+        "    public construct(int32 item, Node next) {"
+        "        this.Next <-next;"
+        "        this.Item <-item;"
+        "    }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, NodesListSecond) {
+    EXPECT_EQ(2, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    list <-new Node(1, new Node(2, new Node(3, default(Node))));"
+        "    if (true) { list <- list.Next; }"
+        "    return list.Item;"
+        "}"
+        "public spec Node{"
+        "    Node Next{ public get; public set; }"
+        "    int32 Item{ public get; public set; }"
+        "    public construct(int32 item, Node next) {"
+        "        this.Next <-next;"
+        "        this.Item <-item;"
+        "    }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, NodesListThirdChained) {
+    EXPECT_EQ(3, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    list <-new Node(1, new Node(2, new Node(3, default(Node))));"
+        "    return list.Next.Next.Item;"
+        "}"
+        "public spec Node{"
+        "    Node Next{ public get; public set; }"
+        "    int32 Item{ public get; public set; }"
+        "    public construct(int32 item, Node next) {"
+        "        this.Next <-next;"
+        "        this.Item <-item;"
+        "    }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, NodesListFourthChainedIsNull) {
+    EXPECT_EQ(321, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    list <-new Node(1, new Node(2, new Node(3, default(Node))));"
+        "    if (list.Next.Next.Next = default(Node)) { return 321; }"
+        "}"
+        "public spec Node{"
+        "    Node Next{ public get; public set; }"
+        "    int32 Item{ public get; public set; }"
+        "    public construct(int32 item, Node next) {"
+        "        this.Next <-next;"
+        "        this.Item <-item;"
+        "    }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, NodesListWhileLoopLast) {
+    EXPECT_EQ(3, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    list <-new Node(1, new Node(2, new Node(3, default(Node))));"
+        "    while (list.Next != default(Node)) { list <- list.Next; }"
+        "    return list.Item;"
+        "}"
+        "public spec Node{"
+        "    Node Next{ public get; public set; }"
+        "    int32 Item{ public get; public set; }"
+        "    public construct(int32 item, Node next) {"
+        "        this.Next <-next;"
+        "        this.Item <-item;"
+        "    }"
+        "}"));
+}
+
+TEST(SpecTypesIntegration, NodesListSum) {
+    EXPECT_EQ(3, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() {"
+        "    list <-new Node(1, new Node(2, new Node(3, default(Node))));"
+        "    sum <- 0;"
+        "    for (i <-list; i != default(Node); i <-i.Next) {"
+        "        sum <-i.Item;"
+        "    }"
+        "    return sum;"
+        "}"
+        "public spec Node{"
+        "    Node Next{ public get; public set; }"
+        "    int32 Item{ public get; public set; }"
+        "    public construct(int32 item, Node next) {"
+        "        this.Next <-next;"
+        "        this.Item <-item;"
+        "    }"
+        "}"));
+}
