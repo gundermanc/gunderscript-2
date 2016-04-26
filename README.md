@@ -22,16 +22,6 @@ Lua, and Squirrel occupied market sector and will be aptly suited to use as a
 game engine scripting language, Unix command shell, or general purpose scripting
 environment.
 
-## Case Western Reserve University Senior Project
-This project is Christian Gunderman's senior project in Computer Science
-bachelors of science degree. The main focus of this project is to create a very
-solid, extremely well tested scripting engine that is easy to embed into an existing
-C++ CMAKE project. Emphasis is given to testing, software engineering principles,
-cross platform compatibility, and ongoing value after graduation.
-
-This project will ideally become a community alternative to Lua, Squirrel, and
-Javascript in the years to come.
-
 ## Roadmap and progress:
 Below is a high level over view of the ongoing road map. For specific work items,
 please see the Github issues page.
