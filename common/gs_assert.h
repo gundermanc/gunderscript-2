@@ -21,7 +21,7 @@
 
 #define GS_ASSERT_FALSE(cond, message) GS_ASSERT_TRUE(!(cond), message)
 
-#define GS_ASSERT_FAIL(message) GS_ASSERT_FALSE(/* Always Fail */ false, message)
+#define GS_ASSERT_FAIL(message) GS_ASSERT_TRUE(/* Always Fail */ false, message)
 
 #else // _DEBUG
 

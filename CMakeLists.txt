@@ -23,7 +23,7 @@ if (${CMAKE_BUILD_TYPE} NOT MATCHES "Debug")
 endif ()
 
 # Travis CI Compatible C++11 Support
-# CXX_STANDARD proeprty doesn't work on Travis CI because
+# CXX_STANDARD property doesn't work on Travis CI because
 # Travis has horribly out of date CMAKE *grumble grumble*
 include (CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG ("-std=c++11" COMPILER_SUPPORTS_CXX11)

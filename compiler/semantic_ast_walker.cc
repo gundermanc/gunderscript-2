@@ -545,7 +545,6 @@ const SymbolBase* SemanticAstWalker::WalkMemberFunctionCall(
     Node* right_node,
     std::vector<const SymbolBase*>& arguments_result) {
 
-    // TODO: when we implement properties change to a branch.
     GS_ASSERT_TRUE(right_node->rule() == NodeRule::CALL,
         "Unimplemented or improper member right node rule");
 
@@ -703,7 +702,7 @@ const SymbolBase* SemanticAstWalker::WalkFunctionLikeTypecast(
         case TypeFormat::FLOAT:
         case TypeFormat::INT:
             // TODO: put exceptions in here if any.
-            // For now, assume all types except string can be cast.
+            // For now, assume all types except pointer can be cast.
            
             if (result_type_symbol->type_format() != TypeFormat::POINTER) {
                 return cast_type_symbol;

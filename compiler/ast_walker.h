@@ -13,9 +13,15 @@
 namespace gunderscript {
 namespace compiler {
 
+// Indicates the PrescanMode to use when walking the AST.
 enum class PrescanMode {
+    // Scan function and property implementations (bodies).
     SCAN_IMPL_DEF,
+
+    // Scan Spec (class) definitions ONLY.
     SCAN_SPEC_DEF,
+
+    // Scan Spec Property and Function definitions ONLY.
     SCAN_PROP_FUNC_DEF
 };
 
@@ -24,7 +30,7 @@ template<typename ReturnType>
 class AstWalker {
 public:
     AstWalker(Node& root) : root_(root) { }
-  virtual ~AstWalker() { }
+    virtual ~AstWalker() { }
 
     void Walk() { WalkModuleChildren(); }
 
@@ -250,7 +256,7 @@ protected:
         PropertyFunction property_function,
         Node* any_type_node) = 0;
 
-    // Optional Implementation method(s) that are critical for proper operation
+    // Optional Implementation methods that are critical for proper operation
     // of ASTWalker that MAY be optionally overridden by subclasses for increased
     // customization.
     virtual void WalkSpec(Node* spec_node, PrescanMode scan_mode);

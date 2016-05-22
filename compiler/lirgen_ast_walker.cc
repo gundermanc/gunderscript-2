@@ -32,7 +32,7 @@ static float FloatMod(float a1, float a2) {
 const CallInfo CI_FLOAT_MOD = {
     (uintptr_t)FloatMod,
     CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_F, ARGTYPE_F),
-    ABI_CDECL, ACCSET_STORE_ANY, false verbose_only(, "fmod")};
+    ABI_CDECL, false, ACCSET_STORE_ANY verbose_only(, "fmod")};
 
 // Calling conventions for Gunderscript generated methods. One per machine level return type (int, float).
 // These methods all take two arguments: A function pointer and a pointer to a vector of arguments in the stack
@@ -1361,7 +1361,7 @@ LirGenResult LIRGenAstWalker::WalkVariable(
     const SymbolBase* variable_type = variable_node->symbol();
 
     // Special case _this_ pointer so we don't have to load every time.
-    if (*name_node->string_value() == "this") {
+    if (*name_node->string_value() == kThisKeyword) {
         if (this->this_ptr_ == NULL) {
             this->this_ptr_ = this->current_writer_->insParam(/* _this_ pointer */ 1, /* function param */ 0);
         }

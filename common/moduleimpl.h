@@ -42,9 +42,9 @@ class ModuleImpl {
 public:
     ModuleImpl();
 
-    bool compiled() { return compiled_; }
+    bool compiled() const { return compiled_; }
     void set_compiled(bool compiled) { compiled_ = compiled; }
-    bool assembled() { return assembled_; }
+    bool assembled() const { return assembled_; }
     void set_assembled(bool assembled) { assembled_ = assembled; }
     const std::string& module_name() const { return module_name_; }
     void set_module_name(const std::string& module_name) { module_name_ = module_name; }

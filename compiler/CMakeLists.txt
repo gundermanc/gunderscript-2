@@ -8,13 +8,13 @@ include_directories(../include)
 include_directories(../common)
 include_directories(../runtime)
 
+include_directories(${gc_SOURCE_DIR}/include)
+
 # TODO: These paths are nasty. Refactor the nanojit library.
 include_directories(
     ${nanojit_SOURCE_DIR}/nanojit
     ${nanojit_SOURCE_DIR}/lirasm/VMPI.nj
     ${nanojit_SOURCE_DIR})
-
-include_directories(${gc_SOURCE_DIR}/include)
 
 add_library (
     gunderscript_compiler
@@ -27,7 +27,7 @@ add_library (
     semantic_ast_walker.cc
     lirgen_ast_walker.cc
     compiler.cc)
-target_link_libraries (gunderscript_compiler gunderscript_common)
+target_link_libraries (gunderscript_compiler gunderscript_common gunderscript_runtime)
 
 # Generate tests if option enabled.
 if (gunderscript_compiler_tests)

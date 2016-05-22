@@ -191,7 +191,9 @@ TEST(Parser, MalformedSpec) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_SPEC_KEYWORD_MISSING);
+        // The error message seems non-sensical because the lack of spec keyword
+        // causes the parser to try to parse it as a function definition instead.
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
     }
 
     // Case 4: incorrect spec name format.
@@ -2399,7 +2401,7 @@ TEST(Parser, ParseMalformedIfStatement) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_OR_FUNC_ACCESS_MODIFIER_MISSING);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_STATEMENT_INVALID_KEYWORD);
     }
 }
 
@@ -2549,7 +2551,7 @@ TEST(Parser, ParseMalformedForStatement) {
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FOR_MISSING_LPAREN);
     }
 
-    // Case 2: Missing LPAREN
+    // Case 2: Missing SEMICOLON
     {
         std::string input("package \"FooPackage\";"
             "public int32 main() {"
@@ -2560,7 +2562,7 @@ TEST(Parser, ParseMalformedForStatement) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_SEMICOLON);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 3: Missing RPAREN
@@ -2574,7 +2576,7 @@ TEST(Parser, ParseMalformedForStatement) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FOR_MISSING_RPAREN);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 4: Missing LBRACE
@@ -2595,14 +2597,14 @@ TEST(Parser, ParseMalformedForStatement) {
     {
         std::string input("package \"FooPackage\";"
             "public int32 main() {"
-            "    for (;;) { -"
+            "    for (;;) { "
             "}");
 
         CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_RBRACE);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
     }
 }
 
@@ -2810,34 +2812,6 @@ TEST(Parser, ParseMalformedWhileStatement) {
 
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_WHILE_MISSING_RPAREN);
     }
-
-    // Case 3: Invalid condition type
-    {
-        std::string input("package \"FooPackage\";"
-            "public int32 main() {"
-            "    while (3) { }"
-            "}");
-
-        CompilerStringSource source(input);
-        Lexer lexer(source);
-        Parser parser(lexer);
-
-        EXPECT_STATUS(parser.Parse(), STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE);
-    }
-
-    // Case 4: Invalid return type
-    {
-        std::string input("package \"FooPackage\";"
-            "public int32 main() {"
-            "    while (true) { return false; }"
-            "}");
-
-        CompilerStringSource source(input);
-        Lexer lexer(source);
-        Parser parser(lexer);
-
-        EXPECT_STATUS(parser.Parse(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
-    }
 }
 
 TEST(Parser, CorrectWhileTree) {
@@ -2906,7 +2880,7 @@ TEST(Parser, ParseMalformedTypeExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_LPAREN);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
     }
 
     // Case 3: Missing an inner angle brace (a different one).
@@ -2919,7 +2893,7 @@ TEST(Parser, ParseMalformedTypeExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_WHILE_MISSING_LPAREN);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
     }
 
     // Case 4: Missing an inner angle brace (a different one).
@@ -2932,7 +2906,7 @@ TEST(Parser, ParseMalformedTypeExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_WHILE_MISSING_LPAREN);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
     }
 
     // Case 5: Missing an outer close angle brace.
@@ -2945,7 +2919,7 @@ TEST(Parser, ParseMalformedTypeExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_GREATER);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
     }
 
     // Case 6: Missing an outer close angle brace (a different one).
@@ -2958,7 +2932,7 @@ TEST(Parser, ParseMalformedTypeExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_GREATER);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
     }
 
     // Case 7: Missing a delimiter.
@@ -3157,7 +3131,7 @@ TEST(Parser, ParseMalformedNewExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_RPAREN);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 }
 
@@ -3288,7 +3262,7 @@ TEST(Parser, ParseMalformedDefaultExpression) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_LPAREN);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_STATEMENT);
     }
 
     // Case 3: Missing Type.

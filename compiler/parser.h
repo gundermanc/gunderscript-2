@@ -104,6 +104,8 @@ private:
 // Constructor mangled function name.
 const std::string kConstructorName = "%construct%";
 
+const std::string kThisKeyword = "this";
+
 } // namespace library
 } // namespace gunderscript
 

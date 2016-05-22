@@ -25,19 +25,7 @@ namespace runtime {
 class GarbageCollectibleBase : public boehmgc::gc_cleanup {
 public:
     GarbageCollectibleBase() : gc_cleanup() { }
-    virtual ~GarbageCollectibleBase();
-};
-
-template <size_t BufSize>
-class GarbageCollectibleBuffer : public GarbageCollectibleBase {
-public:
-    GarbageCollectibleBuffer() : GarbageCollectibleBase() { }
-    ~GarbageCollectibleBuffer() { }
-
-    char* buffer() { return buffer_; }
-
-private:
-    char buffer_[BufSize];
+    virtual ~GarbageCollectibleBase() { }
 };
 
 void* GarbageCollectorAllocBuffer(size_t buf_size);

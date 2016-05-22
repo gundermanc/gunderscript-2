@@ -94,7 +94,7 @@ const ExceptionStatus STATUS_LEXER_NO_MATCH = ExceptionStatus(105, "No matching 
 const ExceptionStatus STATUS_LEXER_NEWLINE_IN_STRING = ExceptionStatus(106, "New line character in string constant");
 
 // Parser Exceptions 200-299:
-const ExceptionStatus STATUS_PARSER_MISSING_PACKAGE= ExceptionStatus(200, "Expected a package declaration at top of file");
+const ExceptionStatus STATUS_PARSER_MISSING_PACKAGE = ExceptionStatus(200, "Expected a package declaration at top of file");
 const ExceptionStatus STATUS_PARSER_INVALID_PACKAGE = ExceptionStatus(201, "Invalid package name at top of file");
 const ExceptionStatus STATUS_PARSER_MALFORMED_DEPENDS = ExceptionStatus(202, "Malformed depends statement");
 const ExceptionStatus STATUS_PARSER_EXPECTED_SEMICOLON = ExceptionStatus(203, "Expected but did not find a semicolon");
@@ -194,8 +194,6 @@ const ExceptionStatus STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_RPAREN
     = ExceptionStatus(250, "Trying to parse default expression, expected but did not find right parenthesis");
 const ExceptionStatus STATUS_PARSER_CONSTRUCTOR_OUTSIDE_SPEC
     = ExceptionStatus(251, "Constructor function is not allowed outside of spec body");
-const ExceptionStatus STATUS_PARSER_MALFORMED_NAME
-    = ExceptionStatus(252, "Parsing name expression, expected but did not find name");
 
 // Semantic Walker Exceptions 300-399:
 const ExceptionStatus STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN

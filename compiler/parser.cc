@@ -698,8 +698,15 @@ void Parser::ParseStatement(Node* node) {
             AdvanceNext();
             break;
         }
+
         // else: this may be a parenthesis in a member expression. e.g.: (x).y
         // and so we fall through to NAME.
+        if (!CurrentSymbol(LexerSymbol::LPAREN)) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_EXPECTED_STATEMENT);
+        }
     case LexerTokenType::NAME:
         ParseNameStatement(node);
         break;
@@ -1742,7 +1749,12 @@ Node* Parser::ParseDefaultExpression() {
             STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_LPAREN);
     }
 
-    AdvanceNext();
+    if (AdvanceNext()->type != LexerTokenType::NAME) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_TYPE);
+    }
 
     // Parse params to the default expression.
     ParseTypeExpression(default_node);
@@ -1753,7 +1765,7 @@ Node* Parser::ParseDefaultExpression() {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
-            STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_LPAREN);
+            STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_RPAREN);
     }
 
     AdvanceNext();

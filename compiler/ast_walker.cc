@@ -379,7 +379,6 @@ void AstWalker<ReturnType>::WalkSpecPropertyChildren(
 
 // Walks the Children of the BLOCK AST nodes.
 // property_function_node can be either a property or a function node.
-// TODO: Complete this.
 template <typename ReturnType>
 void AstWalker<ReturnType>::WalkBlockChildren(
     Node* spec_node, 
@@ -605,11 +604,9 @@ template <typename ReturnType>
 ReturnType AstWalker<ReturnType>::WalkDefaultExpressionChildren(Node* default_node) {
     GS_ASSERT_NODE_RULE(default_node, NodeRule::DEFAULT);
 
-    // Type node is optional.
-    Node* type_node = NULL;
-    if (default_node->child_count() > 0) {
-        type_node = default_node->child(0);
-    }
+    // Type node is required.
+    GS_ASSERT_TRUE(default_node->child_count() == 1, "Missing type node");
+    Node* type_node = default_node->child(0);
    
     GS_ASSERT_NODE_RULE(type_node, NodeRule::TYPE);
 
@@ -921,7 +918,6 @@ ReturnType AstWalker<ReturnType>::WalkSubExpressionChildren(
 }
 
 // Walks all children of binary expressions.
-// TODO: complete this.
 template <typename ReturnType>
 ReturnType AstWalker<ReturnType>::WalkBinaryOperationChildren(
     Node* spec_node,

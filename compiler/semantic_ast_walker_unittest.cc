@@ -3094,3 +3094,39 @@ TEST(SemanticAstWalker, NonExistentSetProperty) {
     EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_PROPERTY_NOT_FOUND);
     delete root;
 }
+
+TEST(SemanticAstWalker, InvalidWhileType) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    while (3) { }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE);
+
+    delete root;
+}
+
+TEST(SemanticAstWalker, InvalidWhileReturnType) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    while (true) { return false; }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+
+    delete root;
+}

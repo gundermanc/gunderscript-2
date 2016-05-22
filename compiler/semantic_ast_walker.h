@@ -322,8 +322,6 @@ private:
         Node* type_node);
 };
 
-const std::string kThisKeyword = "this";
-
 } // namespace compiler
 } // namespace gunderscript
 

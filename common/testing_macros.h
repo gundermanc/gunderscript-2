@@ -21,7 +21,7 @@ try {                                                           \
 }                                                               \
 catch (const Exception& ex) {                                   \
     EXPECT_EQ((exception_status).code(), ex.status().code());   \
-    return;                                                     \
+    break;                                                     \
 }                                                               \
 FAIL();                                                         \
 } while (0);
