@@ -204,3 +204,38 @@ TEST(SpecTypesIntegration, NodesListSum) {
         "    }"
         "}"));
 }
+
+TEST(SpecTypesIntegration, EncapsulatedListSum) {
+    EXPECT_EQ(1338, COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() { "
+        "    list <-new LinkedList();"
+        "    list.Prepend(90);"
+        "    list.Prepend(456);"
+        "    list.Prepend(789);"
+        "    return list.Sum() + list.Count;"
+        "}"
+        "public spec LinkedList{"
+        "    int32 Count{ public get; concealed set; }"
+        "    Node Head{ public get; concealed set; }"
+        "    public construct() { }"
+        "    public void Prepend(int32 value) {"
+        "        this.Head <-new Node(value, this.Head);"
+        "        this.Count <-(this.Count + 1);"
+        "    }"
+        "    public int32 Sum() {"
+        "        sum <-0;"
+        "        for (x <-this.Head; x != default(Node); x <-x.Next) {"
+        "            sum <-(sum + x.Value);"
+        "        }"
+        "        return sum;"
+        "    }"
+        "}"
+        "concealed spec Node{"
+        "    Node Next{ public get; public set; }"
+        "    int32 Value{ public get; public set; }"
+        "    public construct(int32 value, Node next) {"
+        "        this.Next <-next;"
+        "        this.Value <-value;"
+        "    }"
+        "}"));
+}

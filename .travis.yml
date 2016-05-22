@@ -23,11 +23,14 @@ addons:
     - g++-4.9
 os:
   - linux
-  - osx
 language: cpp
 compiler:
   - gcc
 script: ./build_self_test.sh
+env:
+  matrix:
+    - BUILD_TYPE=debug
+    - BUILD_TYPE=release
 notifications:
   email: false
 sudo: false
