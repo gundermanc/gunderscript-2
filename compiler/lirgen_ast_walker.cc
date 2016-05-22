@@ -449,13 +449,17 @@ LirGenResult LIRGenAstWalker::WalkMemberPropertySet(
     this->current_writer_->insComment(member_node->symbol()->symbol_name().c_str());
 #endif // _DEBUG
 
-    // Emit load instruction to load the value from a spec instance property.
+    // Emit store instruction to store the value in a spec instance property.
     // The base pointer is the pointer from the left side of the member expression
     // (left.right) and the offset is the stored offset associated with this property
     // in the register table.
+    EmitStore(member_symbol, left_result.ins(), std::get<2>(reg_tuple), value_result.ins());
+
+    // Return value_result.ins(), or, the value of the assignment expression so that we can
+    // chain property assignments, like so: this.x <- this.y <- 3;
     return LirGenResult(
         member_symbol->type_symbol(),
-        EmitStore(member_symbol, left_result.ins(), std::get<2>(reg_tuple), value_result.ins()));
+        value_result.ins());
 }
 
 // Walks a function-like typecast and generates code for the type conversions.

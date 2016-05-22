@@ -1092,6 +1092,20 @@ Node* Parser::ParseAssignExpressionB(Node* left_operand_node) {
         return left_operand_node;
     }
 
+    // Throw if assigning to a member call or expression like so:
+    // this.Foo() <- 3;
+    // or
+    // this.Foo <- this.Foo + 1 <- 3;
+    if ((left_operand_node->rule() == NodeRule::MEMBER &&
+        left_operand_node->child(1)->rule() == NodeRule::CALL) ||
+        (left_operand_node->rule() != NodeRule::SYMBOL &&
+            left_operand_node->rule() != NodeRule::MEMBER)) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
+    }
+
     Node* operation_node = new Node(
         NodeRule::ASSIGN,
         this->lexer_.current_line_number(),
@@ -1398,11 +1412,7 @@ Node* Parser::ParseTertiaryExpressionB(Node* left_operand_node) {
             this->lexer_.current_column_number());
         break;
     case LexerSymbol::ASSIGN:
-        operation_node = new Node(
-            NodeRule::ASSIGN,
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number());
-        break;
+        return ParseAssignExpressionB(left_operand_node);
     default:
         // Return left operand if this isn't an operation.
         return left_operand_node;

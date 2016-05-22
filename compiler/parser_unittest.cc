@@ -1829,6 +1829,21 @@ TEST(Parser, ParseMemberAssignCall) {
     EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
 }
 
+TEST(Parser, ParseMemberExpressionCall) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return x.y + 1 <- 3;"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
+}
+
 TEST(Parser, ParseMalformedMemberExpression) {
 
     // Case 1: Single operand reference.
@@ -3318,6 +3333,22 @@ TEST(Parser, CorrectDefaultExpressionTree) {
     Node* node = parser.Parse();
 
 
+
+    delete node;
+}
+
+// Check for no throw.
+TEST(Parser, AssignProperty) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    this.x <- this.x + 2;"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* node = parser.Parse();
 
     delete node;
 }

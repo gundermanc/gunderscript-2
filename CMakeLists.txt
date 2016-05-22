@@ -45,6 +45,13 @@ if (gunderscript_force_define_debug)
     set (CMAKE_BUILD_TYPE "Debug")
 endif ()
 
+# Print build config.
+if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    message ("Gunderscript DEBUG Configuration")
+else ()
+    message ("Gunderscript RELEASE Configuration")
+endif ()
+
 # TODO: this is pretty jank, reconsider.
 # Define platform constants for NanoJIT
 include(nanojit/cmake_macros.cmake)
