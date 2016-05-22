@@ -1354,17 +1354,20 @@ LirGenResult LIRGenAstWalker::WalkVariable(
     Node* variable_node,
     Node* name_node) {
 
+    const SymbolBase* variable_type = variable_node->symbol();
+
+    // Special case _this_ pointer so we don't have to load every time.
+    if (*name_node->string_value() == "this") {
+        if (this->this_ptr_ == NULL) {
+            this->this_ptr_ = this->current_writer_->insParam(/* _this_ pointer */ 1, /* function param */ 0);
+        }
+
+        return LirGenResult(variable_type, this->this_ptr_);
+    }
+
 #if defined _DEBUG
     this->current_writer_->insComment("Variable reference expr");
 #endif // _DEBUG
-
-    const SymbolBase* variable_type = variable_node->symbol();
-
-    if (*name_node->string_value() == "this") {
-        return LirGenResult(
-            variable_type,
-            this->current_writer_->insParam(/* _this_ pointer */ 1, /*func param kind*/0));
-    }
 
     const std::tuple<const SymbolBase*, LIns*, int>& reg_tuple
         = this->register_table_.Get(*name_node->string_value());
@@ -1420,6 +1423,7 @@ void LIRGenAstWalker::WalkFunctionChildren(
     bool prescan) {
 
     this->param_offset_ = 0;
+    this->this_ptr_ = NULL;
 
     // If we're doing code generation now:
     if (!prescan) {

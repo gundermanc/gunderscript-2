@@ -343,6 +343,7 @@ private:
     nanojit::Fragment* current_fragment_;
     nanojit::Config& config_;
     nanojit::LirBufWriter* current_writer_;
+    nanojit::LIns* this_ptr_;
     int current_function_index_;
     int param_offset_;
     int property_offset_;
