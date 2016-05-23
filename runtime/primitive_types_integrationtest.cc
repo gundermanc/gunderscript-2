@@ -304,7 +304,15 @@ TEST(PrimitiveTypesIntegration, CallCharParamsAndReturns) {
 }
 
 TEST(PrimitiveTypesIntegration, CallCombinedParams) {
-    EXPECT_EQ(0, COMPILE_AND_RUN_INT_MAIN_CLASS(
+    EXPECT_EQ(1, COMPILE_AND_RUN_INT_MAIN_CLASS(
         "public bool x(bool a, float32 b, bool c, int32 d, bool e, int8 f, bool g) { return a && b = 1.0 && !c &&  d = 2 && e && f = int8(122) && !g; }"
         "public int32 main() { return int32(x(true, 1.0, false, 2, true, int8(122), false)); }"));
+}
+
+TEST(PrimitiveTypesIntegration, VoidFunc) {
+    EXPECT_NO_THROW(COMPILE_AND_RUN_INT_MAIN_CLASS(
+        "public int32 main() { "
+        "    foo();"
+        "}"
+        "public void foo() { return; }"));
 }

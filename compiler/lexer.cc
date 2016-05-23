@@ -18,7 +18,7 @@ static const std::string kLexerTokenTypeString[] = {
 // break.
 static const std::string kLexerSymbolString[] = {
     // Symbols:
-    "SWAP", "ASSIGN", "LSHIFT", "LESSEQUALS", "LESS", "GREATEREQUALS", "RSHIFT",
+    "SWAP", "ASSIGN", "LESSEQUALS", "LESS", "GREATEREQUALS",
     "GREATER", "ADD", "ADDEQUALS", "SUB", "SUBEQUALS", "MUL", "MULEQUALS", "DIV",
     "DIVEQUALS", "MOD", "MODEQUALS",
     "LPAREN", "RPAREN", "LSQUARE", "RSQUARE", "LBRACE", "RBRACE", "DOT", "SEMICOLON", "COMMA",
@@ -29,12 +29,12 @@ static const std::string kLexerSymbolString[] = {
     "PUBLIC", "CONCEALED", "INTERNAL",
 
     // Keywords:
-    "SPEC", "IF", "ELSE", "DO", "WHILE", "TRUE", "FALSE", "RETURN", "GET", "SET", "CONCEIVE",
-    "ERADICATE", "START", "READONLY", "FOR", "BREAK", "CONTINUE", "DEPENDS", "PACKAGE",
-    "NATIVE",
+    "SPEC", "IF", "ELSE", "DO", "WHILE", "TRUE", "FALSE", "RETURN", "GET", "SET", "CONSTRUCT",
+    "START", "READONLY", "FOR", "BREAK", "CONTINUE", "DEPENDS", "PACKAGE",
+    "NEW", "DEFAULT"
 
-    // Types:
-    "CHAR", "INT", "FLOAT", "BOOL", "STRING", "NULL", "ANY_TYPE"
+    // TODO: remove this when we make a legit type system.
+    "ANY_TYPE"
 };
 
 // Gets a string representation of each token.
@@ -188,16 +188,15 @@ void Lexer::LoadKeywords() {
     DEFINE_KEYWORD("return", LexerTokenType::KEYWORD, LexerSymbol::RETURN);
     DEFINE_KEYWORD("get", LexerTokenType::KEYWORD, LexerSymbol::GET);
     DEFINE_KEYWORD("set", LexerTokenType::KEYWORD, LexerSymbol::SET);
-    DEFINE_KEYWORD("conceive", LexerTokenType::KEYWORD, LexerSymbol::CONCEIVE);
-    DEFINE_KEYWORD("eradicate", LexerTokenType::KEYWORD, LexerSymbol::ERADICATE);
+    DEFINE_KEYWORD("construct", LexerTokenType::KEYWORD, LexerSymbol::CONSTRUCT);
     DEFINE_KEYWORD("start", LexerTokenType::KEYWORD, LexerSymbol::START);
     DEFINE_KEYWORD("readonly", LexerTokenType::KEYWORD, LexerSymbol::READONLY);
     DEFINE_KEYWORD("for", LexerTokenType::KEYWORD, LexerSymbol::FOR);
     DEFINE_KEYWORD("break", LexerTokenType::KEYWORD, LexerSymbol::BREAK);
     DEFINE_KEYWORD("continue", LexerTokenType::KEYWORD, LexerSymbol::CONTINUE);
     DEFINE_KEYWORD("depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
-    DEFINE_KEYWORD("native", LexerTokenType::KEYWORD, LexerSymbol::NATIVE);
-    DEFINE_KEYWORD("null", LexerTokenType::KEYWORD, LexerSymbol::TNULL);
+    DEFINE_KEYWORD("new", LexerTokenType::KEYWORD, LexerSymbol::NEW);
+    DEFINE_KEYWORD("default", LexerTokenType::KEYWORD, LexerSymbol::DEFAULT);
 }
 
 // Processes and removes comments from code.
@@ -521,8 +520,6 @@ void Lexer::AdvanceTokens() {
                 else {
                     ACCEPT_SYMBOL_NU(LexerSymbol::ASSIGN);
                 }
-            case '<':
-                ACCEPT_SYMBOL(LexerSymbol::LSHIFT);
             case '=':
                 ACCEPT_SYMBOL(LexerSymbol::LESSEQUALS);
             default:
@@ -534,8 +531,6 @@ void Lexer::AdvanceTokens() {
             switch (PEEK_CHAR()) {
             case '=':
                 ACCEPT_SYMBOL(LexerSymbol::GREATEREQUALS);
-            case '>':
-                ACCEPT_SYMBOL(LexerSymbol::RSHIFT);
             default:
                 ACCEPT_SYMBOL_NU(LexerSymbol::GREATER);
             }

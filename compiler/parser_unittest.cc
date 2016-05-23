@@ -191,7 +191,9 @@ TEST(Parser, MalformedSpec) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_SPEC_KEYWORD_MISSING);
+        // The error message seems non-sensical because the lack of spec keyword
+        // causes the parser to try to parse it as a function definition instead.
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
     }
 
     // Case 4: incorrect spec name format.
@@ -268,7 +270,7 @@ TEST(Parser, EmptySpec) {
     EXPECT_EQ(LexerSymbol::PUBLIC, spec_node_0_access_modifier->symbol_value());
 
     Node* spec_node_0_name = spec_node_0->child(1);
-    EXPECT_EQ(NodeRule::NAME, spec_node_0_name->rule());
+    EXPECT_EQ(NodeRule::TYPE, spec_node_0_name->rule());
     EXPECT_EQ(0, spec_node_0_name->child_count());
     EXPECT_STREQ("MySpec", spec_node_0_name->string_value()->c_str());
 
@@ -286,7 +288,7 @@ TEST(Parser, EmptySpec) {
     EXPECT_EQ(LexerSymbol::CONCEALED, spec_node_1_access_modifier->symbol_value());
 
     Node* spec_node_1_name = spec_node_1->child(1);
-    EXPECT_EQ(NodeRule::NAME, spec_node_1_name->rule());
+    EXPECT_EQ(NodeRule::TYPE, spec_node_1_name->rule());
     EXPECT_EQ(0, spec_node_1_name->child_count());
     EXPECT_STREQ("Foo", spec_node_1_name->string_value()->c_str());
 
@@ -599,39 +601,36 @@ TEST(Parser, ParseFunctionEmpty) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
     EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
-    ASSERT_EQ(6, foo_node->child_count());
+    ASSERT_EQ(5, foo_node->child_count());
 
     Node* foo_access_modifier_node = foo_node->child(0);
     EXPECT_EQ(NodeRule::ACCESS_MODIFIER, foo_access_modifier_node->rule());
     EXPECT_EQ(LexerSymbol::PUBLIC, foo_access_modifier_node->symbol_value());
 
-    Node* foo_native_node = foo_node->child(1);
-    EXPECT_EQ(NodeRule::NATIVE, foo_native_node->rule());
-    EXPECT_FALSE(foo_native_node->bool_value());
-
-    Node* foo_type_node = foo_node->child(2);
+    Node* foo_type_node = foo_node->child(1);
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
     EXPECT_STREQ("int", foo_type_node->string_value()->c_str());
 
-    Node* foo_name_node = foo_node->child(3);
+    Node* foo_name_node = foo_node->child(2);
     EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
     EXPECT_STREQ("Foo", foo_name_node->string_value()->c_str());
 
-    Node* foo_parameters_node = foo_node->child(4);
+    Node* foo_parameters_node = foo_node->child(3);
     EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
     EXPECT_EQ(0, foo_parameters_node->child_count());
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(0, foo_block_node->child_count());
 
     delete root;
 }
 
-TEST(Parser, ParseFunctionEmptyOneParameterNative) {
+TEST(Parser, ParseConstructorEmpty) {
 
     std::string input("package \"FooPackage\";"
         "public spec MySpec {"
-        "  concealed native string Foo2(int x);"
+        "  public construct() {"
+        "  }"
         "}");
 
     CompilerStringSource source(input);
@@ -648,85 +647,22 @@ TEST(Parser, ParseFunctionEmptyOneParameterNative) {
 
     Node* foo_access_modifier_node = foo_node->child(0);
     EXPECT_EQ(NodeRule::ACCESS_MODIFIER, foo_access_modifier_node->rule());
-    EXPECT_EQ(LexerSymbol::CONCEALED, foo_access_modifier_node->symbol_value());
+    EXPECT_EQ(LexerSymbol::PUBLIC, foo_access_modifier_node->symbol_value());
 
-    Node* foo_native_node = foo_node->child(1);
-    EXPECT_EQ(NodeRule::NATIVE, foo_native_node->rule());
-    EXPECT_EQ(true, foo_native_node->bool_value());
-
-    Node* foo_type_node = foo_node->child(2);
+    Node* foo_type_node = foo_node->child(1);
     EXPECT_EQ(NodeRule::TYPE, foo_type_node->rule());
-    EXPECT_STREQ("string", foo_type_node->string_value()->c_str());
+    EXPECT_STREQ("void", foo_type_node->string_value()->c_str());
 
-    Node* foo_name_node = foo_node->child(3);
+    Node* foo_name_node = foo_node->child(2);
     EXPECT_EQ(NodeRule::NAME, foo_name_node->rule());
-    EXPECT_STREQ("Foo2", foo_name_node->string_value()->c_str());
+    EXPECT_STREQ("%construct%", foo_name_node->string_value()->c_str());
 
-    Node* foo_parameters_node = foo_node->child(4);
+    Node* foo_parameters_node = foo_node->child(3);
     EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
-    EXPECT_EQ(1, foo_parameters_node->child_count());
+    EXPECT_EQ(0, foo_parameters_node->child_count());
 
-    Node* foo_x_node = foo_parameters_node->child(0);
-    EXPECT_EQ(NodeRule::FUNCTION_PARAMETER, foo_x_node->rule());
-    ASSERT_EQ(2, foo_x_node->child_count());
-
-    Node* foo_x_type_node = foo_x_node->child(0);
-    EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
-    EXPECT_STREQ("int", foo_x_type_node->string_value()->c_str());
-
-    Node* foo_x_name_node = foo_x_node->child(1);
-    EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
-    EXPECT_STREQ("x", foo_x_name_node->string_value()->c_str());
-
-    delete root;
-}
-
-TEST(Parser, ParseFunctionEmptyTwoParameterNative) {
-
-    std::string input("package \"FooPackage\";"
-        "public spec MySpec {"
-        "  concealed native string Foo2(int x, string y);"
-        "}");
-
-    CompilerStringSource source(input);
-    Lexer lexer(source);
-    Parser parser(lexer);
-
-    Node* root = parser.Parse();
-    Node* specs_node = root->child(2);
-    Node* spec_node = specs_node->child(0);
-    Node* functions_node = spec_node->child(2);
-    Node* foo_node = functions_node->child(0);
-    EXPECT_EQ(NodeRule::FUNCTION, foo_node->rule());
-    ASSERT_EQ(5, foo_node->child_count());
-
-    Node* foo_parameters_node = foo_node->child(4);
-    EXPECT_EQ(NodeRule::FUNCTION_PARAMETERS, foo_parameters_node->rule());
-    EXPECT_EQ(2, foo_parameters_node->child_count());
-
-    Node* foo_x_node = foo_parameters_node->child(0);
-    EXPECT_EQ(NodeRule::FUNCTION_PARAMETER, foo_x_node->rule());
-    ASSERT_EQ(2, foo_x_node->child_count());
-
-    Node* foo_x_type_node = foo_x_node->child(0);
-    EXPECT_EQ(NodeRule::TYPE, foo_x_type_node->rule());
-    EXPECT_STREQ("int", foo_x_type_node->string_value()->c_str());
-
-    Node* foo_x_name_node = foo_x_node->child(1);
-    EXPECT_EQ(NodeRule::NAME, foo_x_name_node->rule());
-    EXPECT_STREQ("x", foo_x_name_node->string_value()->c_str());
-
-    Node* foo_y_node = foo_parameters_node->child(1);
-    EXPECT_EQ(NodeRule::FUNCTION_PARAMETER, foo_y_node->rule());
-    ASSERT_EQ(2, foo_y_node->child_count());
-
-    Node* foo_y_type_node = foo_y_node->child(0);
-    EXPECT_EQ(NodeRule::TYPE, foo_y_type_node->rule());
-    EXPECT_STREQ("string", foo_y_type_node->string_value()->c_str());
-
-    Node* foo_y_name_node = foo_y_node->child(1);
-    EXPECT_EQ(NodeRule::NAME, foo_y_name_node->rule());
-    EXPECT_STREQ("y", foo_y_name_node->string_value()->c_str());
+    Node* foo_block_node = foo_node->child(4);
+    EXPECT_EQ(0, foo_block_node->child_count());
 
     delete root;
 }
@@ -735,8 +671,8 @@ TEST(Parser, ParseMultipleFunctions) {
 
     std::string input("package \"FooPackage\";"
         "public spec MySpec {"
-        "  concealed native string Foo2(int x, string y);"
-        "  public native int Add();"
+        "  concealed string Foo2(int x, string y) { }"
+        "  public int Add() { }"
         "  internal int Sub(string foo, int foo2) {"
         "  }  "
         "  public int Mul() {"
@@ -758,35 +694,21 @@ TEST(Parser, ParseMalformedFunctions) {
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
-            "  native string Foo2(int x, string y);"
+            "  string Foo2(int x, string y) { }"
             "}");
 
         CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_UNKNOWN_MEMBER);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_PROPERTY_LBRACE_MISSING);
     }
 
-    // Case 2: out of order function attributes.
+    // Case 2: incorrect token type for NAME.
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
-            "  native public string Foo(int x, string y);"
-            "}");
-
-        CompilerStringSource source(input);
-        Lexer lexer(source);
-        Parser parser(lexer);
-
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_UNKNOWN_MEMBER);
-    }
-
-    // Case 3: incorrect token type for NAME.
-    {
-        std::string input("package \"FooPackage\";"
-            "public spec MySpec {"
-            "  public native string 45(int x, string y);"
+            "  public string 45(int x, string y) { }"
             "}");
 
         CompilerStringSource source(input);
@@ -796,11 +718,11 @@ TEST(Parser, ParseMalformedFunctions) {
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
     }
 
-    // Case 4: extraneous comma.
+    // Case 3: extraneous comma.
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
-            "  public native string Foo(int x,);"
+            "  public string Foo(int x,) { }"
             "}");
 
         CompilerStringSource source(input);
@@ -810,11 +732,11 @@ TEST(Parser, ParseMalformedFunctions) {
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_TYPE);
     }
 
-    // Case 5: incorrect argument.
+    // Case 4: incorrect argument.
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
-            "  public native string Foo(public int x);"
+            "  public string Foo(public int x) { }"
             "}");
 
         CompilerStringSource source(input);
@@ -824,11 +746,11 @@ TEST(Parser, ParseMalformedFunctions) {
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_TYPE);
     }
 
-    // Case 6: missing comma.
+    // Case 5: missing comma.
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
-            "  public native string Foo(int x int y);"
+            "  public string Foo(int x int y) { }"
             "}");
 
         CompilerStringSource source(input);
@@ -838,11 +760,11 @@ TEST(Parser, ParseMalformedFunctions) {
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_COMMA);
     }
 
-    // Case 7: missing LPAREN.
+    // Case 6: missing LPAREN.
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
-            "  public native string Foo int x);"
+            "  public string Foo int x) { }"
             "}");
 
         CompilerStringSource source(input);
@@ -852,11 +774,11 @@ TEST(Parser, ParseMalformedFunctions) {
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_LPAREN);
     }
 
-    // Case 8: missing RPAREN.
+    // Case 7: missing RPAREN.
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
-            "  public native string Foo(int x ;"
+            "  public string Foo(int x { }"
             "}");
 
         CompilerStringSource source(input);
@@ -866,11 +788,11 @@ TEST(Parser, ParseMalformedFunctions) {
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_COMMA);
     }
 
-    // Case 9: missing SEMICOLON.
+    // Case 8: missing brace.
     {
         std::string input("package \"FooPackage\";"
             "public spec MySpec {"
-            "  public native string Foo(int x)"
+            "  public string Foo(int x) }"
             "}");
 
         CompilerStringSource source(input);
@@ -880,18 +802,16 @@ TEST(Parser, ParseMalformedFunctions) {
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_LBRACE);
     }
 
-    // Case 11: missing brace.
+    // Case 9: constructor outside of spec.
     {
         std::string input("package \"FooPackage\";"
-            "public spec MySpec {"
-            "  public native string Foo(int x) }"
-            "}");
+            "public construct() { }");
 
         CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_LBRACE);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_CONSTRUCTOR_OUTSIDE_SPEC);
     }
 }
 
@@ -914,7 +834,7 @@ TEST(Parser, ParseEmptyReturn) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -923,6 +843,7 @@ TEST(Parser, ParseEmptyReturn) {
 
     delete root;
 }
+
 
 TEST(Parser, ParseReturnWithExpression) {
 
@@ -943,7 +864,7 @@ TEST(Parser, ParseReturnWithExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1016,7 +937,7 @@ TEST(Parser, ParseArithmeticExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1104,7 +1025,7 @@ TEST(Parser, ParseDoubleNegative) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1160,7 +1081,7 @@ TEST(Parser, ParseDoubleNot) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1213,7 +1134,7 @@ TEST(Parser, ParseDoubleNegativeNoParens) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1276,7 +1197,7 @@ TEST(Parser, ParseDoubleNotNoParens) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1439,7 +1360,7 @@ TEST(Parser, ParseBooleanExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1514,7 +1435,7 @@ TEST(Parser, ParseStringExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1567,7 +1488,7 @@ TEST(Parser, ParseVariableExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1616,7 +1537,7 @@ TEST(Parser, ParseFunctionExpressionWithoutArgs) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1669,7 +1590,7 @@ TEST(Parser, ParseFunctionExpressionWithArgs) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1754,7 +1675,7 @@ TEST(Parser, ParseMemberExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_return_node = foo_block_node->child(0);
@@ -1833,6 +1754,98 @@ TEST(Parser, ParseMemberExpression) {
     delete root;
 }
 
+// Ensures that member expressions don't throw when used as a statement.
+TEST(Parser, ParseMemberCallStatement) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    (x().y()).(z());"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_NO_THROW(parser.Parse());
+}
+
+// Ensures that member expressions don't throw when used as a statement.
+TEST(Parser, ParseMemberAssignStatement) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    (x().y()).z <- 3;"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_NO_THROW(parser.Parse());
+}
+
+TEST(Parser, ParseMemberReturnStatement1) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return x.y.z;"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_NO_THROW(parser.Parse());
+}
+
+TEST(Parser, ParseMemberReturnStatement2) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return x.y().z();"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_NO_THROW(parser.Parse());
+}
+
+TEST(Parser, ParseMemberAssignCall) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return x.y() <- 3;"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
+}
+
+TEST(Parser, ParseMemberExpressionCall) {
+    std::string input("package \"FooPackage\";"
+        "public spec MySpec {"
+        "  public bool Foo() {"
+        "    return x.y + 1 <- 3;"
+        "  }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
+}
+
 TEST(Parser, ParseMalformedMemberExpression) {
 
     // Case 1: Single operand reference.
@@ -1865,6 +1878,22 @@ TEST(Parser, ParseMalformedMemberExpression) {
         Parser parser(lexer);
 
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
+    }
+
+    // Case 3: Not a statement.
+    {
+        std::string input("package \"FooPackage\";"
+            "public spec MySpec {"
+            "  public bool Foo() {"
+            "    this.x;"
+            "  }"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
     }
 }
 
@@ -1903,7 +1932,7 @@ TEST(Parser, ParseAssignStatement) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* foo_assign_statement_node = foo_block_node->child(0);
@@ -1960,7 +1989,7 @@ TEST(Parser, ParseCallStatement) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* call_statement_node = foo_block_node->child(0);
@@ -2004,7 +2033,7 @@ TEST(Parser, ParseComparisonExpression) {
     Node* functions_node = spec_node->child(2);
     Node* foo_node = functions_node->child(0);
 
-    Node* foo_block_node = foo_node->child(5);
+    Node* foo_block_node = foo_node->child(4);
     EXPECT_EQ(1, foo_block_node->child_count());
 
     Node* assign_node = foo_block_node->child(0);
@@ -2239,9 +2268,9 @@ TEST(Parser, ParseModule) {
     Node* functions_node = root->child(3);
     EXPECT_EQ(NodeRule::FUNCTIONS, functions_node->rule());
     EXPECT_EQ(3, functions_node->child_count());
-    EXPECT_STREQ("main", functions_node->child(0)->child(3)->string_value()->c_str());
-    EXPECT_STREQ("main2", functions_node->child(1)->child(3)->string_value()->c_str());
-    EXPECT_STREQ("main3", functions_node->child(2)->child(3)->string_value()->c_str());
+    EXPECT_STREQ("main", functions_node->child(0)->child(2)->string_value()->c_str());
+    EXPECT_STREQ("main2", functions_node->child(1)->child(2)->string_value()->c_str());
+    EXPECT_STREQ("main3", functions_node->child(2)->child(2)->string_value()->c_str());
 
     delete root;
 }
@@ -2372,7 +2401,7 @@ TEST(Parser, ParseMalformedIfStatement) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_SPEC_OR_FUNC_ACCESS_MODIFIER_MISSING);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_STATEMENT_INVALID_KEYWORD);
     }
 }
 
@@ -2462,7 +2491,7 @@ TEST(Parser, ParseCorrectIfStatementTree) {
     Node* root = parser.Parse();
     Node* functions_node = root->child(3);
     Node* main_function_node = functions_node->child(0);
-    Node* function_block_node = main_function_node->child(5);
+    Node* function_block_node = main_function_node->child(4);
 
     Node* if_node = function_block_node->child(0);
     EXPECT_EQ(NodeRule::IF, if_node->rule());
@@ -2522,7 +2551,7 @@ TEST(Parser, ParseMalformedForStatement) {
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FOR_MISSING_LPAREN);
     }
 
-    // Case 2: Missing LPAREN
+    // Case 2: Missing SEMICOLON
     {
         std::string input("package \"FooPackage\";"
             "public int32 main() {"
@@ -2533,7 +2562,7 @@ TEST(Parser, ParseMalformedForStatement) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_SEMICOLON);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 3: Missing RPAREN
@@ -2547,7 +2576,7 @@ TEST(Parser, ParseMalformedForStatement) {
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FOR_MISSING_RPAREN);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
     }
 
     // Case 4: Missing LBRACE
@@ -2568,14 +2597,14 @@ TEST(Parser, ParseMalformedForStatement) {
     {
         std::string input("package \"FooPackage\";"
             "public int32 main() {"
-            "    for (;;) { -"
+            "    for (;;) { "
             "}");
 
         CompilerStringSource source(input);
         Lexer lexer(source);
         Parser parser(lexer);
 
-        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_BLOCK_MISSING_RBRACE);
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EOF);
     }
 }
 
@@ -2680,7 +2709,7 @@ TEST(Parser, CorrectForStatementTreeNoParams) {
     Node* root = parser.Parse();
     Node* functions_node = root->child(3);
     Node* main_function_node = functions_node->child(0);
-    Node* function_block_node = main_function_node->child(5);
+    Node* function_block_node = main_function_node->child(4);
 
     Node* for_node = function_block_node->child(0);
     EXPECT_EQ(NodeRule::FOR, for_node->rule());
@@ -2718,7 +2747,7 @@ TEST(Parser, CorrectForStatementTreeAllParams) {
     Node* root = parser.Parse();
     Node* functions_node = root->child(3);
     Node* main_function_node = functions_node->child(0);
-    Node* function_block_node = main_function_node->child(5);
+    Node* function_block_node = main_function_node->child(4);
 
     Node* for_node = function_block_node->child(0);
     EXPECT_EQ(NodeRule::FOR, for_node->rule());
@@ -2783,34 +2812,6 @@ TEST(Parser, ParseMalformedWhileStatement) {
 
         EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_WHILE_MISSING_RPAREN);
     }
-
-    // Case 3: Invalid condition type
-    {
-        std::string input("package \"FooPackage\";"
-            "public int32 main() {"
-            "    while (3) { }"
-            "}");
-
-        CompilerStringSource source(input);
-        Lexer lexer(source);
-        Parser parser(lexer);
-
-        EXPECT_STATUS(parser.Parse(), STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE);
-    }
-
-    // Case 4: Invalid return type
-    {
-        std::string input("package \"FooPackage\";"
-            "public int32 main() {"
-            "    while (true) { return false; }"
-            "}");
-
-        CompilerStringSource source(input);
-        Lexer lexer(source);
-        Parser parser(lexer);
-
-        EXPECT_STATUS(parser.Parse(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
-    }
 }
 
 TEST(Parser, CorrectWhileTree) {
@@ -2826,7 +2827,7 @@ TEST(Parser, CorrectWhileTree) {
     Node* root = parser.Parse();
     Node* functions_node = root->child(3);
     Node* main_function_node = functions_node->child(0);
-    Node* function_block_node = main_function_node->child(5);
+    Node* function_block_node = main_function_node->child(4);
 
     Node* for_node = function_block_node->child(0);
     EXPECT_EQ(NodeRule::FOR, for_node->rule());
@@ -2853,6 +2854,477 @@ TEST(Parser, CorrectWhileTree) {
     EXPECT_EQ(0, for_node_block->child_count());
 
     delete root;
+}
+
+TEST(Parser, ParseMalformedTypeExpression) {
+    // Case 1: Missing left most angle brace.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List List<List<int32, bool>, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_LPAREN);
+    }
+
+    // Case 2: Missing an inner angle brace.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List List<int32, bool>, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
+    }
+
+    // Case 3: Missing an inner angle brace (a different one).
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<Listint32, bool>, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
+    }
+
+    // Case 4: Missing an inner angle brace (a different one).
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<Listint32, bool>, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
+    }
+
+    // Case 5: Missing an outer close angle brace.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, bool>, string main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
+    }
+
+    // Case 6: Missing an outer close angle brace (a different one).
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, bool, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
+    }
+
+    // Case 7: Missing a delimiter.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool> bool, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
+    }
+
+    // Case 8: Missing a different delimiter.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, bool> string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
+    }
+
+    // Case 9: Missing name.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, >, bool>, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME);
+    }
+
+    // Case 10: Missing name.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, >, string> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME);
+    }
+
+    // Case 11: Missing name.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME);
+    }
+}
+
+TEST(Parser, CorrectTypeExpression) {
+    // Case 1: Nested type params.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<List<List<int32, bool>, bool>, List<string, int32>> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 2: No parameters.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 3: One parameter.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<int32> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 4: Two parameters.
+    {
+        std::string input("package \"FooPackage\";"
+            "public List<int32, bool> main() {"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+}
+
+TEST(Parser, CorrectTypeExpressionTree) {
+    std::string input("package \"FooPackage\";"
+        "public List<List<bool>, int32> main() {"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* functions_node = root->child(3);
+    Node* main_function_node = functions_node->child(0);
+
+    Node* type_node = main_function_node->child(1);
+    EXPECT_STREQ("List", type_node->string_value()->c_str());
+    EXPECT_EQ(NodeRule::TYPE, type_node->rule());
+    EXPECT_EQ(2, type_node->child_count());
+
+    Node* left_type_param = type_node->child(0);
+    EXPECT_STREQ("List", left_type_param->string_value()->c_str());
+    EXPECT_EQ(NodeRule::TYPE, left_type_param->rule());
+    EXPECT_EQ(1, left_type_param->child_count());
+
+    Node* left_type_param_param = left_type_param->child(0);
+    EXPECT_STREQ("bool", left_type_param_param->string_value()->c_str());
+    EXPECT_EQ(NodeRule::TYPE, left_type_param_param->rule());
+    EXPECT_EQ(0, left_type_param_param->child_count());
+
+    Node* right_type_param = type_node->child(1);
+    EXPECT_STREQ("int32", right_type_param->string_value()->c_str());
+    EXPECT_EQ(NodeRule::TYPE, right_type_param->rule());
+    EXPECT_EQ(0, right_type_param->child_count());
+
+    delete root;
+}
+
+TEST(Parser, ParseMalformedNewExpression) {
+    // Case 1: Missing name.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- new ();"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_NAME);
+    }
+
+    // Case 2: Missing left parenthesis.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- new List);"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_LPAREN);
+    }
+
+    // Case 3: Missing right parenthesis.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- new List(;"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_EXPRESSION_INVALID_TOKEN);
+    }
+}
+
+TEST(Parser, ParseCorrectNewExpression) {
+    // Case 1: No params.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- new List();"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 2: One param.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- new List(3);"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 3: Two params.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- new List(3, true);"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 4: Two params and one generic
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- new List<int32>(3, true);"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+
+    // Case 5: Three params and two generics
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- new List<int32, bool>(3, true, \"hello\");"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_NO_THROW(parser.Parse());
+    }
+}
+
+TEST(Parser, ParseCorrectNewExpressionTree) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    x <- new List<int32, bool>(3, true, \"hello\");"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    Node* functions_node = root->child(3);
+    Node* main_function_node = functions_node->child(0);
+    Node* function_block_node = main_function_node->child(4);
+    Node* assign_node = function_block_node->child(0);
+
+    Node* new_node = assign_node->child(1);
+    EXPECT_EQ(NodeRule::NEW, new_node->rule());
+    EXPECT_EQ(2, new_node->child_count());
+
+    Node* type_node = new_node->child(0);
+    EXPECT_EQ(NodeRule::TYPE, type_node->rule());
+    EXPECT_EQ(2, type_node->child_count());
+
+    Node* call_params_node = new_node->child(1);
+    EXPECT_EQ(NodeRule::CALL_PARAMETERS, call_params_node->rule());
+    EXPECT_EQ(3, call_params_node->child_count());
+}
+
+TEST(Parser, ParseMalformedDefaultExpression) {
+    // Case 1: No params or semicolon.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- default"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_LPAREN);
+    }
+
+    // Case 2: Missing LPAREN.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- defaultint32);"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_EXPECTED_STATEMENT);
+    }
+
+    // Case 3: Missing Type.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- default();"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_TYPE);
+    }
+
+    // Case 4: Missing Closing Brace.
+    {
+        std::string input("package \"FooPackage\";"
+            "public int32 main() {"
+            "    x <- default(int32;"
+            "}");
+
+        CompilerStringSource source(input);
+        Lexer lexer(source);
+        Parser parser(lexer);
+
+        EXPECT_STATUS(parser.Parse(), STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_RPAREN);
+    }
+}
+
+TEST(Parser, CorrectDefaultExpressionTree) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    x <- default(List<int32>);"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* node = parser.Parse();
+
+
+
+    delete node;
+}
+
+// Check for no throw.
+TEST(Parser, AssignProperty) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    this.x <- this.x + 2;"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* node = parser.Parse();
+
+    delete node;
 }
 
 } // namespace compiler

@@ -7,6 +7,10 @@
 
 #include "gs_assert.h"
 #include "lirgen_ast_walker.h"
+#include "parser.h"
+#include "symbolimpl.h"
+
+#include "garbage_collector.h"
 
 using namespace nanojit;
 
@@ -28,20 +32,42 @@ static float FloatMod(float a1, float a2) {
 const CallInfo CI_FLOAT_MOD = {
     (uintptr_t)FloatMod,
     CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_F, ARGTYPE_F),
-    ABI_CDECL, 1, ACCSET_STORE_ANY verbose_only(, "fmod")};
+    ABI_CDECL, false, ACCSET_STORE_ANY verbose_only(, "fmod")};
 
 // Calling conventions for Gunderscript generated methods. One per machine level return type (int, float).
 // These methods all take two arguments: A function pointer and a pointer to a vector of arguments in the stack
 // and they return the function's return value. Admittedly this is weird but this is how arguments are passed in
 // Tamarin as well.
+// TODO: I suspect the 1 here is being mis-recognized as isPure=1 which could cause necessary function calls to be
+// erronenously optimized out.
+
+// Static methods:
 const CallInfo CI_ICALLI = {
     CALL_INDIRECT,
     CallInfo::typeSig2(ARGTYPE_I, ARGTYPE_P, ARGTYPE_P),
-    ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_int32")};
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "CallIndirect_int32")};
 const CallInfo CI_FCALLI = {
     CALL_INDIRECT,
     CallInfo::typeSig2(ARGTYPE_F, ARGTYPE_P, ARGTYPE_P),
-    ABI_CDECL, ACCSET_STORE_ANY, 1 verbose_only(, "CallIndirect_float32" )};
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "CallIndirect_float32" )};
+const CallInfo CI_PCALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig2(ARGTYPE_P, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "CallIndirect_pointer") };
+
+// Member methods.
+const CallInfo CI_M_ICALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig3(ARGTYPE_I, ARGTYPE_P, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "this.CallIndirect_int32") };
+const CallInfo CI_M_FCALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig3(ARGTYPE_F, ARGTYPE_P, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "this.CallIndirect_float32") };
+const CallInfo CI_M_PCALLI = {
+    CALL_INDIRECT,
+    CallInfo::typeSig3(ARGTYPE_P, ARGTYPE_P, ARGTYPE_P, ARGTYPE_P),
+    ABI_CDECL, 0, ACCSET_STORE_ANY verbose_only(, "this.CallIndirect_pointer") };
 
 // Generates IR code for the given module and stores it within the module.
 // Throws: If this module has failed compilation once or is already compiled
@@ -77,6 +103,8 @@ void LIRGenAstWalker::Generate(Module& module) {
     // Walk through the AST and find everything we need for our new Module.
     this->Walk();
 
+    GS_ASSERT_TRUE(this->register_table_.depth() == 1, "Inconsistent reg table levels");
+
     // Store the function lookup table in the module.
     module.pimpl()->set_func_table(this->func_table_);
 }
@@ -85,6 +113,36 @@ void LIRGenAstWalker::Generate(Module& module) {
 void LIRGenAstWalker::WalkModuleDependsName(Node* name_node) {
     // TODO: implement support for depends statements.
     THROW_NOT_IMPLEMENTED();
+}
+
+// Walks a spec declaration and calculates it's compiled size.
+void LIRGenAstWalker::WalkSpecDeclaration(
+    Node* spec_node,
+    Node* access_modifier_node,
+    Node* type_node,
+    bool prescan) {
+
+    // Run only during the prescan stage.
+    if (prescan) {
+        int compiled_size = 0;
+
+        Node* properties_node = spec_node->child(3);
+
+        GS_ASSERT_NODE_RULE(properties_node, NodeRule::PROPERTIES);
+
+        // Sum properties sizes.
+        for (size_t i = 0; i < properties_node->child_count(); i++) {
+            Node* property_type_node = properties_node->child(i)->child(0);
+            
+            GS_ASSERT_NODE_RULE(property_type_node, NodeRule::TYPE);
+
+            compiled_size += property_type_node->symbol()->type_symbol()->size();
+        }
+
+        // NOTE: there is no need to catch exceptions from this table. If this spec
+        // is a duplicate then the type checker messed up. It is supposed to ensure uniqueness.
+        this->type_size_table_.insert(std::make_pair(spec_node->symbol()->symbol_name(), compiled_size));
+    }
 }
 
 // Walks a single parameter in a spec function declaration and generates
@@ -97,27 +155,30 @@ LirGenResult LIRGenAstWalker::WalkSpecFunctionDeclarationParameter(
     Node* name_node,
     bool prescan) {
 
+    const TypeSymbol* param_type_symbol = function_param_node->symbol()->type_symbol();
+
     // Only run during actual code generation, not during the prescan for out of order functions.
     if (!prescan) {
 
         // Determine argument size.
-        int arg_size = function_param_node->symbol()->type().size();
+        int arg_size = param_type_symbol->size();
 
-        // Store the param load address in the register_table_
-        // TODO: make address calculation at compile instead of runtime.
-        // I haven't done this yet because it is dependedent upon redesigning the gen code to
-        // not store and load at EVERY variable assign and reference.
+#if defined _DEBUG
+        this->current_writer_->insComment(function_param_node->symbol()->symbol_name().c_str());
+#endif // _DEBUG
+
+        // Store the param load type, address, and offset in the register_table_
         this->register_table_.Put(
-            function_param_node->symbol()->name(),
+            function_param_node->symbol()->symbol_name(),
             std::make_tuple(
-                function_param_node->symbol()->type(),
-                RegisterEntry(
-                    this->current_writer_->ins2(LIR_addp,
-                        this->current_writer_->insParam(/* args vector*/ 0, /*func param kind*/0),
-                        this->current_writer_->insImmI(arg_size * this->param_offset_++)))));
+                param_type_symbol,
+                this->current_writer_->insParam(/* args vector*/ 0, /*func param kind*/0),
+                this->param_offset_));
+
+        this->param_offset_ += arg_size;
     }
 
-    return LirGenResult(function_param_node->symbol()->type(), NULL);
+    return LirGenResult(param_type_symbol, NULL);
 }
 
 // Walks a single property in a spec property declaration and emits code.
@@ -130,7 +191,57 @@ void LIRGenAstWalker::WalkSpecPropertyDeclaration(
     Node* get_access_modifier_node,
     Node* set_access_modifier_node,
     bool prescan) {
-    // TODO: declare spec properties code.
+
+    // Only run during the prescan for out of order properties.
+    if (prescan) {
+
+        const TypeSymbol* property_type_symbol = get_property_function_node->symbol()->type_symbol();
+
+        // Determine argument size.
+        int arg_size = property_type_symbol->size();
+
+        // Store the property load address in the register_table_.
+        this->register_table_.PutBottom(
+            get_property_function_node->symbol()->symbol_name(),
+            std::make_tuple(
+                property_type_symbol,
+                (LIns*)NULL,
+                this->property_offset_));
+
+        this->register_table_.PutBottom(
+            set_property_function_node->symbol()->symbol_name(),
+            std::make_tuple(
+                property_type_symbol,
+                (LIns*)NULL,
+                this->property_offset_));
+
+        this->property_offset_ += arg_size;
+    }
+}
+
+LirGenResult LIRGenAstWalker::WalkFunctionCall(
+    Node* spec_node,
+    Node* name_node,
+    Node* call_node,
+    std::vector<LirGenResult>& arguments_result) {
+
+    const SymbolBase* call_symbol = call_node->symbol();
+
+    // Check if this is a function-like typecast.
+    // If so generate typecast code.
+    if (call_symbol->symbol_type() == SymbolType::TYPE) {
+        return WalkFunctionLikeTypecast(
+            spec_node,
+            name_node,
+            call_node, arguments_result.at(0));
+    }
+
+    return WalkFunctionCall(
+        spec_node,
+        name_node,
+        call_node,
+        arguments_result,
+        NULL);
 }
 
 // Walks a function call and function-like typecasts and emits code.
@@ -138,24 +249,31 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
     Node* spec_node,
     Node* name_node,
     Node* call_node,
-    std::vector<LirGenResult>& arguments_result) {
+    std::vector<LirGenResult>& arguments_result,
+    LirGenResult* obj_ref_result) {
 
-    const Symbol& function_symbol = call_node->symbol();
+    return WalkFunctionCall(
+        call_node->symbol(),
+        arguments_result,
+        obj_ref_result);
+}
 
-    // Check if this is a function-like typecast.
-    // If so generate typecast code.
-    if (function_symbol.symbol_type() == SymbolType::TYPE) {
-        return WalkFunctionLikeTypecast(
-            spec_node,
-            name_node,
-            call_node, arguments_result.at(0));
-    }
+// Walks a function call and function-like typecasts and emits code.
+LirGenResult LIRGenAstWalker::WalkFunctionCall(
+    const SymbolBase* call_symbol,
+    std::vector<LirGenResult>& arguments_result,
+    LirGenResult* obj_ref_result) {
+
+#if defined _DEBUG
+    this->current_writer_->insComment(call_symbol->symbol_name().c_str());
+#endif // _DEBUG
 
     // Lookup the function's register entry.
     // Register entry contains register information for variables and 
     // a pointer to a location that will contain a function pointer after compilation
     // for functions. This is done to avoid the need to backpatch function addresses later.
-    std::tuple<Type, RegisterEntry> function_reg_tuple = this->register_table_.Get(call_node->symbol()->name());
+    std::tuple<const SymbolBase*, LIns*, int> function_reg_tuple
+        = this->register_table_.Get(call_symbol->symbol_name());
 
     // NanoJIT unfortunately depends on having a function pointer to jump to for function calls,
     // however, we don't have one readily available for most functions since compilation hasn't
@@ -165,25 +283,39 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
     // write instructions to load them and call them. This also has the added benefit of making
     // it easy to perform partial recompiles by simply recompiling the modified function and
     // updating its pointer.
-    LIns* target = this->current_writer_->insLoad(LIR_ldp,
-        this->current_writer_->insImmP(std::get<1>(function_reg_tuple).func_), 0, ACCSET_ALL, LOAD_NORMAL);
+    LIns* target = this->current_writer_->insLoad(
+        LIR_ldp,
+        this->current_writer_->insImmP(std::get<1>(function_reg_tuple)),
+        0,
+        ACCSET_ALL,
+        LOAD_NORMAL);
 
     // Choose indirect call method. Arguments are passed as a single argument in a vector so
     // only one call method is needed per return type.
     const CallInfo* method = NULL;
-    switch (call_node->symbol()->type().type_format())
+    const TypeSymbol* return_type_symbol = SYMBOL_TO_FUNCTION(call_symbol)->type_symbol();
+
+    switch (return_type_symbol->type_format())
     {
+    case TypeFormat::POINTER:
+        method = obj_ref_result == NULL ? &CI_PCALLI : &CI_M_PCALLI;
+        break;
+    case TypeFormat::FVOID:
     case TypeFormat::BOOL:
     case TypeFormat::INT:
-        method = &CI_ICALLI;
+        method = obj_ref_result == NULL ? &CI_ICALLI : &CI_M_ICALLI;
         break;
     case TypeFormat::FLOAT:
-        method = &CI_FCALLI;
+        method = obj_ref_result == NULL ? &CI_FCALLI : &CI_M_FCALLI;
         break;
     default:
         GS_ASSERT_FAIL("Unimplemented return type in function call");
     }
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Store arguments");
+#endif // _DEBUG
+    
     // Create a stack alloc instruction for a vector of arguments. This is backpatched later.
     LIns* arguments_vector = arguments_vector = this->current_writer_->insAlloc(sizeof(uint8_t));
 
@@ -194,8 +326,12 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
         for (size_t i = 0; i < arguments_result.size(); i++) {
             LirGenResult& argument = arguments_result.at(i);
 
-            EmitStore(argument.type(), arguments_vector, arg_offset, argument.ins());
-            arg_offset += argument.type().size();
+#if defined _DEBUG
+            this->current_writer_->insComment(argument.symbol()->symbol_name().c_str());
+#endif // _DEBUG
+
+            EmitStore(argument.symbol(), arguments_vector, arg_offset, argument.ins());
+            arg_offset += argument.symbol()->type_symbol()->size();
         }
 
         // Backpatch the size of the arguments vector to the sum of the sizes of the
@@ -215,13 +351,115 @@ LirGenResult LIRGenAstWalker::WalkFunctionCall(
     // NanoJIT appears to require the function pointer to be the last argument but this is merely
     // speculation as it is undocumented and the code is difficult to follow. If tests fail, try
     // making it first.
-    LIns* args[] = { arguments_vector, target };
-    LIns* call = this->current_writer_->insCall(method, args);
+    LIns* call;
+    if (obj_ref_result == NULL) {
+
+#if defined _DEBUG
+        this->current_writer_->insComment("Perform static call");
+#endif // _DEBUG
+
+        LIns* args[] = { arguments_vector, target };
+        call = this->current_writer_->insCall(method, args);
+    }
+    else {
+
+#if defined _DEBUG
+        this->current_writer_->insComment("Perform member call");
+#endif // _DEBUG
+
+        LIns* args[] = { obj_ref_result->ins(), arguments_vector, target };
+        call = this->current_writer_->insCall(method, args);
+    }
 
     // Ensure the arguments remain live until after the call.
     this->current_writer_->ins1(LIR_livep, arguments_vector);
 
-    return LirGenResult(call_node->symbol()->type(), call);
+    return LirGenResult(return_type_symbol, call);
+}
+
+// Walks a member expression.
+// e.g.: this.x()
+LirGenResult LIRGenAstWalker::WalkMemberFunctionCall (
+    Node* spec_node,
+    Node* member_node,
+    LirGenResult left_result,
+    Node* right_node,
+    std::vector<LirGenResult>& arguments_result) {
+
+    GS_ASSERT_TRUE(right_node->rule() == NodeRule::CALL,
+        "Unimplemented or improper member right node rule");
+
+    Node* name_node = right_node->child(0);
+
+    GS_ASSERT_NODE_RULE(name_node, NodeRule::NAME);
+
+    // Walking a member function works pretty much the same as a non-member function
+    // at this stage. Thanks to the typechecker the right_node (call_node) has been
+    // annotated with the proper function call symbol and can simply be fed
+    // to the normal code generator.
+    return WalkFunctionCall(
+        spec_node,
+        name_node,
+        right_node,
+        arguments_result,
+        &left_result);
+}
+
+LirGenResult LIRGenAstWalker::WalkMemberPropertyGet(
+    Node* spec_node,
+    Node* member_node,
+    LirGenResult left_result,
+    Node* right_node) {
+
+    const SymbolBase* member_symbol = member_node->symbol();
+
+    // Lookup property entry.
+    const std::tuple<const SymbolBase*, LIns*, int>& reg_tuple
+        = this->register_table_.Get(member_symbol->symbol_name());
+
+#if defined _DEBUG
+    this->current_writer_->insComment("Property get");
+    this->current_writer_->insComment(member_node->symbol()->symbol_name().c_str());
+#endif // _DEBUG
+
+    // Emit load instruction to load the value from a spec instance property.
+    // The base pointer is the pointer from the left side of the member expression
+    // (left.right) and the offset is the stored offset associated with this property
+    // in the register table.
+    return LirGenResult(
+        member_symbol->type_symbol(),
+        EmitLoad(member_symbol, left_result.ins(), std::get<2>(reg_tuple)));
+}
+
+LirGenResult LIRGenAstWalker::WalkMemberPropertySet(
+    Node* spec_node,
+    Node* member_node,
+    LirGenResult left_result,
+    Node* right_node,
+    LirGenResult value_result) {
+
+    const SymbolBase* member_symbol = member_node->symbol();
+
+    // Lookup property entry.
+    const std::tuple<const SymbolBase*, LIns*, int>& reg_tuple
+        = this->register_table_.Get(member_symbol->symbol_name());
+
+#if defined _DEBUG
+    this->current_writer_->insComment("Property set");
+    this->current_writer_->insComment(member_node->symbol()->symbol_name().c_str());
+#endif // _DEBUG
+
+    // Emit store instruction to store the value in a spec instance property.
+    // The base pointer is the pointer from the left side of the member expression
+    // (left.right) and the offset is the stored offset associated with this property
+    // in the register table.
+    EmitStore(member_symbol, left_result.ins(), std::get<2>(reg_tuple), value_result.ins());
+
+    // Return value_result.ins(), or, the value of the assignment expression so that we can
+    // chain property assignments, like so: this.x <- this.y <- 3;
+    return LirGenResult(
+        member_symbol->type_symbol(),
+        value_result.ins());
 }
 
 // Walks a function-like typecast and generates code for the type conversions.
@@ -231,19 +469,22 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
     Node* call_node,
     LirGenResult argument_result) {
 
+    const TypeSymbol* cast_symbol = call_node->symbol()->type_symbol();
+    const TypeSymbol* expression_symbol = argument_result.symbol()->type_symbol();
+
     // If types are the same, no conversion neccessary.
-    if (argument_result.type() == call_node->symbol()->type()) {
+    if (*expression_symbol == *cast_symbol) {
         return argument_result;
     }
 
-    switch (call_node->symbol()->type().type_format()) {
+    switch (cast_symbol->type_format()) {
     case TypeFormat::INT:
-        if (argument_result.type().type_format() == TypeFormat::FLOAT) {
-            return LirGenResult(call_node->symbol()->type(),
+        if (expression_symbol->type_format() == TypeFormat::FLOAT) {
+            return LirGenResult(cast_symbol,
                 this->current_writer_->ins1(LIR_f2i, argument_result.ins()));
         }
-        else if (argument_result.type().type_format() == TypeFormat::INT ||
-            argument_result.type().type_format() == TypeFormat::BOOL) {
+        else if (expression_symbol->type_format() == TypeFormat::INT ||
+            expression_symbol->type_format() == TypeFormat::BOOL) {
 
             // POTENTIAL BUG BUG BUG:
             // Although INT8/CHAR type is only 1 byte in size whereas INT32/INT is 32 bits
@@ -255,20 +496,20 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
             // typecasts should occur after a value has been loaded into a register and is once again
             // 32 bits. If this fails though you'll know it's because the value being typecasted is
             // not in a register (if this is even possible) or is greater than 4 bytes in size.
-            return LirGenResult(call_node->symbol()->type(), argument_result.ins());
+            return LirGenResult(cast_symbol, argument_result.ins());
         }
         break;
 
     case TypeFormat::FLOAT:
-        if (argument_result.type().type_format() == TypeFormat::INT ||
-            argument_result.type().type_format() == TypeFormat::BOOL) {
-            return LirGenResult(call_node->symbol()->type(),
+        if (expression_symbol->type_format() == TypeFormat::INT ||
+            expression_symbol->type_format() == TypeFormat::BOOL) {
+            return LirGenResult(cast_symbol,
                 this->current_writer_->ins1(LIR_i2f, argument_result.ins()));
         }
         break;
 
     case TypeFormat::BOOL:
-        if (argument_result.type().type_format() == TypeFormat::INT) {
+        if (expression_symbol->type_format() == TypeFormat::INT) {
             // The process for typecasting from INT to BOOL is more complex than BOOL to int
             // because going from BOOL to int we already know that BOOL is in {0, 1}
             // but going from INT to BOOL the INT can be anything so we compile this typecast
@@ -288,7 +529,7 @@ LirGenResult LIRGenAstWalker::WalkFunctionLikeTypecast(
                 this->current_writer_->insImmI(1),
                 true);
 
-            return LirGenResult(call_node->symbol()->type(), choose_ins);
+            return LirGenResult(cast_symbol, choose_ins);
         }
         break;
     }
@@ -310,7 +551,7 @@ LirGenResult LIRGenAstWalker::WalkAssign(
     // Check if the variable name was bound in the current scope. If it was, it is a local
     // and we can use the NanoJIT register for it.
     try {
-        variable_ptr = std::get<1>(this->register_table_.GetTopOnly(*name_node->string_value())).ins_;
+        variable_ptr = std::get<1>(this->register_table_.GetTopOnly(*name_node->string_value()));;
         goto emit_assign_ins;
     }
     catch (const Exception&) {
@@ -321,26 +562,32 @@ LirGenResult LIRGenAstWalker::WalkAssign(
         // If not, this variable is a narrower scope variable of the same name and a different
         // type that is masking the old one.
         try {
-            std::tuple<Type, RegisterEntry> variable_reg = this->register_table_.Get(*name_node->string_value());
+            std::tuple<const SymbolBase*, LIns*, int> variable_reg = this->register_table_.Get(*name_node->string_value());
 
-            if (std::get<0>(variable_reg) == operations_result.type()) {
-                variable_ptr = std::get<1>(variable_reg).ins_;
+            if (*(std::get<0>(variable_reg)->type_symbol()) == *(operations_result.symbol()->type_symbol())) {
+                variable_ptr = std::get<1>(variable_reg);
                 goto emit_assign_ins;
             }
             /* else: Fall into new alloc */
         }
         catch (const Exception&) { /* Fall into new alloc */ }
-    }
+    } 
 
     // New Alloc: Allocate a new register (NanoJIT register) for this variable name,
     // it has either never been seen before or is a new var of a different type masking
     // the original definition in an enclosing scope.
-    variable_ptr = this->current_writer_->insAlloc(operations_result.type().size());
-    this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.type(), RegisterEntry(variable_ptr) ));
+    variable_ptr = this->current_writer_->insAlloc(operations_result.symbol()->type_symbol()->size());
+    this->register_table_.Put(*name_node->string_value(), std::make_tuple(operations_result.symbol(), variable_ptr, 0));
 
     // Emit the assignment instruction. Dijkstra doesn't have to agree with me, gotos can be useful.
 emit_assign_ins:
-    EmitStore(operations_result.type(), variable_ptr, 0, operations_result.ins());
+
+#if defined _DEBUG
+    this->current_writer_->insComment("Variable assignment:");
+    this->current_writer_->insComment(name_node->string_value()->c_str());
+#endif // _DEBUG
+
+    EmitStore(operations_result.symbol()->type_symbol(), variable_ptr, 0, operations_result.ins());
 
     // The value and type of an assignment is equal to that of the right hand
     // side of the operation (the expression). Simply pass it along.
@@ -354,33 +601,48 @@ LirGenResult LIRGenAstWalker::WalkReturn(
     Node* function_node,
     Node* property_node,
     PropertyFunction property_function,
-    LirGenResult expression_result,
+    LirGenResult* expression_result,
     std::vector<LirGenResult>* arguments_result) {
 
-    switch (expression_result.type().type_format())
+#if defined _DEBUG
+    this->current_writer_->insComment("Return Statement");
+#endif // _DEBUG
+
+    // No return expression given. Void function or constructor.
+    if (expression_result == NULL) {
+        return LirGenResult(&TYPE_VOID,
+            this->current_writer_->ins1(LIR_reti, this->current_writer_->insImmI(0)));
+    }
+
+    const TypeSymbol* expression_result_symbol = expression_result->symbol()->type_symbol();
+
+    switch (expression_result_symbol->type_format())
     {
     case TypeFormat::BOOL:
     case TypeFormat::INT:
-        switch (expression_result.type().size())
+        switch (expression_result_symbol->size())
         {
         case 4:
         case 1:
             // Return of 1 byte INT8/CHAR values is still LIR_reti because the actual
             // operation occurs in a standard >= 32 bit register on many systems.
-            return LirGenResult(expression_result.type(), 
-                this->current_writer_->ins1(LIR_reti, expression_result.ins()));
+            return LirGenResult((*expression_result).symbol(), 
+                this->current_writer_->ins1(LIR_reti, expression_result->ins()));
         }
         break;
     case TypeFormat::FLOAT:
-        switch (expression_result.type().size())
+        switch (expression_result_symbol->size())
         {
         case 4:
             // Return of 1 byte INT8/CHAR values is still LIR_reti because the actual
             // operation occurs in a standard >= 32 bit register on many systems.
-            return LirGenResult(expression_result.type(),
-                this->current_writer_->ins1(LIR_retf, expression_result.ins()));
+            return LirGenResult((*expression_result).symbol(),
+                this->current_writer_->ins1(LIR_retf, expression_result->ins()));
         }
         break;
+    case TypeFormat::POINTER:
+        return LirGenResult((*expression_result).symbol(),
+            this->current_writer_->ins1(LIR_retp, expression_result->ins()));
     }
 
     // Unknown return type.
@@ -396,28 +658,34 @@ LirGenResult LIRGenAstWalker::WalkAdd(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Add expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Ignore right_result types, we already went through the semantic_ast_walker.
     // Types are known.
-    switch (left_result.type().type_format())
+    switch (left_symbol->type_format())
     {
     case TypeFormat::INT:
-        switch (left_result.type().size())
+        switch (left_symbol->size())
         {
         case 4:
         case 1:
             // Addition of 1 INT8/CHAR values is still LIR_addi because the actual
             // operation occurs in a standard >= 32 bit register.
             return LirGenResult(
-                left_result.type(),
+                left_result.symbol(),
                 this->current_writer_->ins2(LIR_addi, left_result.ins(), right_result.ins()));
         }
         break;
     case TypeFormat::FLOAT:
-        switch (left_result.type().size())
+        switch (left_symbol->size())
         {
         case 4:
             return LirGenResult(
-                left_result.type(),
+                left_result.symbol(),
                 this->current_writer_->ins2(LIR_addf, left_result.ins(), right_result.ins()));
         }
         break;
@@ -436,16 +704,21 @@ LirGenResult LIRGenAstWalker::WalkSub(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Sub expr");
+#endif // _DEBUG
+
+    const TypeSymbol* right_symbol = right_node->symbol()->type_symbol();
     LIns* left_ins = left_result.ins();
 
     // HACK: For the WalkSub case in particular we MUST use ONLY the RIGHT node's type because
     // the SemanticAstWalker returns ANY_TYPE for the left operand to get around the explict
     // typecast requirement for all operands with negative numbers.
     // TODO: see Github Issue #101 for fix for this.
-    switch (right_result.type().type_format())
+    switch (right_symbol->type_format())
     {
     case TypeFormat::INT:
-        switch (right_result.type().size())
+        switch (right_symbol->size())
         {
         case 4:
         case 1:
@@ -457,12 +730,12 @@ LirGenResult LIRGenAstWalker::WalkSub(
             // Subtraction of 1 byte INT8/CHAR values is still LIR_subi because the actual
             // operation occurs in a standard >= 32 bit register.
             return LirGenResult(
-                right_result.type(),
+                right_result.symbol(),
                 this->current_writer_->ins2(LIR_subi, left_ins, right_result.ins()));
         }
         break;
     case TypeFormat::FLOAT:
-        switch (right_result.type().size())
+        switch (right_symbol->size())
         {
         case 4:
             // HACK: negative numbers special case.
@@ -471,7 +744,7 @@ LirGenResult LIRGenAstWalker::WalkSub(
             }
 
             return LirGenResult(
-                right_result.type(),
+                right_result.symbol(),
                 this->current_writer_->ins2(LIR_subf, left_ins, right_result.ins()));
         }
         break;
@@ -490,28 +763,34 @@ LirGenResult LIRGenAstWalker::WalkMul(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Mul expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Ignore right_result types, we already went through the semantic_ast_walker.
     // Types are known.
-    switch (left_result.type().type_format())
+    switch (left_symbol->type_format())
     {
     case TypeFormat::INT:
-        switch (left_result.type().size())
+        switch (left_symbol->size())
         {
         case 4:
         case 1:
             // Multiplication of 1 INT8/CHAR value is still LIR_muli because the actual
             // operation occurs in a standard >= 32 bit register.
             return LirGenResult(
-                left_result.type(),
+                left_result.symbol(),
                 this->current_writer_->ins2(LIR_muli, left_result.ins(), right_result.ins()));
         }
         break;
     case TypeFormat::FLOAT:
-        switch (left_result.type().size())
+        switch (left_symbol->size())
         {
         case 4:
             return LirGenResult(
-                left_result.type(),
+                left_result.symbol(),
                 this->current_writer_->ins2(LIR_mulf, left_result.ins(), right_result.ins()));
         }
         break;
@@ -530,28 +809,34 @@ LirGenResult LIRGenAstWalker::WalkDiv(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Div expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Ignore right_result types, we already went through the semantic_ast_walker.
     // Types are known.
-    switch (left_result.type().type_format())
+    switch (left_symbol->type_format())
     {
     case TypeFormat::INT:
-        switch (left_result.type().size())
+        switch (left_symbol->size())
         {
         case 4:
         case 1:
             // Division of 1 INT8/CHAR values is still LIR_divi because the actual
             // operation occurs in a standard >= 32 bit register.
             return LirGenResult(
-                left_result.type(),
+                left_result.symbol(),
                 this->current_writer_->ins2(LIR_divi, left_result.ins(), right_result.ins()));
         }
         break;
     case TypeFormat::FLOAT:
-        switch (left_result.type().size())
+        switch (left_symbol->size())
         {
         case 4:
             return LirGenResult(
-                left_result.type(),
+                left_result.symbol(),
                 this->current_writer_->ins2(LIR_divf, left_result.ins(), right_result.ins()));
         }
         break;
@@ -571,12 +856,18 @@ LirGenResult LIRGenAstWalker::WalkMod(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Mod expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Ignore right_result types, we already went through the semantic_ast_walker.
     // Types are known.
-    switch (left_result.type().type_format())
+    switch (left_symbol->type_format())
     {
     case TypeFormat::INT:
-        switch (left_result.type().size())
+        switch (left_symbol->size())
         {
         case 4:
         case 1:
@@ -584,7 +875,7 @@ LirGenResult LIRGenAstWalker::WalkMod(
             // operation occurs in a standard >= 32 bit register.
 #if defined NANOJIT_IA32 || defined NANOJIT_X64
             return LirGenResult(
-                left_result.type(),
+                left_result.symbol(),
                 this->current_writer_->ins1(LIR_modi,
                     this->current_writer_->ins2(LIR_divi, left_result.ins(), right_result.ins())));
 #else
@@ -597,7 +888,7 @@ LirGenResult LIRGenAstWalker::WalkMod(
         }
         break;
     case TypeFormat::FLOAT:
-        switch (left_result.type().size())
+        switch (left_symbol->size())
         {
         case 4:
         {
@@ -607,7 +898,7 @@ LirGenResult LIRGenAstWalker::WalkMod(
             // in reverse order.
             LIns* float_args[3] = { right_result.ins(), left_result.ins(), NULL };
             return LirGenResult(
-                left_result.type(),
+                left_result.symbol(),
                 this->current_writer_->insCall(&CI_FLOAT_MOD, float_args));
         }
         }
@@ -625,15 +916,16 @@ LirGenResult LIRGenAstWalker::WalkLogNot(
     Node* child_node,
     LirGenResult child_result) {
 
-    // XORing a boolean value by 1 effectively performs effectively performs a NOT
-    // operation: 1 xor 1 = 0; 0 xor 1 = 1;
-    // This assumption works as long as we force booleans to ALWAYS be 0 or 1 only.
-    // TODO: can we do this with one instruction instead of two??
+#if defined _DEBUG
+    this->current_writer_->insComment("LogNot expr");
+#endif // _DEBUG
+
     return LirGenResult(
-        TYPE_BOOL,
-        this->current_writer_->ins2(LIR_xori,
-            this->current_writer_->insImmI(1),
-            child_result.ins()));
+        &TYPE_BOOL,
+        this->current_writer_->ins2ImmI(
+            LIR_xori,
+            child_result.ins(),
+            1));
 }
 
 // Walks the LOGAND node and generates code for it.
@@ -645,29 +937,17 @@ LirGenResult LIRGenAstWalker::WalkLogAnd(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    // XORing a boolean value by 1 effectively performs effectively performs a NOT
-    // operation: 1 xor 1 = 0; 0 xor 1 = 1;
-    // This assumption works as long as we force booleans to ALWAYS be 0 or 1 only.
-    // TODO: can we do this with one instruction instead of two??
-    LIns* negated_left_inst = this->current_writer_->ins2(
-        LIR_xori,
-        this->current_writer_->insImmI(1),
-        left_result.ins());
+#if defined _DEBUG
+    this->current_writer_->insComment("LogAnd expr");
+#endif // _DEBUG
 
-    // Short circuit evaluation of AND instruction:
-    // If the left condition is true (because we negated it,
-    // we return the value true immediately. If it is false (it was true
-    // before the negation we instead obtain our true/false value by
-    // evaluating the right instruction which may be a true,
-    // false, or a tree of additional boolean operations.
-    // TODO: can we use CMOV here? CMOV might break short circuit eval.
+    // TODO: short circuit.
     return LirGenResult(
-        TYPE_BOOL,
-        this->current_writer_->insChoose(
-            negated_left_inst,
-            this->current_writer_->insImmI(0),
-            right_result.ins(),
-            false));
+        &TYPE_BOOL,
+        this->current_writer_->ins2(
+            LIR_andi,
+            left_result.ins(),
+            right_result.ins()));
 }
 
 // Walks the LOGOR node and generates code for it and its children.
@@ -679,19 +959,17 @@ LirGenResult LIRGenAstWalker::WalkLogOr(
     LirGenResult left_result,
     LirGenResult right_result) {
 
-    // Short circuit evaluation of OR instruction:
-    // If the left condition is true, we return the value true
-    // immediately. If it is false we instead obtain our true/false
-    // value by evaluating the right instruction which may be a true,
-    // false, or a tree of additional boolean operations.
-    // TODO: can we use CMOV here? CMOV might break short circuit eval.
+#if defined _DEBUG
+    this->current_writer_->insComment("LogOr expr");
+#endif // _DEBUG
+
+    // TODO: short circuit.
     return LirGenResult(
-        TYPE_BOOL,
-        this->current_writer_->insChoose(
+        &TYPE_BOOL,
+        this->current_writer_->ins2(
+            LIR_ori,
             left_result.ins(),
-            this->current_writer_->insImmI(1),
-            right_result.ins(),
-            false));
+            right_result.ins()));
 }
 
 // Walks the GREATER node and generates code for it.
@@ -703,13 +981,19 @@ LirGenResult LIRGenAstWalker::WalkGreater(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Greater expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Left and right are already the same type thanks to the typechecker.
-    switch (left_result.type().type_format()) {
+    switch (left_symbol->type_format()) {
     case TypeFormat::INT:
-        if (left_result.type().size() == 4 ||
-            left_result.type().size() == 1) {
+        if (left_symbol->size() == 4 ||
+            left_symbol->size() == 1) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_gti,
                     left_result.ins(),
@@ -717,9 +1001,9 @@ LirGenResult LIRGenAstWalker::WalkGreater(
         }
         break;
     case TypeFormat::FLOAT:
-        if (left_result.type().size() == 4) {
+        if (left_symbol->size() == 4) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_gtf,
                     left_result.ins(),
@@ -740,13 +1024,26 @@ LirGenResult LIRGenAstWalker::WalkEquals(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Equals expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Left and right are already the same type thanks to the typechecker.
-    switch (left_result.type().type_format()) {
+    switch (left_symbol->type_format()) {
+    case TypeFormat::POINTER:
+        return LirGenResult(
+            &TYPE_BOOL,
+            this->current_writer_->ins2(
+                LIR_eqp,
+                left_result.ins(),
+                right_result.ins()));
     case TypeFormat::INT:
-        if (left_result.type().size() == 4 ||
-            left_result.type().size() == 1) {
+        if (left_symbol->size() == 4 ||
+            left_symbol->size() == 1) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_eqi,
                     left_result.ins(),
@@ -754,9 +1051,9 @@ LirGenResult LIRGenAstWalker::WalkEquals(
         }
         break;
     case TypeFormat::FLOAT:
-        if (left_result.type().size() == 4) {
+        if (left_symbol->size() == 4) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_eqf,
                     left_result.ins(),
@@ -778,16 +1075,32 @@ LirGenResult LIRGenAstWalker::WalkNotEquals(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Not equals expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Left and right are already the same type thanks to the typechecker.
-    switch (left_result.type().type_format()) {
+    switch (left_symbol->type_format()) {
+    case TypeFormat::POINTER:
+        return LirGenResult(
+            &TYPE_BOOL,
+            this->current_writer_->ins2(
+                LIR_xori,
+                this->current_writer_->insImmI(1),
+                this->current_writer_->ins2(
+                    LIR_eqp,
+                    left_result.ins(),
+                    right_result.ins())));
     case TypeFormat::INT:
-        if (left_result.type().size() == 4 ||
-            left_result.type().size() == 1) {
+        if (left_symbol->size() == 4 ||
+            left_symbol->size() == 1) {
 
             // TODO: can we do this with one instruction??
             // XORing 1 or 0 by 1 flips.
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_xori,
                     this->current_writer_->insImmI(1),
@@ -798,12 +1111,12 @@ LirGenResult LIRGenAstWalker::WalkNotEquals(
         }
         break;
     case TypeFormat::FLOAT:
-        if (left_result.type().size() == 4) {
+        if (left_symbol->size() == 4) {
 
             // TODO: can we do this with one instruction??
             // XORing 1 or 0 by 1 flips.
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_xori,
                     this->current_writer_->insImmI(1),
@@ -828,13 +1141,19 @@ LirGenResult LIRGenAstWalker::WalkLess(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Less expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Left and right are already the same type thanks to the typechecker.
-    switch (left_result.type().type_format()) {
+    switch (left_symbol->type_format()) {
     case TypeFormat::INT:
-        if (left_result.type().size() == 4 ||
-            left_result.type().size() == 1) {
+        if (left_symbol->size() == 4 ||
+            left_symbol->size() == 1) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_lti,
                     left_result.ins(),
@@ -842,9 +1161,9 @@ LirGenResult LIRGenAstWalker::WalkLess(
         }
         break;
     case TypeFormat::FLOAT:
-        if (left_result.type().size() == 4) {
+        if (left_symbol->size() == 4) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_ltf,
                     left_result.ins(),
@@ -866,13 +1185,19 @@ LirGenResult LIRGenAstWalker::WalkGreaterEquals(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Greater equals expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Left and right are already the same type thanks to the typechecker.
-    switch (left_result.type().type_format()) {
+    switch (left_symbol->type_format()) {
     case TypeFormat::INT:
-        if (left_result.type().size() == 4 ||
-            left_result.type().size() == 1) {
+        if (left_symbol->size() == 4 ||
+            left_symbol->size() == 1) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_gei,
                     left_result.ins(),
@@ -880,9 +1205,9 @@ LirGenResult LIRGenAstWalker::WalkGreaterEquals(
         }
         break;
     case TypeFormat::FLOAT:
-        if (left_result.type().size() == 4) {
+        if (left_symbol->size() == 4) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_gef,
                     left_result.ins(),
@@ -904,13 +1229,19 @@ LirGenResult LIRGenAstWalker::WalkLessEquals(
     LirGenResult left_result,
     LirGenResult right_result) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Less equals expr");
+#endif // _DEBUG
+
+    const TypeSymbol* left_symbol = left_node->symbol()->type_symbol();
+
     // Left and right are already the same type thanks to the typechecker.
-    switch (left_result.type().type_format()) {
+    switch (left_symbol->type_format()) {
     case TypeFormat::INT:
-        if (left_result.type().size() == 4 ||
-            left_result.type().size() == 1) {
+        if (left_symbol->size() == 4 ||
+            left_symbol->size() == 1) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_lei,
                     left_result.ins(),
@@ -918,9 +1249,9 @@ LirGenResult LIRGenAstWalker::WalkLessEquals(
         }
         break;
     case TypeFormat::FLOAT:
-        if (left_result.type().size() == 4) {
+        if (left_symbol->size() == 4) {
             return LirGenResult(
-                TYPE_BOOL,
+                &TYPE_BOOL,
                 this->current_writer_->ins2(
                     LIR_lef,
                     left_result.ins(),
@@ -941,9 +1272,13 @@ LirGenResult LIRGenAstWalker::WalkBool(
     PropertyFunction property_function,
     Node* bool_node) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Bool constant expr");
+#endif // _DEBUG
+
     // In C++ bool values are usually integers of the value 0 -> false or 1 -> true
     // but we'll use a ternary just in case this is violated for some reason.
-    return LirGenResult(bool_node->symbol()->type(),
+    return LirGenResult(bool_node->symbol(),
         this->current_writer_->insImmI(
             bool_node->bool_value() ? 1 : 0));
 }
@@ -956,7 +1291,11 @@ LirGenResult LIRGenAstWalker::WalkInt(
     PropertyFunction property_function,
     Node* int_node) {
 
-    return LirGenResult(int_node->symbol()->type(),
+#if defined _DEBUG
+    this->current_writer_->insComment("Int constant expr");
+#endif // _DEBUG
+
+    return LirGenResult(int_node->symbol(),
         this->current_writer_->insImmI((int32_t)int_node->int_value()));
 }
 
@@ -968,7 +1307,11 @@ LirGenResult LIRGenAstWalker::WalkFloat(
     PropertyFunction property_function,
     Node* float_node) {
 
-    return LirGenResult(float_node->symbol()->type(),
+#if defined _DEBUG
+    this->current_writer_->insComment("Float constant expr");
+#endif // _DEBUG
+
+    return LirGenResult(float_node->symbol(),
         this->current_writer_->insImmF((float)float_node->float_value()));
 }
 
@@ -980,7 +1323,11 @@ LirGenResult LIRGenAstWalker::WalkString(
     PropertyFunction property_function,
     Node* string_node) {
 
-    THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+#if defined _DEBUG
+    this->current_writer_->insComment("String constant expr");
+#endif // _DEBUG
+
+    THROW_NOT_IMPLEMENTED();
 }
 
 // Walks the CHAR node and generates code for it.
@@ -991,9 +1338,13 @@ LirGenResult LIRGenAstWalker::WalkChar(
     PropertyFunction property_function,
     Node* char_node) {
 
+#if defined _DEBUG
+    this->current_writer_->insComment("Char constant expr");
+#endif // _DEBUG
+
     // Although INT8/CHAR type is only 1 byte, most registers are >= 32 bits
     // so the IMM is still of type int.
-    return LirGenResult(char_node->symbol()->type(),
+    return LirGenResult(char_node->symbol(),
         this->current_writer_->insImmI((int32_t)char_node->int_value()));
 }
 
@@ -1007,13 +1358,30 @@ LirGenResult LIRGenAstWalker::WalkVariable(
     Node* variable_node,
     Node* name_node) {
 
+    const SymbolBase* variable_type = variable_node->symbol();
+
+    // Special case _this_ pointer so we don't have to load every time.
+    if (*name_node->string_value() == kThisKeyword) {
+        if (this->this_ptr_ == NULL) {
+            this->this_ptr_ = this->current_writer_->insParam(/* _this_ pointer */ 1, /* function param */ 0);
+        }
+
+        return LirGenResult(variable_type, this->this_ptr_);
+    }
+
+#if defined _DEBUG
+    this->current_writer_->insComment("Variable reference expr");
+#endif // _DEBUG
+
+    const std::tuple<const SymbolBase*, LIns*, int>& reg_tuple
+        = this->register_table_.Get(*name_node->string_value());
+
     // No try/catch here, if register_table_ throws then the type checker made
     // a boo boo and didn't notice the missing variable initialization.
-    const Type& variable_type = variable_node->symbol()->type();
     LIns* load = EmitLoad(
-        variable_type,
-        std::get<1>(this->register_table_.Get(*name_node->string_value())).ins_,
-        0);
+        std::get<0>(reg_tuple),
+        std::get<1>(reg_tuple),
+        std::get<2>(reg_tuple));
 
     return LirGenResult(variable_type, load);
 }
@@ -1029,7 +1397,25 @@ LirGenResult LIRGenAstWalker::WalkAnyType(
 
     // TODO: Get rid of the ANY/NONE type.
     // this is a hack associated with Github issue #101 that needs to be fixed.
-    return LirGenResult(TYPE_NONE, NULL);
+    return LirGenResult(&TYPE_NONE, NULL);
+}
+
+// Optional implemented function that overrides base class implementation.
+// In SemanticAstWalker, this function overrides default action for walking
+// a spec and pushes another layer to the symbol_table_ to allow for declaration
+// of types and fields private to a spec, namely, Generic params.
+void LIRGenAstWalker::WalkSpec(Node* spec_node, PrescanMode scan_mode) {
+
+    this->register_table_.Push();
+
+    // Offset of next declared property from beginning of the object.
+    // Set to zero, we're starting a new object.
+    this->property_offset_ = 0;
+
+    // Call parent class implementation.
+    AstWalker::WalkSpec(spec_node, scan_mode);
+
+    this->register_table_.Pop();
 }
 
 // Optional implemented function that overrides base class implementation.
@@ -1041,6 +1427,7 @@ void LIRGenAstWalker::WalkFunctionChildren(
     bool prescan) {
 
     this->param_offset_ = 0;
+    this->this_ptr_ = NULL;
 
     // If we're doing code generation now:
     if (!prescan) {
@@ -1066,7 +1453,7 @@ void LIRGenAstWalker::WalkFunctionChildren(
 
     this->register_table_.Pop();
 
-    const Symbol* function_symbol = function_node->symbol();
+    const FunctionSymbol* function_symbol = SYMBOL_TO_FUNCTION(function_node->symbol());
 
     // If we're doing code generation now:
     if (prescan) {
@@ -1081,35 +1468,58 @@ void LIRGenAstWalker::WalkFunctionChildren(
         // all we need is to know where we WILL be able to find the pointer (where we can look
         // to get the pointer). These are stored in a contiguous buffer and are identified
         // positionally to correspond with the location of the function in the symbols_vector.
+        // NOTE: this code working properly is dependent upon the assumption that the prescan
+        // and the code gen steps are done in EXACTLY the same order every time.
         this->register_table_.PutBottom(
-            function_symbol->name(),
-            std::make_tuple(TYPE_FUNCTION, RegisterEntry(&(this->func_table_[this->current_function_index_++]))));
+            function_symbol->symbol_name(),
+            std::make_tuple(
+                &TYPE_FUNCTION,
+                reinterpret_cast<LIns*>(&(this->func_table_[this->current_function_index_++])),
+                0));
     } else {
+
+#if defined _DEBUG
+        this->current_writer_->insComment("Default return");
+#endif // _DEBUG
 
         // This is the end of the function, emit default return of zero.
         // Gunderscript 2.0 has no control flow analysis so this ensures that every function
         // returns.
         // For integer and floating point types this means default is numeric zero (0 or 0.0).
         // For BOOL default is false and for object default is NULL.
-        LIns* ret_value = NULL;
         LIns* ret_inst = NULL;
-        switch (function_symbol->type().size()) 
+        const TypeSymbol* function_type_symbol = function_symbol->type_symbol();
+        switch (function_type_symbol->size())
         {
+        case 8:
+            GS_ASSERT_TRUE(function_type_symbol->type_format() == TypeFormat::POINTER,
+                "Expected POINTER");
+            ret_inst = this->current_writer_->ins1(LIR_retp, this->current_writer_->insImmP(NULL));
+            break;
         case 4:
         case 1:
-            if (function_symbol->type().type_format() == TypeFormat::INT ||
-                function_symbol->type().type_format() == TypeFormat::BOOL) {
-                ret_value = this->current_writer_->insImmI(0);
-                ret_inst = this->current_writer_->ins1(LIR_reti, ret_value);
+            switch (function_type_symbol->type_format())
+            {
+            case TypeFormat::INT:
+            case TypeFormat::BOOL:
+                ret_inst = this->current_writer_->ins1(LIR_reti, this->current_writer_->insImmI(0));
                 break;
-            }
-            else if (function_symbol->type().type_format() == TypeFormat::FLOAT) {
-                ret_value = this->current_writer_->insImmF(0.0f);
-                ret_inst = this->current_writer_->ins1(LIR_retf, ret_value);
+            case TypeFormat::FLOAT:
+                ret_inst = this->current_writer_->ins1(LIR_retf, this->current_writer_->insImmF(0.0f));
                 break;
+            case TypeFormat::POINTER:
+                ret_inst = this->current_writer_->ins1(LIR_retp, this->current_writer_->insImmP(NULL));
+                break;
+            default:
+                GS_ASSERT_FAIL("Unimplemented default return");
             }
+            break;
+        case 0:
+            GS_ASSERT_TRUE(*function_type_symbol == TYPE_VOID, "Expected void type");
+            ret_inst = this->current_writer_->ins1(LIR_reti, this->current_writer_->insImmI(0));
+            break;
         default:
-            THROW_EXCEPTION(1, 1, STATUS_ILLEGAL_STATE);
+            GS_ASSERT_FAIL("Unimplemented default return");
         }
         this->current_fragment_->lastIns = ret_inst;
 
@@ -1118,8 +1528,8 @@ void LIRGenAstWalker::WalkFunctionChildren(
         // there is probably a problem with the lexer, parser, or typechecker.
         this->symbols_vector_->push_back(
             ModuleImplSymbol(
-                function_symbol->name(),
-                new Symbol(function_symbol),
+                function_symbol->symbol_name(),
+                function_symbol->type_symbol()->Clone(),
                 this->current_fragment_));
 
         // TODO: delete this somehow?? delete this->current_fragment_->lirbuf;
@@ -1140,15 +1550,9 @@ void LIRGenAstWalker::WalkIfStatementChildren(
     Node* if_node,
     std::vector<LirGenResult>* arguments_result) {
 
-    if (spec_node != NULL) {
-        GS_ASSERT_TRUE(spec_node->rule() == NodeRule::SPEC, "Expected SPEC in typechecker WalkIfStatementChildren");
-    }
-    if (function_node != NULL) {
-        GS_ASSERT_TRUE(function_node->rule() == NodeRule::FUNCTION, "Expected FUNCTION in typechecker WalkIfStatementChildren");
-    }
-    if (property_node != NULL) {
-        GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY, "Expected CALL in typechecker WalkIfStatementChildren");
-    }
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY);
 
     // Walk condition expression.
     LirGenResult condition_result = AstWalker<LirGenResult>::WalkExpressionChildren(
@@ -1158,8 +1562,20 @@ void LIRGenAstWalker::WalkIfStatementChildren(
         property_function,
         if_node->child(0));
 
+#if defined _DEBUG
+    this->current_writer_->insComment("If statement");
+#endif // _DEBUG
+
     // Jump to the else BLOCK if the condition is false. The label will be backpatched later.
-    LIns* jump_false_ins = this->current_writer_->insBranch(LIR_jf, condition_result.ins(), NULL);
+    // TODO: can we do this without the comparison? I have it here because some cases fail without it.
+    LIns* jump_false_ins = this->current_writer_->insBranch(LIR_jt,
+        this->current_writer_->ins2(LIR_eqi,
+            this->current_writer_->insImmI(0),
+            condition_result.ins()), NULL);
+
+#if defined _DEBUG
+    this->current_writer_->insComment("If statement body");
+#endif // _DEBUG
 
     // Walk true block and generate instructions.
     WalkBlockChildren(
@@ -1172,6 +1588,10 @@ void LIRGenAstWalker::WalkIfStatementChildren(
 
     // At the end of the true block jump past the end of the if/else.
     LIns* jump_end_ins = this->current_writer_->insBranch(LIR_j, NULL, NULL);
+
+#if defined _DEBUG
+    this->current_writer_->insComment("Else statement body");
+#endif // _DEBUG
 
     // Walk false block and generate instructions.
     jump_false_ins->setTarget(this->current_writer_->ins0(LIR_label));
@@ -1186,6 +1606,81 @@ void LIRGenAstWalker::WalkIfStatementChildren(
     jump_end_ins->setTarget(this->current_writer_->ins0(LIR_label));
 }
 
+// Walks a new Spec(arg1, arg2, ...) expression.
+LirGenResult LIRGenAstWalker::WalkNewExpression(
+    Node* new_node,
+    Node* type_node,
+    std::vector<LirGenResult>& arguments_result) {
+
+#if defined _DEBUG
+    this->current_writer_->insComment("New object expr");
+    this->current_writer_->insComment(type_node->symbol()->symbol_name().c_str());
+    this->current_writer_->insComment("Allocate memory for object");
+#endif // _DEBUG
+
+    // Lookup the spec's size and allocate enough memory to hold its properties.
+    // NOTE: there is no need to catch exceptions from this table. If it throws
+    // then the AstWalker is walking in the incorrect order.
+    int alloc_size = this->type_size_table_.at(type_node->symbol()->symbol_name());
+    LIns* size_arg[] = { this->current_writer_->insImmI(alloc_size) };
+
+    LIns* alloc_call_inst = this->current_writer_->insCall(&runtime::CI_GC_ALLOC, size_arg);
+
+    LirGenResult alloc_result(
+        type_node->symbol(),
+        alloc_call_inst);
+
+#if defined _DEBUG
+    this->current_writer_->insComment("Call object constructor");
+#endif // _DEBUG
+
+    // Call the constructor on our object.
+    WalkFunctionCall(
+        new_node->symbol(),
+        arguments_result,
+        &alloc_result);
+
+    this->current_writer_->ins0(LIR_regfence);
+
+    return alloc_result;
+}
+
+// Walks a default() expression.
+LirGenResult LIRGenAstWalker::WalkDefaultExpression(
+    Node* default_node,
+    Node* type_node) {
+
+
+#if defined _DEBUG
+    this->current_writer_->insComment("Default expr");
+#endif // _DEBUG
+
+    const TypeSymbol* type_symbol = default_node->symbol()->type_symbol();
+
+    LIns* value = NULL;
+    switch (type_symbol->type_format())
+    {
+    case TypeFormat::BOOL:
+    case TypeFormat::INT:
+        if (type_symbol->size() == 4 || type_symbol->size() == 1) {
+            value = this->current_writer_->insImmI(0);
+        }
+        break;
+    case TypeFormat::FLOAT:
+        if (type_symbol->size() == 4) {
+            value = this->current_writer_->insImmF(0.0);
+        }
+        break;
+    case TypeFormat::POINTER:
+        value = this->current_writer_->insImmP(NULL);
+        break;
+    default:
+        GS_ASSERT_FAIL("Unhandled default value case");
+    }
+
+    return LirGenResult(type_symbol, value);
+}
+
 // Walks children of the FOR statement node.
 // This is an optional override of the default functionality that gives the code
 // generator more granular control of the walking process.
@@ -1197,24 +1692,24 @@ void LIRGenAstWalker::WalkForStatementChildren(
     Node* for_node,
     std::vector<LirGenResult>* arguments_result) {
 
-    if (spec_node != NULL) {
-        GS_ASSERT_TRUE(spec_node->rule() == NodeRule::SPEC,
-            "Expected SPEC in typechecker WalkForStatementChildren");
-    }
-    if (function_node != NULL) {
-        GS_ASSERT_TRUE(function_node->rule() == NodeRule::FUNCTION,
-            "Expected FUNCTION in typechecker WalkForStatementChildren");
-    }
-    if (property_node != NULL) {
-        GS_ASSERT_TRUE(property_node->rule() == NodeRule::PROPERTY,
-            "Expected CALL in typechecker WalkForStatementChildren");
-    }
+#if defined _DEBUG
+    this->current_writer_->insComment("For statement");
+#endif // _DEBUG
+
+    GS_ASSERT_OPTIONAL_NODE_RULE(spec_node, NodeRule::SPEC);
+    GS_ASSERT_OPTIONAL_NODE_RULE(function_node, NodeRule::FUNCTION);
+    GS_ASSERT_OPTIONAL_NODE_RULE(property_node, NodeRule::PROPERTY)
 
     // Generate code for optional init expression if given.
     Node* init_node = for_node->child(0);
-    GS_ASSERT_TRUE(init_node->rule() == NodeRule::LOOP_INITIALIZE,
-        "Expected LOOP_INITIALIZE in typecheker WalkForStatementChildren");
+    GS_ASSERT_NODE_RULE(init_node, NodeRule::LOOP_INITIALIZE);
+
     if (init_node->child_count() > 0) {
+
+#if defined _DEBUG
+        this->current_writer_->insComment("For statement initialization");
+#endif // _DEBUG
+
         WalkExpressionChildren(
             spec_node,
             function_node,
@@ -1230,9 +1725,14 @@ void LIRGenAstWalker::WalkForStatementChildren(
     // Generate code for optional condition expression if given.
     // If not given, default behavior is to loop infinitely.
     Node* cond_node = for_node->child(1);
-    GS_ASSERT_TRUE(cond_node->rule() == NodeRule::LOOP_CONDITION,
-        "Expected LOOP_CONDITION in typecheker WalkForStatementChildren");
+    GS_ASSERT_NODE_RULE(cond_node, NodeRule::LOOP_CONDITION);
+
     if (cond_node->child_count() > 0) {
+
+#if defined _DEBUG
+        this->current_writer_->insComment("For statement condition");
+#endif // _DEBUG
+
         LirGenResult cond_result = WalkExpressionChildren(
             spec_node,
             function_node,
@@ -1241,7 +1741,11 @@ void LIRGenAstWalker::WalkForStatementChildren(
             cond_node->child(0));
 
         // If the loop condition is false, jump out. This jump is backpatched later on.
-        cond_ins = this->current_writer_->insBranch(LIR_jf, cond_result.ins(), NULL);
+        // TODO: can we get rid of this extra EQI?
+        cond_ins = this->current_writer_->insBranch(LIR_jt,
+            this->current_writer_->ins2(LIR_eqi,
+                this->current_writer_->insImmI(0),
+                cond_result.ins()), NULL);
     }
     // else: No loop condition, no jump, do the loop infinitely many times.
 
@@ -1256,9 +1760,14 @@ void LIRGenAstWalker::WalkForStatementChildren(
 
     // Codegen update expression if provided.
     Node* update_node = for_node->child(2);
-    GS_ASSERT_TRUE(update_node->rule() == NodeRule::LOOP_UPDATE,
-        "Expected LOOP_UPDATE in typecheker WalkForStatementChildren");
+    GS_ASSERT_NODE_RULE(update_node, NodeRule::LOOP_UPDATE);
+
     if (update_node->child_count() > 0) {
+
+#if defined _DEBUG
+        this->current_writer_->insComment("For statement update");
+#endif // _DEBUG
+
         WalkExpressionChildren(
             spec_node,
             function_node,
@@ -1305,30 +1814,34 @@ void LIRGenAstWalker::WalkBlockChildren(
 }
 
 // Emits a load instruction.
-LIns* LIRGenAstWalker::EmitLoad(const Type& type, LIns* base, int offset) {
+LIns* LIRGenAstWalker::EmitLoad(const SymbolBase* symbol, LIns* base, int offset) {
 
-    switch (type.type_format()) {
+    const TypeSymbol* type_symbol = symbol->type_symbol();
+
+    switch (type_symbol->type_format()) {
+    case TypeFormat::POINTER:
+        return this->current_writer_->insLoad(LIR_ldp, base, offset, ACCSET_ALL, LoadQual::LOAD_VOLATILE);
     case TypeFormat::BOOL:
     case TypeFormat::INT:
         // BOOL types are simply integers that contain either 1 or 0.
-        switch (type.size()) {
+        switch (type_symbol->size()) {
         case 4:
             // TODO: tighter access sets.
-            return this->current_writer_->insLoad(LIR_ldi, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+            return this->current_writer_->insLoad(LIR_ldi, base, offset, ACCSET_ALL, LoadQual::LOAD_VOLATILE);
         case 1:
             // Load 1 byte INT8/CHAR value and sign extend to fill the 32 bit register.
             // For those unfamilar with low level ops, all registers are >= 32 bit on our target
             // machines. There are no 1 byte registers.
-            return this->current_writer_->insLoad(LIR_ldc2i, base, offset, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+            return this->current_writer_->insLoad(LIR_ldc2i, base, offset, ACCSET_ALL, LoadQual::LOAD_VOLATILE);
         default:
             THROW_NOT_IMPLEMENTED();
         }
         break;
     case TypeFormat::FLOAT:
-        switch (type.size()) {
+        switch (type_symbol->size()) {
         case 4:
             // TODO: tighter access sets.
-            return this->current_writer_->insLoad(LIR_ldf, base, 0, ACCSET_ALL, LoadQual::LOAD_NORMAL);
+            return this->current_writer_->insLoad(LIR_ldf, base, offset, ACCSET_ALL, LoadQual::LOAD_VOLATILE);
         default:
             THROW_NOT_IMPLEMENTED();
         }
@@ -1340,13 +1853,17 @@ LIns* LIRGenAstWalker::EmitLoad(const Type& type, LIns* base, int offset) {
 }
 
 // Emits a store instruction.
-LIns* LIRGenAstWalker::EmitStore(const Type& type, LIns* base, int offset, LIns* value) {
+LIns* LIRGenAstWalker::EmitStore(const SymbolBase* symbol, LIns* base, int offset, LIns* value) {
 
-    switch (type.type_format()) {
+    const TypeSymbol* type_symbol = symbol->type_symbol();
+
+    switch (type_symbol->type_format()) {
+    case TypeFormat::POINTER:
+        return this->current_writer_->insStore(LIR_stp, value, base, offset, ACCSET_ALL);
     case TypeFormat::BOOL:
     case TypeFormat::INT:
         // BOOL types are simply integers that contain either 1 or 0.
-        switch (type.size()) {
+        switch (type_symbol->size()) {
         case 4:
             // TODO: tighter access sets.
             return this->current_writer_->insStore(LIR_sti, value, base, offset, ACCSET_ALL);
@@ -1358,7 +1875,7 @@ LIns* LIRGenAstWalker::EmitStore(const Type& type, LIns* base, int offset, LIns*
         }
         break;
     case TypeFormat::FLOAT:
-        switch (type.size()) {
+        switch (type_symbol->size()) {
         case 4:
             // TODO: tighter access sets.
             return this->current_writer_->insStore(LIR_stf, value, base, offset, ACCSET_ALL);

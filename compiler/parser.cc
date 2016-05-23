@@ -1,7 +1,9 @@
 // Gunderscript-2 Parser
 // (C) 2014-2016 Christian Gunderman
 
-#include  "gs_assert.h"
+#include <functional>
+
+#include "gs_assert.h"
 #include "parser.h"
 
 namespace gunderscript {
@@ -37,29 +39,11 @@ Node* Parser::ParseModule() {
         this->lexer_.current_column_number());
     ParsePackageDeclaration(module_node_);
 
-    Node* depends_node = new Node(
-        NodeRule::DEPENDS,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number());
-    Node* specs_node = new Node(
-        NodeRule::SPECS,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number());
-    Node* functions_node = new Node(
-        NodeRule::FUNCTIONS,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number());
-    module_node_->AddChild(depends_node);
-    module_node_->AddChild(specs_node);
-    module_node_->AddChild(functions_node);
+    // 0 or more.
+    ParseDependsStatements(module_node_);
 
-    // Allow end of file after package.
-    if (has_next()) {
-        AdvanceNext();
-        ParseDependsStatements(depends_node);
-    }
-
-    ParseModuleBody(specs_node, functions_node);
+    // 0 or more.
+    ParseModuleBody(module_node_);
 
     return module_node_;
 }
@@ -70,19 +54,21 @@ Node* Parser::ParseModule() {
 // is encountered with lexemes or syntax.
 void Parser::ParsePackageDeclaration(Node* node) {
 
+    GS_ASSERT_NODE_RULE(node, NodeRule::MODULE);
+
     // Check "package" keyword.
     if (!AdvanceKeyword(LexerSymbol::PACKAGE)) {
         THROW_EXCEPTION(
-            1,
-            1,
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
             STATUS_PARSER_MISSING_PACKAGE);
     }
 
     // Check package name string.
     if (AdvanceNext()->type != LexerTokenType::STRING) {
         THROW_EXCEPTION(
-            1,
-            1,
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
             STATUS_PARSER_INVALID_PACKAGE);
     }
 
@@ -94,7 +80,7 @@ void Parser::ParsePackageDeclaration(Node* node) {
         CurrentToken()->string_const));
 
     AdvanceNext();
-    ParseSemicolon(node);
+    ParseSemicolon();
 }
 
 // Parses all depends statements from a file. Depends statements indicate that this
@@ -104,14 +90,18 @@ void Parser::ParsePackageDeclaration(Node* node) {
 // is encountered with lexemes or syntax.
 void Parser::ParseDependsStatements(Node* node) {
 
-    // While in a series of "depends" statements, parse as "depends."
-    while (CurrentKeyword(LexerSymbol::DEPENDS)) {
-        ParseDependsStatement(node);
+    GS_ASSERT_NODE_RULE(node, NodeRule::MODULE);
 
-        // Allow empty file after depends statements.
-        if (has_next()) {
-            AdvanceNext();
-        }
+    Node* depends_node = new Node(
+        NodeRule::DEPENDS,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+
+    node->AddChild(depends_node);
+
+    // While in a series of "depends" statements, parse as "depends."
+    while (has_next() && AdvanceKeyword(LexerSymbol::DEPENDS)) {
+        ParseDependsStatement(depends_node);
     }
 }
 
@@ -121,6 +111,8 @@ void Parser::ParseDependsStatements(Node* node) {
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
 void Parser::ParseDependsStatement(Node* node) {
+
+    GS_ASSERT_NODE_RULE(node, NodeRule::DEPENDS);
 
     // Check "depends" statement.
     if (!CurrentKeyword(LexerSymbol::DEPENDS)) {
@@ -146,12 +138,12 @@ void Parser::ParseDependsStatement(Node* node) {
         CurrentToken()->string_const));
 
     AdvanceNext();
-    ParseSemicolon(node);
+    ParseSemicolon();
 }
 
 // Checks that current lexeme is a semicolon, such as at the end of a line.
 // Throws: Parser exceptions if current lexeme isn't a semicolon.
-void Parser::ParseSemicolon(Node* node) {
+void Parser::ParseSemicolon() {
 
     // Check for terminating semicolon.
     if (!CurrentSymbol(LexerSymbol::SEMICOLON)) {
@@ -166,7 +158,21 @@ void Parser::ParseSemicolon(Node* node) {
 // inheritance) or static function definitions (non-class functions).
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParseModuleBody(Node* specs_node, Node* functions_node) {
+void Parser::ParseModuleBody(Node* module_node) {
+
+    GS_ASSERT_NODE_RULE(module_node, NodeRule::MODULE);
+
+    Node* specs_node = new Node(
+        NodeRule::SPECS,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+    module_node->AddChild(specs_node);
+
+    Node* functions_node = new Node(
+        NodeRule::FUNCTIONS,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+    module_node->AddChild(functions_node);
 
     // Addresses Github issue #64.
     if (CurrentToken()->type == LexerTokenType::ACCESS_MODIFIER && !has_next()) {
@@ -190,9 +196,11 @@ void Parser::ParseModuleBody(Node* specs_node, Node* functions_node) {
             ParseSpecDefinition(specs_node);
         }
         else {
-            ParseFunction(functions_node);
+            ParseFunction(functions_node, false);
         }
 
+        // TODO: refactor out this grossness. Would do now but it's proving to be
+        // an unneccesary pain.
         if (has_next()) {
             AdvanceNext();
         }
@@ -204,12 +212,15 @@ void Parser::ParseModuleBody(Node* specs_node, Node* functions_node) {
 // public spec MyClassName { .....
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParseSpecDefinition(Node* node) {
+void Parser::ParseSpecDefinition(Node* specs_node) {
+
+    GS_ASSERT_NODE_RULE(specs_node, NodeRule::SPECS);
+
     Node* spec_node = new Node(
         NodeRule::SPEC,
         this->lexer_.current_line_number(),
         this->lexer_.current_column_number());
-    node->AddChild(spec_node);
+    specs_node->AddChild(spec_node);
 
     // Check access modifier.
     if (CurrentToken()->type != LexerTokenType::ACCESS_MODIFIER) {
@@ -241,14 +252,10 @@ void Parser::ParseSpecDefinition(Node* node) {
             STATUS_PARSER_MALFORMED_SPEC_NAME_MISSING);
     }
 
-    spec_node->AddChild(new Node(
-        NodeRule::NAME,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        CurrentToken()->string_const));
+    ParseTypeExpression(spec_node);
 
     // Check for opening curly brace.
-    if (!AdvanceSymbol(LexerSymbol::LBRACE)) {
+    if (!CurrentSymbol(LexerSymbol::LBRACE)) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
@@ -273,7 +280,10 @@ void Parser::ParseSpecDefinition(Node* node) {
 // as properties.
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParseSpecBody(Node* node) {
+void Parser::ParseSpecBody(Node* spec_node) {
+
+    GS_ASSERT_NODE_RULE(spec_node, NodeRule::SPEC);
+
     Node* properties_node = new Node(
         NodeRule::PROPERTIES,
         this->lexer_.current_line_number(),
@@ -283,14 +293,14 @@ void Parser::ParseSpecBody(Node* node) {
         this->lexer_.current_line_number(),
         this->lexer_.current_column_number());
 
-    node->AddChild(functions_node);
-    node->AddChild(properties_node);
+    spec_node->AddChild(functions_node);
+    spec_node->AddChild(properties_node);
 
     // Parse body elements until we reach the closing curly brace.
     while (!AdvanceSymbol(LexerSymbol::RBRACE)) {
         switch (CurrentToken()->type) {
         case LexerTokenType::ACCESS_MODIFIER:
-            ParseFunction(functions_node);
+            ParseFunction(functions_node, true);
             break;
         case LexerTokenType::NAME:
             ParseProperty(properties_node);
@@ -309,12 +319,15 @@ void Parser::ParseSpecBody(Node* node) {
 // int X { public get; concealed set; }
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParseProperty(Node* node) {
+void Parser::ParseProperty(Node* properties_node) {
+
+    GS_ASSERT_NODE_RULE(properties_node, NodeRule::PROPERTIES);
+
     Node* property_node = new Node(
         NodeRule::PROPERTY,
         this->lexer_.current_line_number(),
         this->lexer_.current_column_number());
-    node->AddChild(property_node);
+    properties_node->AddChild(property_node);
 
     // Make sure first token is a TYPE.
     if (CurrentToken()->type != LexerTokenType::NAME) {
@@ -324,14 +337,10 @@ void Parser::ParseProperty(Node* node) {
             STATUS_PARSER_MALFORMED_PROPERTY_TYPE_MISSING);
     }
 
-    property_node->AddChild(new Node(
-        NodeRule::TYPE,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        CurrentToken()->string_const));
+    ParseTypeExpression(property_node);
 
     // Make sure second token is a NAME.
-    if (AdvanceNext()->type != LexerTokenType::NAME) {
+    if (CurrentToken()->type != LexerTokenType::NAME) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
@@ -367,7 +376,10 @@ void Parser::ParseProperty(Node* node) {
 // Parses between the braces of a property definition.
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParsePropertyBody(Node* node) {
+void Parser::ParsePropertyBody(Node* property_node) {
+
+    GS_ASSERT_NODE_RULE(property_node, NodeRule::PROPERTY);
+
     Node* getter_node = new Node(
         NodeRule::PROPERTY_FUNCTION,
         this->lexer_.current_line_number(),
@@ -377,8 +389,8 @@ void Parser::ParsePropertyBody(Node* node) {
         this->lexer_.current_line_number(),
         this->lexer_.current_column_number());
 
-    node->AddChild(getter_node);
-    node->AddChild(setter_node);
+    property_node->AddChild(getter_node);
+    property_node->AddChild(setter_node);
 
     // Giving an error message with the line number of the close brace is pointless
     // so lets save the line numbers of the first line of the property body instead.
@@ -403,6 +415,9 @@ void Parser::ParsePropertyBody(Node* node) {
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
 void Parser::ParsePropertyBodyFunction(Node* getter_node, Node* setter_node) {
+
+    GS_ASSERT_NODE_RULE(getter_node, NodeRule::PROPERTY_FUNCTION);
+    GS_ASSERT_NODE_RULE(setter_node, NodeRule::PROPERTY_FUNCTION);
 
     // If next token is RBRACE, no body function here, return.
     if (CurrentSymbol(LexerSymbol::RBRACE)) {
@@ -463,7 +478,7 @@ void Parser::ParsePropertyBodyFunction(Node* getter_node, Node* setter_node) {
 // public int sqrt(int value) { ...
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParseFunction(Node* node) {
+void Parser::ParseFunction(Node* node, bool in_spec) {
     Node* function_node = new Node(
         NodeRule::FUNCTION,
         this->lexer_.current_line_number(),
@@ -484,46 +499,56 @@ void Parser::ParseFunction(Node* node) {
         this->lexer_.current_column_number(), 
         CurrentToken()->symbol));
 
-    // Check for NATIVE function token.
-    bool native_function = false;
-    if (AdvanceKeyword(LexerSymbol::NATIVE)) {
-        native_function = true;
-        AdvanceNext();
-    }
+    // Check if this is a constructor definition or a function definition.
+    if (AdvanceKeyword(LexerSymbol::CONSTRUCT)) {
 
-    function_node->AddChild(new Node(
-        NodeRule::NATIVE,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        native_function));
+        // Disallow constructors outside of function.
+        if (!in_spec) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_CONSTRUCTOR_OUTSIDE_SPEC);
+        }
 
-    // Check for TYPE for return type.
-    if (CurrentToken()->type != LexerTokenType::NAME) {
-        THROW_EXCEPTION(
+        // Constructor functions are void type.
+        function_node->AddChild(new Node(
+            NodeRule::TYPE,
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
-            STATUS_PARSER_MALFORMED_FUNCTION_MISSING_TYPE);
+            &TYPE_VOID.symbol_name()));
+
+        // Name is mangled to be inaccessible from user code.
+        function_node->AddChild(
+            new Node(NodeRule::NAME,
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                &kConstructorName));
     }
+    else {
+        // Check for TYPE for return type.
+        if (CurrentToken()->type != LexerTokenType::NAME) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_MALFORMED_FUNCTION_MISSING_TYPE);
+        }
 
-    function_node->AddChild(new Node(
-        NodeRule::TYPE, 
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(), 
-        CurrentToken()->string_const));
+        ParseTypeExpression(function_node);
 
-    // Check for NAME symbol type for function name.
-    if (AdvanceNext()->type != LexerTokenType::NAME) {
-        THROW_EXCEPTION(
+        // Check for NAME symbol type for function name.
+        if (CurrentToken()->type != LexerTokenType::NAME) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
+        }
+
+        function_node->AddChild(new Node(
+            NodeRule::NAME,
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
-            STATUS_PARSER_MALFORMED_FUNCTION_MISSING_NAME);
+            CurrentToken()->string_const));
     }
-
-    function_node->AddChild(new Node(
-        NodeRule::NAME,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        CurrentToken()->string_const));
 
     // Check for opening parenthesis for parameters.
     if (!AdvanceSymbol(LexerSymbol::LPAREN)) {
@@ -543,10 +568,7 @@ void Parser::ParseFunction(Node* node) {
             STATUS_PARSER_MALFORMED_FUNCTION_MISSING_RPAREN);
     }
 
-    // If we found a semicolon, function has no body, we're done.
-    if (AdvanceSymbol(LexerSymbol::SEMICOLON)) {
-        return;
-    }
+    AdvanceNext();
 
     ParseBlockStatement(function_node);
 }
@@ -554,12 +576,15 @@ void Parser::ParseFunction(Node* node) {
 // Parses function arguments.
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParseFunctionParameters(Node* node) {
+void Parser::ParseFunctionParameters(Node* function_node) {
+
+    GS_ASSERT_NODE_RULE(function_node, NodeRule::FUNCTION);
+
     Node* parameters_node = new Node(
         NodeRule::FUNCTION_PARAMETERS,
         this->lexer_.current_line_number(),
         this->lexer_.current_column_number());
-    node->AddChild(parameters_node);
+    function_node->AddChild(parameters_node);
 
     // Keep on parsing till we reach the close parenthesis.
     if (!AdvanceSymbol(LexerSymbol::RPAREN)) {
@@ -584,12 +609,15 @@ void Parser::ParseFunctionParameters(Node* node) {
 // Parses a single function parameter.
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
-void Parser::ParseFunctionParameter(Node* node) {
+void Parser::ParseFunctionParameter(Node* parameters_node) {
+
+    GS_ASSERT_NODE_RULE(parameters_node, NodeRule::FUNCTION_PARAMETERS);
+
     Node* parameter_node = new Node(
         NodeRule::FUNCTION_PARAMETER,
         this->lexer_.current_line_number(),
         this->lexer_.current_column_number());
-    node->AddChild(parameter_node);
+    parameters_node->AddChild(parameter_node);
 
     // Check for a parameter TYPE.
     if (CurrentToken()->type != LexerTokenType::NAME) {
@@ -599,14 +627,10 @@ void Parser::ParseFunctionParameter(Node* node) {
             STATUS_PARSER_MALFORMED_FUNCTIONPARAMS_MISSING_TYPE);
     }
 
-    parameter_node->AddChild(new Node(
-        NodeRule::TYPE,
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        CurrentToken()->string_const));
+    ParseTypeExpression(parameter_node);
 
     // Check for a parameter NAME.
-    if (AdvanceNext()->type != LexerTokenType::NAME) {
+    if (CurrentToken()->type != LexerTokenType::NAME) {
         THROW_EXCEPTION(
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number(),
@@ -624,6 +648,9 @@ void Parser::ParseFunctionParameter(Node* node) {
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
 void Parser::ParseBlockStatement(Node* node) {
+
+    GS_ASSERT_FALSE(node == NULL, "NULL node in ParseBlockStatement");
+
     Node* block_node = new Node(
         NodeRule::BLOCK,
         this->lexer_.current_line_number(),
@@ -660,16 +687,31 @@ void Parser::ParseBlockStatement(Node* node) {
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
 void Parser::ParseStatement(Node* node) {
+
+    GS_ASSERT_FALSE(node == NULL, "NULL node in ParseStatement");
+
     switch (CurrentToken()->type) {
     case LexerTokenType::SYMBOL:
-        ParseBlockStatement(node);
-        AdvanceNext();
+        // TODO: do we NEED to allow parenthesis in member expressions?
+        if (CurrentSymbol(LexerSymbol::LBRACE)) {
+            ParseBlockStatement(node);
+            AdvanceNext();
+            break;
+        }
+
+        // else: this may be a parenthesis in a member expression. e.g.: (x).y
+        // and so we fall through to NAME.
+        if (!CurrentSymbol(LexerSymbol::LPAREN)) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_EXPECTED_STATEMENT);
+        }
+    case LexerTokenType::NAME:
+        ParseNameStatement(node);
         break;
     case LexerTokenType::KEYWORD:
         ParseKeywordStatement(node);
-        break;
-    case LexerTokenType::NAME:
-        ParseNameStatement(node);
         break;
     default:
         THROW_EXCEPTION(
@@ -683,15 +725,15 @@ void Parser::ParseStatement(Node* node) {
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
 void Parser::ParseKeywordStatement(Node* node) {
+
+    GS_ASSERT_FALSE(node == NULL, "NULL node in ParseKeywordStatement");
+
     switch (CurrentToken()->symbol) {
     case LexerSymbol::IF:
         ParseIfStatement(node);
         break;
     case LexerSymbol::WHILE:
         ParseWhileStatement(node);
-        break;
-    case LexerSymbol::DO:
-        ParseDoWhileStatement(node);
         break;
     case LexerSymbol::FOR:
         ParseForStatement(node);
@@ -754,7 +796,7 @@ void Parser::ParseIfStatement(Node* node) {
 
 // Parses else or else if statement or returns if neither is given.
 void Parser::ParseElIfStatement(Node* node) {
-    GS_ASSERT_TRUE(node->rule() == NodeRule::IF, "Expected IF token in elif statement parser");
+    GS_ASSERT_NODE_RULE(node, NodeRule::IF);
 
     // Check if an else / else if was provided.
     if (!CurrentKeyword(LexerSymbol::ELSE)) {
@@ -852,13 +894,6 @@ void Parser::ParseWhileStatement(Node* node) {
     AdvanceNext();
 }
 
-void Parser::ParseDoWhileStatement(Node* node) {
-    THROW_EXCEPTION(
-        this->lexer_.current_line_number(),
-        this->lexer_.current_column_number(),
-        STATUS_ILLEGAL_STATE);
-}
-
 // Parses for loop.
 void Parser::ParseForStatement(Node* node) {
     GS_ASSERT_TRUE(CurrentKeyword(LexerSymbol::FOR), "Expected FOR token in for statement parser");
@@ -908,7 +943,7 @@ void Parser::ParseForStatement(Node* node) {
         ParseExpression(init_node);
     }
 
-    ParseSemicolon(for_node);
+    ParseSemicolon();
     AdvanceNext();
 
     // Check for loop condition expression.
@@ -916,7 +951,7 @@ void Parser::ParseForStatement(Node* node) {
         ParseExpression(cond_node);
     }
 
-    ParseSemicolon(for_node);
+    ParseSemicolon();
     AdvanceNext();
 
     // Check for loop update assign expression.
@@ -945,13 +980,8 @@ void Parser::ParseForStatement(Node* node) {
 // is encountered with lexemes or syntax.
 void Parser::ParseReturnStatement(Node* node) {
 
-    // Check for return keyword.
-    if (!CurrentKeyword(LexerSymbol::RETURN)) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_FALSE(node == NULL, "NULL node in ParseReturnStatement");
+    GS_ASSERT_TRUE(CurrentKeyword(LexerSymbol::RETURN), "Expected RETURN in ParseBlockStatement");
 
     Node* return_node = new Node(
         NodeRule::RETURN,
@@ -964,7 +994,7 @@ void Parser::ParseReturnStatement(Node* node) {
         ParseExpression(return_node);
     }
 
-    ParseSemicolon(node);
+    ParseSemicolon();
     AdvanceNext();
 }
 
@@ -974,28 +1004,32 @@ void Parser::ParseReturnStatement(Node* node) {
 // is encountered with lexemes or syntax.
 void Parser::ParseNameStatement(Node* node) {
 
-    // Check for name token type.
-    if (CurrentToken()->type != LexerTokenType::NAME ||
-        NextToken()->type != LexerTokenType::SYMBOL) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_FALSE(node == NULL, "NULL node in ParseNameStatement");
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::NAME ||
+        CurrentSymbol(LexerSymbol::LPAREN),
+        "Expected NAME in ParseNameStatement");
 
-    switch (NextToken()->symbol) {
-    case LexerSymbol::LPAREN:
-        ParseCallStatement(node);
-        break;
-    case LexerSymbol::ASSIGN:
-        ParseAssignStatement(node);
-        break;
-    default:
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
+    // Call the toplevel assign parser. Parser will fall through into subparsers
+    // as necessary until we are left with either a call, an assignment, either by
+    // itself or embedded inside of a member (object dereference) expression.
+    Node* statement_node = ParseAssignExpressionA();
+    node->AddChild(statement_node);
+
+    AdvanceNext();
+
+    // Check that evaulating the expression resulted in either a Call, Assign, or
+    // one of the former as the last item in a member (object dereference) expression.
+    if (statement_node->rule() == NodeRule::CALL ||
+        (statement_node->rule() == NodeRule::MEMBER && 
+            statement_node->child(1)->rule() == NodeRule::CALL) ||
+        statement_node->rule() == NodeRule::ASSIGN) {
+        return;
     }
+    
+    THROW_EXCEPTION(
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number(),
+        STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
 }
 
 // Parses a function call.
@@ -1003,17 +1037,14 @@ void Parser::ParseNameStatement(Node* node) {
 // is encountered with lexemes or syntax.
 void Parser::ParseCallStatement(Node* node) {
 
-    // Check for receiving variable and assign operator.
-    if (CurrentToken()->type != LexerTokenType::NAME ||
-        !NextSymbol(LexerSymbol::LPAREN)) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_FALSE(node == NULL, "NULL node in ParseCallStatement");
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::NAME,
+        "Expected NAME in ParseCallStatement");
+    GS_ASSERT_TRUE(NextSymbol(LexerSymbol::LPAREN),
+        "Expected LPAREN in ParseCallStatement");
 
     node->AddChild(ParseCallExpression());
-    ParseSemicolon(node);
+    ParseSemicolon();
     AdvanceNext();
 }
 
@@ -1022,17 +1053,14 @@ void Parser::ParseCallStatement(Node* node) {
 // is encountered with lexemes or syntax.
 void Parser::ParseAssignStatement(Node* node) {
 
-    // Check for receiving variable and assign operator.
-    if (CurrentToken()->type != LexerTokenType::NAME ||
-        !NextSymbol(LexerSymbol::ASSIGN)) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_FALSE(node == NULL, "NULL node in ParseAssignStatement");
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::NAME,
+        "Expected NAME in ParseAssignStatement");
+    GS_ASSERT_TRUE(NextSymbol(LexerSymbol::ASSIGN),
+        "Expected ASSIGN in ParseAssignStatement");
 
     node->AddChild(ParseAssignExpressionA());
-    ParseSemicolon(node);
+    ParseSemicolon();
     AdvanceNext();
 }
 
@@ -1040,8 +1068,9 @@ void Parser::ParseAssignStatement(Node* node) {
 // Throws: Lexer or Parser exceptions from the respective headers if a problem
 // is encountered with lexemes or syntax.
 void Parser::ParseExpression(Node* node) {
-    // TODO: Implement:
-    // ParseSpecExpression for creating and dereferencing objects.
+
+    GS_ASSERT_FALSE(node == NULL, "NULL node in ParseExpression");
+
     Node* expression_node = new Node(
         NodeRule::EXPRESSION,
         this->lexer_.current_line_number(),
@@ -1058,14 +1087,30 @@ Node* Parser::ParseAssignExpressionA() {
         return ParseAssignExpressionB(ParseVariableExpression());
     }
     else {
-        return ParseOrExpressionA();
+        return ParseOrExpression(ParseAndExpressionA());
     }
 }
 
 Node* Parser::ParseAssignExpressionB(Node* left_operand_node) {
 
+    GS_ASSERT_FALSE(left_operand_node == NULL, "NULL node in ParseAssignExpressionB");
+
     if (CurrentToken()->symbol != LexerSymbol::ASSIGN) {
         return left_operand_node;
+    }
+
+    // Throw if assigning to a member call or expression like so:
+    // this.Foo() <- 3;
+    // or
+    // this.Foo <- this.Foo + 1 <- 3;
+    if ((left_operand_node->rule() == NodeRule::MEMBER &&
+        left_operand_node->child(1)->rule() == NodeRule::CALL) ||
+        (left_operand_node->rule() != NodeRule::SYMBOL &&
+            left_operand_node->rule() != NodeRule::MEMBER)) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);
     }
 
     Node* operation_node = new Node(
@@ -1085,13 +1130,10 @@ Node* Parser::ParseAssignExpressionB(Node* left_operand_node) {
     return operation_node;
 }
 
-Node* Parser::ParseOrExpressionA() {
-    Node* left_operand_node = ParseAndExpressionA();
+Node* Parser::ParseOrExpression(Node* left_operand_node) {
 
-    return ParseOrExpressionB(left_operand_node);
-}
-
-Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
+    GS_ASSERT_FALSE(left_operand_node == NULL,
+        "NULL node in ParseOrExpression");
 
     // Return left operand if this isn't an operation.
     if (CurrentToken()->type != LexerTokenType::SYMBOL) {
@@ -1119,7 +1161,7 @@ Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
 
     Node* parent_node = NULL;
     try {
-        parent_node = ParseOrExpressionB(operation_node);
+        parent_node = ParseOrExpression(operation_node);
     }
     catch (const Exception&) {
         delete parent_node;
@@ -1130,12 +1172,13 @@ Node* Parser::ParseOrExpressionB(Node* left_operand_node) {
 }
 
 Node* Parser::ParseAndExpressionA() {
-    Node* left_operand_node = ParseComparisonExpressionA();
-
-    return ParseAndExpressionB(left_operand_node);
+    return ParseAndExpressionB(ParseComparisonExpressionA());
 }
 
 Node* Parser::ParseAndExpressionB(Node* left_operand_node) {
+
+    GS_ASSERT_FALSE(left_operand_node == NULL,
+        "NULL node in ParseAndExpressionB");
 
     // Return left operand if this isn't an operation.
     if (CurrentToken()->type != LexerTokenType::SYMBOL) {
@@ -1173,12 +1216,13 @@ Node* Parser::ParseAndExpressionB(Node* left_operand_node) {
 }
 
 Node* Parser::ParseComparisonExpressionA() {
-    Node* left_operand_node = ParsePrimaryExpressionA();
-
-    return ParseComparisonExpressionB(left_operand_node);
+    return ParseComparisonExpressionB(ParsePrimaryExpressionA());
 }
 
 Node* Parser::ParseComparisonExpressionB(Node* left_operand_node) {
+
+    GS_ASSERT_FALSE(left_operand_node == NULL,
+        "NULL node in ParseComparisonExpressionB");
 
     // Return left operand if this isn't an operation.
     if (CurrentToken()->type != LexerTokenType::SYMBOL) {
@@ -1246,12 +1290,13 @@ Node* Parser::ParseComparisonExpressionB(Node* left_operand_node) {
 }
 
 Node* Parser::ParsePrimaryExpressionA() {
-    Node* left_operand_node = ParseSecondaryExpressionA();
-
-    return ParsePrimaryExpressionB(left_operand_node);
+    return ParsePrimaryExpressionB(ParseSecondaryExpressionA());
 }
 
 Node* Parser::ParsePrimaryExpressionB(Node* left_operand_node) {
+
+    GS_ASSERT_FALSE(left_operand_node == NULL,
+        "NULL node in ParsePrimaryExpressionB");
 
     // Return left operand if this isn't an operation.
     if (CurrentToken()->type != LexerTokenType::SYMBOL) {
@@ -1295,12 +1340,13 @@ Node* Parser::ParsePrimaryExpressionB(Node* left_operand_node) {
 }
 
 Node* Parser::ParseSecondaryExpressionA() {
-    Node* left_operand_node = ParseTertiaryExpressionA();
-
-    return ParseSecondaryExpressionB(left_operand_node);
+    return ParseSecondaryExpressionB(ParseTertiaryExpressionA());
 }
 
 Node* Parser::ParseSecondaryExpressionB(Node* left_operand_node) {
+
+    GS_ASSERT_FALSE(left_operand_node == NULL,
+        "NULL node in ParseSecondaryExpressionB");
 
     // Return left operand if this isn't an operation.
     if (CurrentToken()->type != LexerTokenType::SYMBOL) {
@@ -1350,12 +1396,13 @@ Node* Parser::ParseSecondaryExpressionB(Node* left_operand_node) {
 }
 
 Node* Parser::ParseTertiaryExpressionA() {
-    Node* left_operand_node = ParseInvertExpression();
-
-    return ParseTertiaryExpressionB(left_operand_node);
+    return ParseTertiaryExpressionB(ParseInvertExpression());
 }
 
 Node* Parser::ParseTertiaryExpressionB(Node* left_operand_node) {
+
+    GS_ASSERT_FALSE(left_operand_node == NULL,
+        "NULL node in ParseTertiaryExpressionB");
 
     // Return left operand if this isn't an operation.
     if (CurrentToken()->type != LexerTokenType::SYMBOL) {
@@ -1371,6 +1418,8 @@ Node* Parser::ParseTertiaryExpressionB(Node* left_operand_node) {
             this->lexer_.current_line_number(),
             this->lexer_.current_column_number());
         break;
+    case LexerSymbol::ASSIGN:
+        return ParseAssignExpressionB(left_operand_node);
     default:
         // Return left operand if this isn't an operation.
         return left_operand_node;
@@ -1387,6 +1436,17 @@ Node* Parser::ParseTertiaryExpressionB(Node* left_operand_node) {
     catch (const Exception&) {
         delete operation_node;
         throw;
+    }
+
+    // Check to make sure that we aren't assigning to a function call.
+    if (operation_node->rule() == NodeRule::ASSIGN &&
+        (operation_node->child(0)->rule() == NodeRule::CALL ||
+        (operation_node->child(0)->rule() == NodeRule::MEMBER &&
+            operation_node->child(0)->child(1)->rule() != NodeRule::SYMBOL))) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_INCOMPLETE_NAME_STATEMENT);;
     }
 
     return parent_node;
@@ -1470,7 +1530,15 @@ Node* Parser::ParseValueExpression() {
     case LexerTokenType::NAME:
         return ParseNamedValueExpression();
     case LexerTokenType::KEYWORD:
-        return ParseBoolConstant();
+        switch (CurrentToken()->symbol)
+        {
+        case LexerSymbol::NEW:
+            return ParseNewExpression();
+        case LexerSymbol::DEFAULT:
+            return ParseDefaultExpression();
+        default:
+            return ParseBoolConstant();
+        }
     case LexerTokenType::INT:
         return ParseIntConstant();
     case LexerTokenType::FLOAT:
@@ -1489,13 +1557,8 @@ Node* Parser::ParseValueExpression() {
 
 Node* Parser::ParseNamedValueExpression() {
 
-    // Check for NAME.
-    if (CurrentToken()->type != LexerTokenType::NAME) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::NAME,
+        "Expected NAME in ParseNamedValueExpression");
 
     if (NextToken()->type != LexerTokenType::SYMBOL) {
         THROW_EXCEPTION(
@@ -1512,44 +1575,81 @@ Node* Parser::ParseNamedValueExpression() {
     }
 }
 
-Node* Parser::ParseMemberNameExpression() {
+// Parses a type expression of the form GenericType<Param1, Param2, ...>
+void Parser::ParseTypeExpression(Node* parent_node) {
 
-    // Check for NAME.
-    if (CurrentToken()->type != LexerTokenType::NAME ||
-        !NextSymbol(LexerSymbol::DOT)) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    // This check is an assert because it is usually done by the caller
+    // for a more specific error message.
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::NAME,
+        "Parser expected NAME in ParseTypeExpression");
 
-    Node* name_node = new Node(
-        NodeRule::NAME,
+    Node* type_node = new Node(
+        NodeRule::TYPE,
         this->lexer_.current_line_number(),
         this->lexer_.current_column_number(),
         CurrentToken()->string_const);
+    parent_node->AddChild(type_node);
 
-    try {
+    // Check for open angle brace <
+    // Type parameters are optional and only required for generic types.
+    // The correctness of these is checked in the SemanticAstWalker.
+    if (NextSymbol(LexerSymbol::LESS)) {
         AdvanceNext();
-    }
-    catch (const Exception&) {
-        delete name_node;
-        throw;
+        AdvanceNext();
+
+        int line = this->lexer_.current_line_number();
+        int column = this->lexer_.current_column_number();
+
+        // Parse a single type argument.
+        std::function<void()> parse_argument_lambda = [this, type_node, line, column]() {
+
+            // Check first param is of type name.
+            if (CurrentToken()->type != LexerTokenType::NAME) {
+                THROW_EXCEPTION(line, column, STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_NAME);
+            }
+
+            // Recursively build tree for type's first param type. Recursion is necessary
+            // for nested generics.
+            // e.g.: List<List<int32>>
+            ParseTypeExpression(type_node);
+        };
+
+        parse_argument_lambda();
+
+        // Parse the 2nd, 3rd, ... type params.
+        while (!CurrentSymbol(LexerSymbol::GREATER)) {
+
+            // Check for comma delimiter.
+            if (!CurrentSymbol(LexerSymbol::COMMA)) {
+                THROW_EXCEPTION(
+                    this->lexer_.current_line_number(),
+                    this->lexer_.current_column_number(),
+                    STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_COMMA);
+            }
+
+            AdvanceNext();
+
+            parse_argument_lambda();
+        }
+
+        // Check for close angle brace >
+        if (!CurrentSymbol(LexerSymbol::GREATER)) {
+            THROW_EXCEPTION(
+                this->lexer_.current_line_number(),
+                this->lexer_.current_column_number(),
+                STATUS_PARSER_MALFORMED_TYPE_PARAM_MISSING_GREATER);
+        }
     }
 
-    return name_node;
+    AdvanceNext();
 }
 
 Node* Parser::ParseCallExpression() {
 
-    // Check for function NAME and LPAREN.
-    if (CurrentToken()->type != LexerTokenType::NAME ||
-        !NextSymbol(LexerSymbol::LPAREN)) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::NAME,
+        "Expected NAME in ParseCallExpression");
+    GS_ASSERT_TRUE(NextSymbol(LexerSymbol::LPAREN),
+        "Expected NAME in ParseCallExpression");
 
     Node* function_node = new Node(
         NodeRule::CALL,
@@ -1584,7 +1684,101 @@ Node* Parser::ParseCallExpression() {
     return function_node;
 }
 
+// Parses a new SpecName() expression.
+Node* Parser::ParseNewExpression() {
+    GS_ASSERT_TRUE(CurrentKeyword(LexerSymbol::NEW), "Expected NEW in ParseNewExpression");
+
+    Node* new_node = new Node(
+        NodeRule::NEW,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+
+    // Check for spec name.
+    if (AdvanceNext()->type != LexerTokenType::NAME) {
+        delete new_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_NAME);
+    }
+
+    ParseTypeExpression(new_node);
+
+    // Check for open parenthesis.
+    if (!CurrentSymbol(LexerSymbol::LPAREN)) {
+        delete new_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_LPAREN);
+    }
+
+    AdvanceNext();
+
+    // Parse params to the new expression.
+    ParseCallParameters(new_node);
+
+    // Check for closing parenthesis.
+    if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+        delete new_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_NEW_EXPRESSION_MISSING_RPAREN);
+    }
+
+    AdvanceNext();
+
+    return new_node;
+}
+
+// Parses a default(symbol) expression.
+Node* Parser::ParseDefaultExpression() {
+    GS_ASSERT_TRUE(CurrentKeyword(LexerSymbol::DEFAULT), "Expected DEFAULT in ParseDefaultExpression");
+
+    Node* default_node = new Node(
+        NodeRule::DEFAULT,
+        this->lexer_.current_line_number(),
+        this->lexer_.current_column_number());
+
+    if (!AdvanceSymbol(LexerSymbol::LPAREN)) {
+        delete default_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_LPAREN);
+    }
+
+    if (AdvanceNext()->type != LexerTokenType::NAME) {
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_TYPE);
+    }
+
+    // Parse params to the default expression.
+    ParseTypeExpression(default_node);
+
+    // Check for closing parenthesis.
+   if (!CurrentSymbol(LexerSymbol::RPAREN)) {
+       delete default_node;
+        THROW_EXCEPTION(
+            this->lexer_.current_line_number(),
+            this->lexer_.current_column_number(),
+            STATUS_PARSER_MALFORMED_DEFAULT_EXPRESSION_MISSING_RPAREN);
+    }
+
+    AdvanceNext();
+
+    return default_node;
+}
+
+
 void Parser::ParseCallParameters(Node* node) {
+
+    // Allow NEW objects as well as CALL object.
+    GS_ASSERT_TRUE(node != NULL, "NULL node in ParseCallParameters");
+
     Node* parameters_node = new Node(
         NodeRule::CALL_PARAMETERS,
         this->lexer_.current_line_number(),
@@ -1614,12 +1808,8 @@ void Parser::ParseCallParameters(Node* node) {
 Node* Parser::ParseVariableExpression() {
 
     // Check for variable name type.
-    if (CurrentToken()->type != LexerTokenType::NAME) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::NAME,
+        "Expected NAME in ParseVariableExpression");
 
     Node* variable_node = new Node(
         NodeRule::SYMBOL,
@@ -1643,12 +1833,8 @@ Node* Parser::ParseVariableExpression() {
 
 Node* Parser::ParseBoolConstant() {
 
-    if (CurrentToken()->type != LexerTokenType::KEYWORD) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::KEYWORD,
+        "KEYWORD Expected in ParseBoolConstant");
 
     LexerSymbol true_false_value = CurrentToken()->symbol;
     AdvanceNext();
@@ -1675,15 +1861,11 @@ Node* Parser::ParseBoolConstant() {
 }
 
 Node* Parser::ParseIntConstant() {
-    long int_const = CurrentToken()->int_const;
 
-    // Check for INT type.
-    if (CurrentToken()->type != LexerTokenType::INT) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::INT,
+        "INT Expected in ParseIntConstant");
+
+    long int_const = CurrentToken()->int_const;
 
     AdvanceNext();
     return new Node(
@@ -1694,15 +1876,11 @@ Node* Parser::ParseIntConstant() {
 }
 
 Node* Parser::ParseFloatConstant() {
-    double float_const = CurrentToken()->float_const;
 
-    // Check for FLOAT type.
-    if (CurrentToken()->type != LexerTokenType::FLOAT) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::FLOAT,
+        "FLOAT Expected in ParseFloatConstant");
+
+    double float_const = CurrentToken()->float_const;
 
     AdvanceNext();
 
@@ -1714,15 +1892,11 @@ Node* Parser::ParseFloatConstant() {
 }
 
 Node* Parser::ParseCharConstant() {
-    char char_const = CurrentToken()->char_const;
 
-    // Check for CHAR type.
-    if (CurrentToken()->type != LexerTokenType::CHAR) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::CHAR,
+        "CHAR Expected in ParseCharConstant");
+
+    char char_const = CurrentToken()->char_const;
 
     AdvanceNext();
 
@@ -1735,13 +1909,8 @@ Node* Parser::ParseCharConstant() {
 
 Node* Parser::ParseStringConstant() {
 
-    // Check for STRING type.
-    if (CurrentToken()->type != LexerTokenType::STRING) {
-        THROW_EXCEPTION(
-            this->lexer_.current_line_number(),
-            this->lexer_.current_column_number(),
-            STATUS_ILLEGAL_STATE);
-    }
+    GS_ASSERT_TRUE(CurrentToken()->type == LexerTokenType::STRING,
+        "STRING Expected in ParseStringConstant");
 
     Node* string_node = new Node(
         NodeRule::STRING,

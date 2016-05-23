@@ -24,16 +24,16 @@ typedef void(*ModuleFunc)();
 // and the NanoJIT code fragment implementing it.
 class ModuleImplSymbol {
 public:
-    ModuleImplSymbol(const std::string& symbol_name, const Symbol* symbol, Fragment* fragment)
+    ModuleImplSymbol(const std::string& symbol_name, const SymbolBase* symbol, Fragment* fragment)
         : symbol_name_(symbol_name), symbol_(symbol), fragment_(fragment) { }
 
     const std::string& symbol_name() const { return symbol_name_; }
-    const Symbol* symbol() const { return symbol_.get(); }
+    const SymbolBase* symbol() const { return symbol_.get(); }
     Fragment* fragment() { return fragment_.get(); }
 
 private:
     const std::string symbol_name_;
-    std::unique_ptr<const Symbol> symbol_;
+    std::unique_ptr<const SymbolBase> symbol_;
     std::unique_ptr<Fragment> fragment_;
 };
 
@@ -42,9 +42,9 @@ class ModuleImpl {
 public:
     ModuleImpl();
 
-    bool compiled() { return compiled_; }
+    bool compiled() const { return compiled_; }
     void set_compiled(bool compiled) { compiled_ = compiled; }
-    bool assembled() { return assembled_; }
+    bool assembled() const { return assembled_; }
     void set_assembled(bool assembled) { assembled_ = assembled; }
     const std::string& module_name() const { return module_name_; }
     void set_module_name(const std::string& module_name) { module_name_ = module_name; }

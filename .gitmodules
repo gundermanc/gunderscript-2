@@ -4,3 +4,6 @@
 [submodule "nanojit"]
 	path = nanojit
 	url = https://github.com/gundermanc/nanojit.git
+[submodule "bdwgc"]
+	path = bdwgc
+	url = https://github.com/ivmai/bdwgc.git

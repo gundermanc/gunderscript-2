@@ -8,11 +8,20 @@
 #include <cassert>
 #include <iostream>
 
-#define GS_ASSERT_TRUE(cond, message) if (!(cond)) { std::cout << std::endl << "  >> ";  assert(cond); std::cout << std::endl << "  >> " << message; }
+#define GS_ASSERT_TRUE(cond, message)                         \
+([](bool condition) {                                         \
+    if (!(condition)) {                                       \
+        std::cout << std::endl << "  >> " << __FILE__;        \
+        std::cout << std::endl << "  >> Line: " << __LINE__;  \
+        std::cout << std::endl << "  >> ";                    \
+        std::cout << message << ": " << #cond << std::endl;   \
+        abort();                                              \
+    }                                                         \
+}(cond))
 
 #define GS_ASSERT_FALSE(cond, message) GS_ASSERT_TRUE(!(cond), message)
 
-#define GS_ASSERT_FAIL(message) GS_ASSERT_FALSE(/* Always Fail */ false, message)
+#define GS_ASSERT_FAIL(message) GS_ASSERT_TRUE(/* Always Fail */ false, message)
 
 #else // _DEBUG
 

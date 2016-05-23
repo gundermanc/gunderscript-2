@@ -13,11 +13,14 @@ include_directories(
     ${nanojit_SOURCE_DIR}/lirasm/VMPI.nj
     ${nanojit_SOURCE_DIR})
 
+include_directories(${gc_SOURCE_DIR}/include)
+
 add_library (
     gunderscript_runtime
+    garbage_collector.cc
     virtual_machine.cc)
 
-target_link_libraries (gunderscript_runtime gunderscript_common)
+target_link_libraries (gunderscript_runtime gunderscript_common gc-lib)
 
 # Generate tests if option enabled.
 if (gunderscript_runtime_tests)
@@ -26,7 +29,8 @@ if (gunderscript_runtime_tests)
         gunderscript_runtime_tests
         control_flow_integrationtest.cc
         primitive_types_integrationtest.cc
-        primitive_typecasts_integrationtest.cc)
+        primitive_typecasts_integrationtest.cc
+        spec_types_integrationtest.cc)
     target_link_libraries(gunderscript_runtime_tests
                           gunderscript_compiler
                           gunderscript_runtime

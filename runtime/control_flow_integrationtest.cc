@@ -146,10 +146,10 @@ TEST(ControlFlowIntegration, ForSquareroot) {
         "iterations <-5;"
         "value <-5.0;"
         "old <-value;"
-        "new <-value;"
+        "new_val <-value;"
         "for (i <-0; i < iterations; i <-i + 1) {"
-        "    new <-old - ((old * old) - value) / (2.0 * old);"
-        "   old <-new;"
+        "    new_val <-old - ((old * old) - value) / (2.0 * old);"
+        "   old <-new_val;"
         "}"
-        "return new;"));
+        "return new_val;"));
 }

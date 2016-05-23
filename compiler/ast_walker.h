@@ -13,12 +13,24 @@
 namespace gunderscript {
 namespace compiler {
 
+// Indicates the PrescanMode to use when walking the AST.
+enum class PrescanMode {
+    // Scan function and property implementations (bodies).
+    SCAN_IMPL_DEF,
+
+    // Scan Spec (class) definitions ONLY.
+    SCAN_SPEC_DEF,
+
+    // Scan Spec Property and Function definitions ONLY.
+    SCAN_PROP_FUNC_DEF
+};
+
 // Class for walking through the Abstract Syntax Tree Structure.
 template<typename ReturnType>
 class AstWalker {
 public:
     AstWalker(Node& root) : root_(root) { }
-  virtual ~AstWalker() { }
+    virtual ~AstWalker() { }
 
     void Walk() { WalkModuleChildren(); }
 
@@ -34,12 +46,12 @@ protected:
     virtual void WalkSpecDeclaration(
         Node* spec_node,
         Node* access_modifier_node,
-        Node* name_node) = 0;
+        Node* type_node,
+        bool prescan) = 0;
     virtual void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,
         Node* access_modifier_node,
-        Node* native_node,
         Node* type_node,
         Node* name_node,
         Node* block_node,
@@ -66,6 +78,23 @@ protected:
         Node* name_node,
         Node* call_node,
         std::vector<ReturnType>& arguments_result) = 0;
+    virtual ReturnType WalkMemberFunctionCall(
+        Node* spec_node,
+        Node* member_node,
+        ReturnType left_result,
+        Node* right_node,
+        std::vector<ReturnType>& arguments_result) = 0;
+    virtual ReturnType WalkMemberPropertyGet(
+        Node* spec_node,
+        Node* member_node,
+        ReturnType left_result,
+        Node* right_node) = 0;
+    virtual ReturnType WalkMemberPropertySet(
+        Node* spec_node,
+        Node* member_node,
+        ReturnType left_result,
+        Node* right_node,
+        ReturnType value_result) = 0;
     virtual void WalkIfStatement(
         Node* spec_node,
         Node* if_node,
@@ -85,7 +114,7 @@ protected:
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
-        ReturnType expression_result,
+        ReturnType* expression_result,
         std::vector<ReturnType>* arguments_result) = 0;
     virtual ReturnType WalkAdd(
         Node* spec_node,
@@ -227,10 +256,10 @@ protected:
         PropertyFunction property_function,
         Node* any_type_node) = 0;
 
-    // Optional Implementation method(s) that are critical for proper operation
+    // Optional Implementation methods that are critical for proper operation
     // of ASTWalker that MAY be optionally overridden by subclasses for increased
     // customization.
-
+    virtual void WalkSpec(Node* spec_node, PrescanMode scan_mode);
     virtual void WalkFunctionChildren(
         Node* spec_node,
         Node* function_node,
@@ -262,14 +291,20 @@ protected:
         PropertyFunction property_function,
         Node* for_node,
         std::vector<ReturnType>* arguments_result);
+    virtual ReturnType WalkNewExpression(
+        Node* new_node,
+        Node* type_node,
+        std::vector<ReturnType>& arguments_result) = 0;
+    virtual ReturnType WalkDefaultExpression(
+        Node* default_node,
+        Node* type_node) = 0;
 
 private:
     Node& root_;
 
     void WalkModuleChildren();
     void WalkModuleDependsChildren(Node* depends_node);
-    void WalkModuleSpecsChildren(Node* specs_node);
-    void WalkSpec(Node* spec_node);
+    void WalkModuleSpecsChildren(Node* specs_node, PrescanMode scan_mode);
     void WalkFunctionsChildren(Node* spec_node, Node* functions_node);
     void WalkFunctionDeclarationParametersChildren(
         Node* spec_node,
@@ -286,10 +321,26 @@ private:
         Node* spec_node,
         Node* property_node,
         bool prescan);
+    void WalkFunctionCallParametersChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* arguments_node,
+        std::vector<ReturnType>& arguments_result);
     ReturnType WalkFunctionCallChildren(
         Node* spec_node,
         Node* function_node,
         Node* call_node);
+    ReturnType WalkMemberChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* property_node,
+        PropertyFunction property_function,
+        Node* member_node);
+    ReturnType WalkNewExpressionChildren(
+        Node* spec_node,
+        Node* function_node,
+        Node* new_node);
+    ReturnType WalkDefaultExpressionChildren(Node* default_node);
     ReturnType WalkAssignChildren(
         Node* spec_node,
         Node* function_node,

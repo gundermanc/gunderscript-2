@@ -83,11 +83,9 @@ TEST(Lexer, LexerWhitespace) {
 TEST_SYMBOL(ASSIGN, "<-", LexerSymbol::ASSIGN);
 TEST_SYMBOL(LESS, "<", LexerSymbol::LESS);
 TEST_SYMBOL(LESSEQUALS, "<=", LexerSymbol::LESSEQUALS);
-TEST_SYMBOL(LSHIFT, "<<", LexerSymbol::LSHIFT);
 TEST_SYMBOL(SWAP, "<->", LexerSymbol::SWAP);
 TEST_SYMBOL(GREATER, ">", LexerSymbol::GREATER);
 TEST_SYMBOL(GREATEREQUALS, ">=", LexerSymbol::GREATEREQUALS);
-TEST_SYMBOL(RSHIFT, ">>", LexerSymbol::RSHIFT);
 TEST_SYMBOL(ADD, "+", LexerSymbol::ADD);
 TEST_SYMBOL(ADDEQUALS, "+=", LexerSymbol::ADDEQUALS);
 TEST_SYMBOL(SUB, "-", LexerSymbol::SUB);
@@ -152,7 +150,11 @@ TEST(Lexer, SequentialSymbols) {
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-    ASSERT_EQ(LexerSymbol::LSHIFT, lexer.current_token()->symbol);
+    ASSERT_EQ(LexerSymbol::LESS, lexer.current_token()->symbol);
+
+    EXPECT_FALSE(lexer.AdvanceNext() == NULL);
+    ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+    ASSERT_EQ(LexerSymbol::LESS, lexer.current_token()->symbol);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -164,7 +166,11 @@ TEST(Lexer, SequentialSymbols) {
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-    ASSERT_EQ(LexerSymbol::RSHIFT, lexer.current_token()->symbol);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
+
+    EXPECT_FALSE(lexer.AdvanceNext() == NULL);
+    ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -253,7 +259,11 @@ TEST(Lexer, MultilineCommentPrePostTokens) {
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-    ASSERT_EQ(LexerSymbol::RSHIFT, lexer.current_token()->symbol);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
+
+    EXPECT_FALSE(lexer.AdvanceNext() == NULL);
+    ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -274,7 +284,11 @@ TEST(Lexer, MultilineCommentWithSecondStart) {
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
-    ASSERT_EQ(LexerSymbol::RSHIFT, lexer.current_token()->symbol);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
+
+    EXPECT_FALSE(lexer.AdvanceNext() == NULL);
+    ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
+    ASSERT_EQ(LexerSymbol::GREATER, lexer.current_token()->symbol);
 
     EXPECT_FALSE(lexer.AdvanceNext() == NULL);
     ASSERT_EQ(LexerTokenType::SYMBOL, lexer.current_token()->type);
@@ -449,16 +463,15 @@ TEST_KEYWORD(FALSE, "false", LexerTokenType::KEYWORD, LexerSymbol::KFALSE);
 TEST_KEYWORD(RETURN, "return", LexerTokenType::KEYWORD, LexerSymbol::RETURN);
 TEST_KEYWORD(GET, "get", LexerTokenType::KEYWORD, LexerSymbol::GET);
 TEST_KEYWORD(SET, "set", LexerTokenType::KEYWORD, LexerSymbol::SET);
-TEST_KEYWORD(CONCEIVE, "conceive", LexerTokenType::KEYWORD, LexerSymbol::CONCEIVE);
-TEST_KEYWORD(ERADICATE, "eradicate", LexerTokenType::KEYWORD, LexerSymbol::ERADICATE);
+TEST_KEYWORD(CONSTRUCT, "construct", LexerTokenType::KEYWORD, LexerSymbol::CONSTRUCT);
 TEST_KEYWORD(START, "start", LexerTokenType::KEYWORD, LexerSymbol::START);
 TEST_KEYWORD(READONLY, "readonly", LexerTokenType::KEYWORD, LexerSymbol::READONLY);
 TEST_KEYWORD(FOR, "for", LexerTokenType::KEYWORD, LexerSymbol::FOR);
 TEST_KEYWORD(BREAK, "break", LexerTokenType::KEYWORD, LexerSymbol::BREAK);
 TEST_KEYWORD(CONTINUE, "continue", LexerTokenType::KEYWORD, LexerSymbol::CONTINUE);
 TEST_KEYWORD(DEPENDS, "depends", LexerTokenType::KEYWORD, LexerSymbol::DEPENDS);
-TEST_KEYWORD(NATIVE, "native", LexerTokenType::KEYWORD, LexerSymbol::NATIVE);
-TEST_KEYWORD(TNULL, "null", LexerTokenType::KEYWORD, LexerSymbol::TNULL);
+TEST_KEYWORD(NEW, "new", LexerTokenType::KEYWORD, LexerSymbol::NEW);
+TEST_KEYWORD(DEFAULT, "default", LexerTokenType::KEYWORD, LexerSymbol::DEFAULT);
 
 TEST(Lexer, ParseIntegers) {
     std::string input = "3433+ 211";

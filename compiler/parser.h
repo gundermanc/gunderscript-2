@@ -9,6 +9,13 @@
 
 #include "lexer.h"
 
+// Debug assertion checks that we have the correct node rule.
+// Not compiled in Release configuration.
+#define GS_ASSERT_NODE_RULE(node, node_rule) \
+    GS_ASSERT_TRUE(((node) != NULL) && ((node)->rule() == (node_rule)), "Null AstWalker node or invalid node rule");
+#define GS_ASSERT_OPTIONAL_NODE_RULE(node, node_rule) \
+    GS_ASSERT_TRUE(((node) == NULL) || ((node)->rule() == (node_rule)), "Invalid AstWalker node rule");
+
 namespace gunderscript {
 namespace compiler {
 
@@ -42,15 +49,15 @@ private:
     void ParsePackageDeclaration(Node* node);
     void ParseDependsStatements(Node* node);
     void ParseDependsStatement(Node* node);
-    void ParseSemicolon(Node* node);
-    void ParseModuleBody(Node* specs_node, Node* functions_node);
-    void ParseSpecDefinition(Node* node);
-    void ParseSpecBody(Node* node);
+    void ParseSemicolon();
+    void ParseModuleBody(Node* module_node);
+    void ParseSpecDefinition(Node* specs_node);
+    void ParseSpecBody(Node* spec_node);
     void ParseProperty(Node* node);
-    void ParsePropertyBody(Node* node);
+    void ParsePropertyBody(Node* property_body);
     void ParsePropertyBodyFunction(Node* getter_node, Node* setter_node);
-    void ParseFunction(Node* node);
-    void ParseFunctionParameters(Node* node);
+    void ParseFunction(Node* node, bool in_spec);
+    void ParseFunctionParameters(Node* function_node);
     void ParseFunctionParameter(Node* node);
     void ParseBlockStatement(Node* node);
     void ParseStatement(Node* node);
@@ -58,7 +65,6 @@ private:
     void ParseIfStatement(Node* node);
     void ParseElIfStatement(Node* node);
     void ParseWhileStatement(Node* node);
-    void ParseDoWhileStatement(Node* node);
     void ParseForStatement(Node* node);
     void ParseReturnStatement(Node* node);
     void ParseNameStatement(Node* node);
@@ -67,8 +73,7 @@ private:
     void ParseExpression(Node* node);
     Node* ParseAssignExpressionA();
     Node* ParseAssignExpressionB(Node* left_operand_node);
-    Node* ParseOrExpressionA();
-    Node* ParseOrExpressionB(Node* left_operand_node);
+    Node* ParseOrExpression(Node* left_operand_node);
     Node* ParseAndExpressionA();
     Node* ParseAndExpressionB(Node* left_operand_node);
     Node* ParseComparisonExpressionA();
@@ -84,7 +89,9 @@ private:
     Node* ParseValueExpression();
     Node* ParseNamedValueExpression();
     Node* ParseCallExpression();
-    Node* ParseMemberNameExpression();
+    Node* ParseNewExpression();
+    Node* ParseDefaultExpression();
+    void ParseTypeExpression(Node* parent_node);
     void ParseCallParameters(Node* node);
     Node* ParseVariableExpression();
     Node* ParseBoolConstant();
@@ -93,6 +100,11 @@ private:
     Node* ParseCharConstant();
     Node* ParseStringConstant();
 };
+
+// Constructor mangled function name.
+const std::string kConstructorName = "%construct%";
+
+const std::string kThisKeyword = "this";
 
 } // namespace library
 } // namespace gunderscript

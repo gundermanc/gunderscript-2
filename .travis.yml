@@ -23,7 +23,6 @@ addons:
     - g++-4.9
 os:
   - linux
-  - osx
 language: cpp
 compiler:
   - gcc

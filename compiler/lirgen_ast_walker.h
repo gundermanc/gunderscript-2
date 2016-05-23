@@ -9,8 +9,9 @@
 
 #include "gunderscript/node.h"
 #include "gunderscript/symbol.h"
-#include "gunderscript/type.h"
 #include "gunderscript/virtual_machine.h"
+
+#include "gs_assert.h"
 
 #include "ast_walker.h"
 #include "moduleimpl.h"
@@ -23,25 +24,17 @@ using namespace nanojit;
 namespace gunderscript {
 namespace compiler {
 
-union RegisterEntry {
-    LIns* ins_;
-    ModuleFunc* func_; // Pointer to a function pointer.
-
-    RegisterEntry(LIns* ins) { ins_ = ins; }
-    RegisterEntry(ModuleFunc* func) { func_ = func; }
-};
-
 // The result of a generation operation.
 class LirGenResult {
 public:
-    LirGenResult(const Type type, LIns* ins) : type_(type), ins_(ins) { }
+    LirGenResult(const SymbolBase* symbol, LIns* ins) : symbol_(symbol), ins_(ins) { }
 
     LIns* ins() { return ins_; }
-    const Type& type() const { return type_; }
+    const SymbolBase* symbol() const { return symbol_; }
 
 private:
     LIns* ins_;
-    const Type type_;
+    const SymbolBase* symbol_;
 };
 
 // LirGenResult checking abstract syntax tree walker.
@@ -70,12 +63,12 @@ protected:
     void WalkSpecDeclaration(
         Node* spec_node,
         Node* access_modifier_node,
-        Node* name_node) { }
+        Node* type_node,
+        bool prescan);
     void WalkFunctionDeclaration(
         Node* spec_node,
         Node* function_node,
         Node* access_modifier_node,
-        Node* native_node,
         Node* type_node,
         Node* name_node,
         Node* block_node,
@@ -102,6 +95,33 @@ protected:
         Node* name_node,
         Node* call_node,
         std::vector<LirGenResult>& arguments_result);
+    LirGenResult WalkFunctionCall(
+        Node* spec_node,
+        Node* name_node,
+        Node* call_node,
+        std::vector<LirGenResult>& arguments_result,
+        LirGenResult* obj_ref_result);
+    LirGenResult WalkFunctionCall(
+        const SymbolBase* call_symbol,
+        std::vector<LirGenResult>& arguments_result,
+        LirGenResult* obj_ref_result);
+    LirGenResult WalkMemberFunctionCall(
+        Node* spec_node,
+        Node* member_node,
+        LirGenResult left_result,
+        Node* right_node,
+        std::vector<LirGenResult>& arguments_result);
+    LirGenResult WalkMemberPropertyGet(
+        Node* spec_node,
+        Node* member_node,
+        LirGenResult left_result,
+        Node* right_node);
+    LirGenResult WalkMemberPropertySet(
+        Node* spec_node,
+        Node* member_node,
+        LirGenResult left_result,
+        Node* right_node,
+        LirGenResult value_result);
     void WalkIfStatement(
         Node* spec_node,
         Node* if_node,
@@ -126,7 +146,7 @@ protected:
         Node* function_node,
         Node* property_node,
         PropertyFunction property_function,
-        LirGenResult expression_result,
+        LirGenResult* expression_result,
         std::vector<LirGenResult>* arguments_result);
     LirGenResult WalkAdd(
         Node* spec_node,
@@ -268,6 +288,7 @@ protected:
         PropertyFunction property_function,
         Node* any_type_node);
 
+    void WalkSpec(Node* spec_node, PrescanMode scan_mode);
     void WalkFunctionChildren(
         Node* spec_node,
         Node* function_node,
@@ -279,7 +300,7 @@ protected:
         PropertyFunction property_function,
         Node* if_node,
         std::vector<LirGenResult>* arguments_result);
-    virtual void WalkForStatementChildren(
+    void WalkForStatementChildren(
         Node* spec_node,
         Node* function_node,
         Node* property_node,
@@ -293,22 +314,39 @@ protected:
         PropertyFunction property_function,
         Node* block,
         std::vector<LirGenResult>* arguments_result);
+    LirGenResult WalkNewExpression(
+        Node* new_node,
+        Node* type_node,
+        std::vector<LirGenResult>& arguments_result);
+    LirGenResult WalkDefaultExpression(
+        Node* default_node,
+        Node* type_node);
 
 private:
-    LIns* EmitLoad(const Type& type, nanojit::LIns* base, int offset);
-    LIns* EmitStore(const Type& type, nanojit::LIns* base, int offset, LIns* value);
+    LIns* EmitLoad(const SymbolBase* symbol, nanojit::LIns* base, int offset);
+    LIns* EmitStore(const SymbolBase* symbol, nanojit::LIns* base, int offset, LIns* value);
     int CountFunctions();
 
     ModuleFunc* func_table_;
     const std::string* module_name_;
-    SymbolTable<std::tuple<Type, RegisterEntry>> register_table_;
+
+    // Registers stored values as a 3-tuple for load/store: Type, Address, Offset.
+    SymbolTable<std::tuple<const SymbolBase*, LIns*, int>> register_table_;
+
+    // Stores the compiled-object sizes of Gunderscript types + and their properties.
+    // Although it'd make more sense to have this as part of the type's Symbol, doing so
+    // would prevent us from using immutable copies as is currently done and it would
+    // introduce cycles into the abstract syntax tree, complicating memory management.
+    std::unordered_map<const std::string, int, std::hash<std::string> > type_size_table_;
     std::vector<ModuleImplSymbol>* symbols_vector_;
     nanojit::Allocator& alloc_;
     nanojit::Fragment* current_fragment_;
     nanojit::Config& config_;
     nanojit::LirBufWriter* current_writer_;
+    nanojit::LIns* this_ptr_;
     int current_function_index_;
     int param_offset_;
+    int property_offset_;
 
     // Sanity check variables.
 #ifdef _DEBUG

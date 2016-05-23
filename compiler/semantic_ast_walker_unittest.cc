@@ -657,19 +657,19 @@ TEST(SemanticAstWalker, AttemptTypeReassignmentStatic) {
     delete root;
 }
 
-TEST(SemanticAstWalker, FunctionsOutOfOrder) {
+TEST(SemanticAstWalker, MemberFunctionsOutOfOrder) {
     // Check to make sure that functions can call one another out of order.
     // This tests the prescan.
     std::string input(
         "package \"Gundersoft\";"
         "public spec Test {"
         "    public int32 X() {"
-        "        Y();"
-        "        X();"
+        "        this.Y();"
+        "        this.X();"
         "    }"
         "    public int32 Y() {"
-        "        Y();"
-        "        X();"
+        "        this.Y();"
+        "        this.X();"
         "    }"
         "}");
     CompilerStringSource source(input);
@@ -940,10 +940,8 @@ TEST(SemanticAstWalker, AddInvalidTypeStatic) {
 TEST(SemanticAstWalker, AddString) {
     std::string input(
         "package \"Gundersoft\";"
-        "public spec Test {"
-        "    public int32 X(string x) {"
-        "        X(\"sfsf\" + \"sfsf\");"
-        "    }"
+        "public int32 X(string x) {"
+        "    X(\"sfsf\" + \"sfsf\");"
         "}");
     CompilerStringSource source(input);
     Lexer lexer(source);
@@ -1361,7 +1359,8 @@ TEST(SemanticAstWalker, FunctionInAssign) {
         "    public int32 X(bool x) {"
         "        foo <- X(true);"
         "    }"
-        "}");
+        "}"
+        "public int32 X(bool x) { }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -1758,7 +1757,8 @@ TEST(SemanticAstWalker, Combined) {
         "    public int32 X(bool x) {"
         "        X( ((-(-1+2) / 3)) > (0 * (4 % -5)) || !(!(3 < 2)) && (4 >= 5) && (1 <= 6));"
         "    }"
-        "}");
+        "}"
+        "public int32 X(bool x) { }");
     CompilerStringSource source(input);
     Lexer lexer(source);
     Parser parser(lexer);
@@ -2327,5 +2327,806 @@ TEST(SemanticAstWalker, UndefinedVariable) {
     SemanticAstWalker semantic_walker(*root);
 
     EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNDEFINED_VARIABLE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, CorrectOutOfOrderSpec) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public Foo NewFoo() { return new Foo(); }"
+        "public spec Foo {"
+        "    public construct() { }"
+        "    public Foo2 NewFoo() { return new Foo2(); }"
+        "}"
+        "public spec Foo2 {"
+        "    public construct() { }"
+        "    public Foo NewFoo() { return new Foo(); }"
+        "}"
+        "public Foo2 NewFoo2() { return new Foo2(); }"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, CorrectOutOfOrderSpecWithGenerics) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public Foo<Foo2<Foo<int32>, bool>> FooFunc() { }"
+        "public spec Foo<T> { }"
+        "public spec Foo2<U, V> { }"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, SpecGenericMissingParam) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public Foo<Foo2<Foo>> FooFunc() { }"
+        "public spec Foo<T> { }"
+        "public spec Foo2<U> { }"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNDEFINED_TYPE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, SpecGenericExtraParam) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public Foo<Foo2<Foo<int32, bool>>> FooFunc() { }"
+        "public spec Foo<T> { }"
+        "public spec Foo2<U> { }"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNDEFINED_TYPE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, SpecGenericParamCollidesWithType) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec T { }"
+        "public spec Foo<T> { }"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, SpecGenericDuplicateParam) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Foo<T, T> { }"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_GENERIC_DUPLICATE_PARAM);
+    delete root;
+}
+
+// Ensures that generic params don't live beyond their specs.
+TEST(SemanticAstWalker, SpecGenericParamLifetime) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Foo<T> { }"
+        "public spec Foo2 { public T Foo() { } }"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNDEFINED_TYPE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, EndToEndNewGenericTestFailure) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Foo<T> {"
+        "    public construct() { }"
+        "}"
+        "public Foo<int32> DoFoo(Foo<bool> x) {"
+        "    y <- new Foo<bool>();"
+        "    return y;"
+        "}"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+    delete root;
+}
+
+TEST(SemanticAstWalker, NestedTypeGenericTestFailure) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Foo<T> {"
+        "    public construct() { }"
+        "}"
+        "public Foo<Foo<int32>> main() {"
+        "    return new Foo<Foo<bool>>();"
+        "}"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+    delete root;
+}
+
+TEST(SemanticAstWalker, InvalidConstructorOverload) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Foo<T> {"
+        "    public construct(int32 x) { }"
+        "}"
+        "public void Foo() { x <- new Foo<int32>(true); }"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_CONSTRUCTOR_OVERLOAD_NOT_FOUND);
+    delete root;
+}
+
+TEST(SemanticAstWalker, EndToEndNewGenericTestPass) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Foo<T, U> {"
+        "    public construct() { }"
+        "    public Foo2<T, U> F1(Foo<T, U> x, Foo2<T, U> y) { }"
+        "    public Foo<T, U> F2(Foo<T, U> x, Foo2<T, U> y) { }"
+        "}"
+        "public spec Foo2<T, U> {"
+        "    public construct() { }"
+        "    public construct(int32 x) { }"
+        "    public Foo2<T, U> F1(Foo<T, U> x, Foo2<T, U> y) { }"
+        "    public Foo<T, U> F2(Foo<T, U> x, Foo2<T, U> y) { }"
+        "}"
+        "public Foo<int32, bool> DoFoo(Foo<int32, bool> x) {"
+        "    y <- new Foo<int32, bool>();"
+        "    x <- new Foo2<int32, bool>();"
+        "    z <- new Foo2<int32, bool>(34);"
+        "    q <- new Foo<Foo<int32, bool>, Foo2<bool, bool>>();"
+        "    return y;"
+        "}"
+        );
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, VoidFunctionCall) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public int32 X(int32 x) {"
+        "       foo(3);"
+        "    }"
+        "}"
+        "public void foo(int32 x) { y <- x; return; }");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, VoidFunctionCallAttemptedReturn) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public int32 X(int32 x) {"
+        "       foo(3);"
+        "    }"
+        "}"
+        "public void foo(int32 x) { y <- x; return x; }");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_IN_VOID);
+    delete root;
+}
+
+TEST(SemanticAstWalker, VoidFunctionCallUsedInReturn) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public int32 X(int32 x) {"
+        "       return foo(3);"
+        "    }"
+        "}"
+        "public void foo(int32 x) {  }");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_VOID_USED_IN_EXPR);
+    delete root;
+}
+
+TEST(SemanticAstWalker, VoidFunctionCallUsedInExpr) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public int32 X(int32 x) {"
+        "       foo(3 + foo(3));"
+        "    }"
+        "}"
+        "public void foo(int32 x) {  }");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_VOID_USED_IN_EXPR);
+    delete root;
+}
+
+TEST(SemanticAstWalker, VoidFunctionCallAttemptedAssign) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public int32 X(int32 x) {"
+        "       x <- foo(3);"
+        "    }"
+        "}"
+        "public void foo(int32 x) {  }");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_VOID_USED_IN_EXPR);
+    delete root;
+}
+
+TEST(SemanticAstWalker, VoidFunctionCallUsedInCast) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public int32 X(int32 x) {"
+        "       x <- int32(foo(3));"
+        "    }"
+        "}"
+        "public void foo(int32 x) {  }");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_VOID_USED_IN_EXPR);
+    delete root;
+}
+
+TEST(SemanticAstWalker, VoidParamType) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public int32 X(void x) {"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_VOID_USED_IN_PARAM);
+    delete root;
+}
+
+TEST(SemanticAstWalker, NewExprNonSpec) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public construct() { }"
+        "    public int32 X() {"
+        "        x <- new int32();"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_CONSTRUCTOR_OVERLOAD_NOT_FOUND);
+    delete root;
+}
+
+TEST(SemanticAstWalker, NewExprInvalidType) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test {"
+        "    public construct() { }"
+        "    public int32 X() {"
+        "        x <- new yolo_type();"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNDEFINED_TYPE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, DefaultExprCorrectUsage) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test<T> {"
+        "    public construct() { }"
+        "    public int32 X() {"
+        "        x <- default(Test<T>);"
+        "        y <- default(Test<int32>);"
+        "        z <- default(int32);"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, DefaultExprInvalidType) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Test<T> {"
+        "    public construct() { }"
+        "    public int32 X() {"
+        "        z <- true;"
+        "        z <- default(int32);"
+        "        "
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_TYPE_MISMATCH_IN_ASSIGN);
+    delete root;
+}
+
+TEST(SemanticAstWalker, FunctionAsType) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public void Foo() { }"
+        "public Foo MyFoo() { }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_UNDEFINED_TYPE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, MemberFunctionCall) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}"
+        "public spec Foo {"
+        "    public construct() { this.X(); }"
+        "    public int32 X() {  return this.X(); }"
+        "}"
+        "public int32 main2() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, MemberFunctionCallInvalidOverload) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}"
+        "public spec Foo {"
+        "    public construct() { this.X(3); }"
+        "    public int32 X() {  return this.X(); }"
+        "}"
+        "public int32 main2() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
+    delete root;
+}
+
+TEST(SemanticAstWalker, MemberFunctionCallInvalidName) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <- new Foo();"
+        "    return x.Y();"
+        "}"
+        "public spec Foo {"
+        "    public construct() { this.X(); }"
+        "    public int32 X() {  return this.X(); }"
+        "}"
+        "public int32 main2() {"
+        "    x <- new Foo();"
+        "    return x.X();"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_FUNCTION_OVERLOAD_NOT_FOUND);
+    delete root;
+}
+
+TEST(SemanticAstWalker, AttemptToAssignThis) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public spec Foo {"
+        "    public construct() { }"
+        "    public int32 X() { return this.X(); }"
+        "}"
+        "public int32 main2() {"
+        "    this <- new Foo();"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_THIS_ASSIGNED);
+    delete root;
+}
+
+TEST(SemanticAstWalker, ValidGetSetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    x.y <-(x.y + 2);"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, ValidGetPropertyWithConcealedSetter) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    return x.y;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} concealed set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, ValidSetPropertyWithConcealedGetter) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    x.y <- 34;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        concealed get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_NO_THROW(semantic_walker.Walk());
+    delete root;
+}
+
+TEST(SemanticAstWalker, InaccessibleSetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    x.y <- 34;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} concealed set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NOT_ACCESSIBLE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, InaccessibleGetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    return x.y;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        concealed get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_NOT_ACCESSIBLE);
+    delete root;
+}
+
+TEST(SemanticAstWalker, NonexistentGetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    return x.yz;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_PROPERTY_NOT_FOUND);
+    delete root;
+}
+
+TEST(SemanticAstWalker, NonExistentSetProperty) {
+    std::string input(
+        "package \"Gundersoft\";"
+        "public int32 main() {"
+        "    x <-new Foo();"
+        "    x.yz <- 1;"
+        "}"
+        "public spec Foo{"
+        "    public construct() { }"
+        "    int32 y{"
+        "        public get{} public set{}"
+        "    }"
+        "}");
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_PROPERTY_NOT_FOUND);
+    delete root;
+}
+
+TEST(SemanticAstWalker, InvalidWhileType) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    while (3) { }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_INVALID_LOOP_CONDITION_TYPE);
+
+    delete root;
+}
+
+TEST(SemanticAstWalker, InvalidWhileReturnType) {
+    std::string input("package \"FooPackage\";"
+        "public int32 main() {"
+        "    while (true) { return false; }"
+        "}");
+
+    CompilerStringSource source(input);
+    Lexer lexer(source);
+    Parser parser(lexer);
+
+    Node* root = parser.Parse();
+    SemanticAstWalker semantic_walker(*root);
+
+    EXPECT_STATUS(semantic_walker.Walk(), STATUS_SEMANTIC_RETURN_TYPE_MISMATCH);
+
     delete root;
 }
